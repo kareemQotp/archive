@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}المستندات{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Search and Filters -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <form class="d-flex" method="GET">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="البحث عن مستند..." 
+                           name="search" value="{{ request.args.get('search', '') }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-4">
+            <div class="d-flex justify-content-end">
+                <div class="btn-group">
+                    <a href="{{ url_for('document.upload') }}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> رفع مستند
+                    </a>
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter"></i> تصفية
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Filters -->
+    {% if request.args.get('type') or request.args.get('tag') %}
+    <div class="mb-4">
+        <h5>التصفيات النشطة:</h5>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if request.args.get('type') %}
+            <span class="badge bg-primary">
+                النوع: {{ request.args.get('type') }}
+                <a href="{{ url_for('document.index', search=request.args.get('search'), tag=request.args.get('tag'), sort=request.args.get('sort')) }}" class="text-white text-decoration-none ms-2">×</a>
+            </span>
+            {% endif %}
+            {% if request.args.get('tag') %}
+            <span class="badge bg-primary">
+                التصنيف: {{ request.args.get('tag') }}
+                <a href="{{ url_for('document.index', search=request.args.get('search'), type=request.args.get('type'), sort=request.args.get('sort')) }}" class="text-white text-decoration-none ms-2">×</a>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Documents Grid -->
+    <div class="row document-grid">
+        {% for document in documents.items %}
+        <div class="col-md-4 col-lg-3 mb-4">
+            <div class="card document-card h-100">
+                {% if document.thumbnail_path %}
+                <img src="{{ url_for('static', filename=document.thumbnail_path) }}" class="card-img-top" alt="{{ document.title }}">
+                {% else %}
+                <div class="card-img-top text-center py-4">
+                    <i class="fas fa-file fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title text-truncate" title="{{ document.title }}">{{ document.title }}</h5>
+                    <p class="card-text small text-muted mb-2">
+                        <i class="fas fa-calendar"></i> {{ document.upload_date.strftime('%Y-%m-%d') }}
+                    </p>
+                    {% if document.tags %}
+                    <div class="mb-2">
+                        {% for tag in document.tag_list %}
+                        <span class="badge bg-secondary">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="btn-group w-100">
+                        <a href="{{ url_for('document.view', id=document.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i> عرض
+                        </a>
+                        <a href="{{ url_for('document.download', id=document.id) }}" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-download"></i> تحميل
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">لا توجد مستندات</h4>
+            <p class="text-muted">قم برفع مستندات جديدة لعرضها هنا</p>
+            <a href="{{ url_for('document.upload') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> رفع مستند
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if documents.pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {{ 'disabled' if not documents.has_prev }}">
+                <a class="page-link" href="{{ url_for('document.index', page=documents.prev_num, search=request.args.get('search'), type=request.args.get('type'), tag=request.args.get('tag'), sort=request.args.get('sort')) }}">السابق</a>
+            </li>
+            {% for page_num in documents.iter_pages() %}
+                {% if page_num %}
+                <li class="page-item {{ 'active' if page_num == documents.page }}">
+                    <a class="page-link" href="{{ url_for('document.index', page=page_num, search=request.args.get('search'), type=request.args.get('type'), tag=request.args.get('tag'), sort=request.args.get('sort')) }}">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {{ 'disabled' if not documents.has_next }}">
+                <a class="page-link" href="{{ url_for('document.index', page=documents.next_num, search=request.args.get('search'), type=request.args.get('type'), tag=request.args.get('tag'), sort=request.args.get('sort')) }}">التالي</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تصفية المستندات</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="GET">
+                <div class="modal-body">
+                    <input type="hidden" name="search" value="{{ request.args.get('search', '') }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">نوع الملف</label>
+                        <select class="form-select" name="type">
+                            <option value="">الكل</option>
+                            <option value="image" {{ 'selected' if request.args.get('type') == 'image' }}>صور</option>
+                            <option value="pdf" {{ 'selected' if request.args.get('type') == 'pdf' }}>PDF</option>
+                            <option value="document" {{ 'selected' if request.args.get('type') == 'document' }}>مستندات</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">التصنيف</label>
+                        <input type="text" class="form-control" name="tag" value="{{ request.args.get('tag', '') }}" list="tagsList">
+                        <datalist id="tagsList">
+                            {% for tag in all_tags %}
+                            <option value="{{ tag }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">الترتيب</label>
+                        <select class="form-select" name="sort">
+                            <option value="newest" {{ 'selected' if request.args.get('sort') == 'newest' }}>الأحدث</option>
+                            <option value="oldest" {{ 'selected' if request.args.get('sort') == 'oldest' }}>الأقدم</option>
+                            <option value="name" {{ 'selected' if request.args.get('sort') == 'name' }}>الاسم</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">تطبيق</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load tags for autocomplete
+    fetch('{{ url_for("document.get_tags") }}')
+        .then(response => response.json())
+        .then(tags => {
+            const datalist = document.getElementById('tagsList');
+            tags.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                datalist.appendChild(option);
+            });
+        });
+});
+</script>
+{% endblock %}

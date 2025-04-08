@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}الملف الشخصي{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center">الملف الشخصي</h3>
+            </div>
+            <div class="card-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form method="POST" action="{{ url_for('auth.profile') }}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">اسم المستخدم</label>
+                                <input type="text" class="form-control" id="username" value="{{ current_user.username }}" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">البريد الإلكتروني</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email or '' }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">الاسم الكامل</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" value="{{ current_user.full_name or '' }}">
+                    </div>
+                    
+                    <hr>
+                    <h4>تغيير كلمة المرور</h4>
+                    
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">كلمة المرور الحالية</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">كلمة المرور الجديدة</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="new_password_confirm" class="form-label">تأكيد كلمة المرور الجديدة</label>
+                                <input type="password" class="form-control" id="new_password_confirm" name="new_password_confirm">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="card-footer">
+                <div class="row">
+                    <div class="col">
+                        <small class="text-muted">آخر تسجيل دخول: {{ current_user.last_login.strftime('%Y-%m-%d %H:%M:%S') if current_user.last_login else 'لم يسجل الدخول بعد' }}</small>
+                    </div>
+                    <div class="col text-end">
+                        <small class="text-muted">تاريخ التسجيل: {{ current_user.created_at.strftime('%Y-%m-%d') }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if current_user.is_admin %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h4 class="mb-0">إحصائيات المستخدم</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>المستندات المرفوعة</h5>
+                        <p class="h2">{{ current_user.documents|length }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>الدور</h5>
+                        <p class="h4">{{ 'مشرف' if current_user.is_admin else 'مستخدم' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('new_password_confirm').addEventListener('input', function() {
+    var password = document.getElementById('new_password').value;
+    var confirm = this.value;
+    
+    if (password !== confirm) {
+        this.setCustomValidity('كلمات المرور غير متطابقة');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}

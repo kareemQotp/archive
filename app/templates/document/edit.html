@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل المستند - {{ document.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">تعديل المستند</h3>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" id="editForm">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">عنوان المستند*</label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   value="{{ document.title }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">وصف المستند</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3">{{ document.description }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">التصنيفات</label>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" id="tagInput" 
+                                       placeholder="أدخل التصنيف واضغط Enter" list="tagsList">
+                                <button class="btn btn-outline-secondary" type="button" onclick="addTag()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <div id="tagList" class="d-flex flex-wrap gap-2">
+                                {% for tag in document.tag_list %}
+                                <span class="badge bg-primary">
+                                    {{ tag }}
+                                    <button type="button" class="btn-close btn-close-white ms-2" 
+                                            onclick="removeTag('{{ tag }}')" aria-label="Remove"></button>
+                                </span>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="tags" id="tagsHidden" value="{{ document.tags }}">
+                            <datalist id="tagsList"></datalist>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">معلومات الملف</label>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file fa-2x text-primary me-3"></i>
+                                        <div>
+                                            <h6 class="mb-1">{{ document.filename }}</h6>
+                                            <small class="text-muted">
+                                                النوع: {{ document.file_type }}<br>
+                                                الحجم: {{ '{:.1f}'.format(document.file_size / 1024 / 1024) }} ميجابايت
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> حفظ التغييرات
+                            </button>
+                            <a href="{{ url_for('document.view', id=document.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Initialize tags from server-side data
+const tags = new Set(JSON.parse('{{ document.tag_list | tojson | safe }}'));
+const tagList = document.getElementById('tagList');
+const tagInput = document.getElementById('tagInput');
+const tagsHidden = document.getElementById('tagsHidden');
+
+function addTag() {
+    const value = tagInput.value.trim();
+    if (value && !tags.has(value)) {
+        tags.add(value);
+        updateTags();
+        tagInput.value = '';
+    }
+}
+
+tagInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        addTag();
+    }
+});
+
+function removeTag(tag) {
+    tags.delete(tag);
+    updateTags();
+}
+
+function updateTags() {
+    tagList.innerHTML = Array.from(tags).map(tag => `
+        <span class="badge bg-primary">
+            ${tag}
+            <button type="button" class="btn-close btn-close-white ms-2" 
+                    onclick="removeTag('${tag}')" aria-label="Remove"></button>
+        </span>
+    `).join('');
+    tagsHidden.value = JSON.stringify(Array.from(tags));
+}
+
+// Load existing tags for autocomplete
+fetch('{{ url_for("document.get_tags") }}')
+    .then(response => response.json())
+    .then(existingTags => {
+        const datalist = document.getElementById('tagsList');
+        existingTags.forEach(tag => {
+            if (!tags.has(tag)) {
+                const option = document.createElement('option');
+                option.value = tag;
+                datalist.appendChild(option);
+            }
+        });
+    });
+
+// Form validation
+document.getElementById('editForm').addEventListener('submit', (e) => {
+    const title = document.getElementById('title').value.trim();
+    if (!title) {
+        e.preventDefault();
+        alert('الرجاء إدخال عنوان للمستند');
+    }
+});
+</script>
+{% endblock %}
