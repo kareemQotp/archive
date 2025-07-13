@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>البحث في الأرشيف</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <!-- Permission-based styling system -->
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    <style>
+        /* Search page specific styles */
+
+        * {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+        }
+
+        .document-result {
+            transition: all 0.3s ease;
+            border-radius: 12px !important;
+        }
+
+        .document-result:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .input-group .form-control {
+            border-radius: 12px 0 0 12px;
+            border: 2px solid transparent;
+        }
+
+        .input-group .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .input-group .btn {
+            border-radius: 0 12px 12px 0;
+        }
+
+        mark.bg-warning {
+            background-color: #fff3cd !important;
+            color: #856404;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.5em 0.75em;
+            border-radius: 6px;
+        }
+
+        .alert {
+            border-radius: 12px;
+            border: none;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-archive me-2"></i>
+                    نظام الأرشيف
+                </a>
+            </div>
+            <div class="navbar-nav ms-auto">
+                <button class="btn btn-outline-danger btn-sm" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    خروج
+                </button>
+            </div>
+        </div>
+    </nav>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card p-4 shadow-lg">
+                    <h3 class="mb-4 text-center">البحث في الوثائق</h3>
+                    
+                    <!-- نموذج البحث الأساسي -->
+                    <form id="searchForm" class="mb-4">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="searchInput" placeholder="ابحث بعنوان أو وصف الوثيقة..." required>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-search me-2"></i>بحث
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- البحث المتقدم (قابل للطي) -->
+                    <div class="mb-4">
+                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearch">
+                            <i class="fas fa-sliders-h me-2"></i>بحث متقدم
+                        </button>
+                        
+                        <div class="collapse mt-3" id="advancedSearch">
+                            <div class="card card-body bg-light">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="categoryFilter" class="form-label">الفئة</label>
+                                        <select class="form-select" id="categoryFilter">
+                                            <option value="">جميع الفئات</option>
+                                            <option value="contracts">عقود</option>
+                                            <option value="reports">تقارير</option>
+                                            <option value="invoices">فواتير</option>
+                                            <option value="letters">رسائل</option>
+                                            <option value="other">أخرى</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="roleFilter" class="form-label">الدور</label>
+                                        <select class="form-select" id="roleFilter">
+                                            <option value="">جميع الأدوار</option>
+                                            <option value="legal">قانوني</option>
+                                            <option value="archive-officer">موظف أرشيف</option>
+                                            <option value="governance">حوكمة</option>
+                                            <option value="collection">تحصيل</option>
+                                            <option value="admin">مدير النظام</option>
+                                            <option value="securitization">توريق</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="dateFilter" class="form-label">تاريخ الرفع</label>
+                                        <select class="form-select" id="dateFilter">
+                                            <option value="">جميع التواريخ</option>
+                                            <option value="today">اليوم</option>
+                                            <option value="week">آخر أسبوع</option>
+                                            <option value="month">آخر شهر</option>
+                                            <option value="year">آخر سنة</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm" id="advancedSearchBtn">
+                                    <i class="fas fa-filter me-2"></i>تطبيق الفلاتر
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- معلومات النتائج -->
+                    <div id="searchInfo" class="mb-3 d-none">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <span id="searchStats"></span>
+                        </small>
+                    </div>
+
+                    <!-- نتائج البحث -->
+                    <div id="searchResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <script src="assets/js/sidebar.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    
+    <script>
+        // Initialize unified auth system
+        let permissionController;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        // Initialize permission controller if available
+                        if (window.UIPermissionController) {
+                            permissionController = new UIPermissionController(unifiedAuth);
+                        }
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Set up auth state listener
+            unifiedAuth.onAuthStateChanged((user) => {
+                handleAuthStateChange(user);
+            });
+
+            // Initialize search functionality
+            initializeSearchSystem();
+        });
+
+        async function handleAuthStateChange(user) {
+            if (!user) {
+                window.location.href = 'login.html?message=session-expired';
+                return;
+            }
+
+            // Allow access for all authenticated users
+            console.log('✅ Search access granted for authenticated user');
+
+            // Update permission-based UI
+            if (permissionController) {
+                permissionController.updateUI();
+            }
+            
+            // Update sidebar with proper role
+            if (window.sidebarManager) {
+                const userRole = unifiedAuth.getCurrentUserRole();
+                window.sidebarManager.updateSidebarNav(true, userRole);
+            }
+        }
+
+        // Enhanced logout function
+        async function logout() {
+            try {
+                await unifiedAuth.signOut();
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('خطأ في تسجيل الخروج:', error);
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Initialize search system
+        function initializeSearchSystem() {
+            // Set up logout button
+            document.getElementById('logoutBtn').onclick = logout;
+            
+            // Set up advanced search button
+            document.getElementById('advancedSearchBtn').onclick = performAdvancedSearch;
+        
+            const searchForm = document.getElementById('searchForm');
+            const searchInput = document.getElementById('searchInput');
+            const searchResults = document.getElementById('searchResults');
+            const searchInfo = document.getElementById('searchInfo');
+            const searchStats = document.getElementById('searchStats');
+            
+            searchForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await performSearch();
+            });
+        }
+
+        // دالة البحث الرئيسية
+        async function performSearch(useAdvancedFilters = false) {
+            const searchInput = document.getElementById('searchInput');
+            const searchResults = document.getElementById('searchResults');
+            const searchInfo = document.getElementById('searchInfo');
+            const searchStats = document.getElementById('searchStats');
+            
+            const query = searchInput.value.trim().toLowerCase();
+            if (!query && !useAdvancedFilters) return;
+            
+            searchResults.innerHTML = '<div class="text-center py-3"><span class="spinner-border"></span> جاري البحث...</div>';
+            searchInfo.classList.add('d-none');
+            
+            try {
+                // Check if user is authenticated
+                const currentUser = unifiedAuth.getCurrentUser();
+                if (!currentUser) {
+                    searchResults.innerHTML = `<div class='alert alert-warning text-center'>
+                        <i class="fas fa-lock me-2"></i>
+                        يجب تسجيل الدخول أولاً للبحث في الوثائق
+                    </div>`;
+                    return;
+                }
+
+                // جلب جميع الوثائق النشطة
+                let documentsQuery = firebase.firestore().collection('documents').where('isActive', '==', true);
+            
+                // تطبيق فلاتر التاريخ إذا كان البحث متقدماً
+                if (useAdvancedFilters) {
+                    documentsQuery = applyDateFilter(documentsQuery);
+                }
+                
+                documentsQuery = documentsQuery.limit(200);
+                const documentsSnapshot = await documentsQuery.get();
+
+                const results = [];
+                const categoryFilter = useAdvancedFilters ? document.getElementById('categoryFilter').value : '';
+                
+                // فلترة النتائج محلياً
+                documentsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    
+                    // تطبيق فلتر الفئة
+                    if (categoryFilter && data.category !== categoryFilter) {
+                        return;
+                    }
+                    
+                    const title = (data.title || '').toLowerCase();
+                    const description = (data.description || '').toLowerCase();
+                    const fileName = (data.fileName || '').toLowerCase();
+                    const tags = data.tags || [];
+                    
+                    // إذا كان البحث متقدماً بدون كلمة بحث، اعرض جميع النتائج المفلترة
+                    if (useAdvancedFilters && !query) {
+                        results.push({
+                            id: doc.id,
+                            data: data,
+                            relevance: 1
+                        });
+                        return;
+                    }
+                    
+                    // البحث في العنوان أو الوصف أو اسم الملف أو العلامات
+                    const matchesTitle = title.includes(query);
+                    const matchesDescription = description.includes(query);
+                    const matchesFileName = fileName.includes(query);
+                    const matchesTags = tags.some(tag => tag.toLowerCase().includes(query));
+                    
+                    if (matchesTitle || matchesDescription || matchesFileName || matchesTags) {
+                        results.push({
+                            id: doc.id,
+                            data: data,
+                            relevance: calculateRelevance(query, title, description, fileName, tags)
+                        });
+                    }
+                });
+
+                // ترتيب النتائج حسب الصلة
+                results.sort((a, b) => b.relevance - a.relevance);
+
+                displayResults(results, query);
+                
+            } catch (error) {
+                console.error('خطأ في البحث:', error);
+                searchResults.innerHTML = `<div class='alert alert-danger text-center'>
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    حدث خطأ أثناء البحث. يرجى المحاولة مرة أخرى.
+                </div>`;
+            }
+        }
+
+        // دالة البحث المتقدم
+        function performAdvancedSearch() {
+            performSearch(true);
+        }        // دالة تطبيق فلتر التاريخ
+        function applyDateFilter(query) {
+            const dateFilter = document.getElementById('dateFilter').value;
+            if (!dateFilter) return query;
+
+            const now = new Date();
+            let startDate;
+
+            switch (dateFilter) {
+                case 'today':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    break;
+                case 'week':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+                    break;
+                default:
+                    return query;
+            }
+
+            return query.where('uploadedAt', '>=', startDate);
+        }
+        
+        // دالة عرض النتائج
+        function displayResults(results, query) {
+            const searchResults = document.getElementById('searchResults');
+            const searchInfo = document.getElementById('searchInfo');
+            const searchStats = document.getElementById('searchStats');
+            
+            let html = '';
+            
+            if (results.length === 0) {
+                html = '<div class="alert alert-warning text-center"><i class="fas fa-search me-2"></i>لا توجد نتائج مطابقة لبحثك</div>';
+                searchInfo.classList.add('d-none');
+            } else {
+                // عرض إحصائيات البحث
+                searchStats.textContent = `تم العثور على ${results.length} نتيجة${results.length > 20 ? ' (عرض أول 20 نتيجة)' : ''}`;
+                searchInfo.classList.remove('d-none');
+                
+                for (const result of results.slice(0, 20)) {
+                    const data = result.data;
+                    const uploadDate = data.uploadedAt ? new Date(data.uploadedAt.toDate()).toLocaleDateString('ar-SA') : 'غير محدد';
+                    const fileSize = data.fileSize ? (data.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'غير محدد';
+                    
+                    // تمييز النص المطابق
+                    const highlightedTitle = query ? highlightText(data.title || 'بدون عنوان', query) : (data.title || 'بدون عنوان');
+                    const highlightedDescription = query ? highlightText(data.description || 'بدون وصف', query) : (data.description || 'بدون وصف');
+                    
+                    html += `
+                        <div class='mb-3 p-3 border rounded bg-light document-result'>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-2">${highlightedTitle}</h5>
+                                    <p class="text-muted mb-2">${highlightedDescription}</p>
+                                    <div class="d-flex gap-3 mb-2 flex-wrap">
+                                        <small class="text-secondary"><i class="fas fa-calendar me-1"></i>${uploadDate}</small>
+                                        <small class="text-secondary"><i class="fas fa-file me-1"></i>${data.fileName || 'غير محدد'}</small>
+                                        <small class="text-secondary"><i class="fas fa-hdd me-1"></i>${fileSize}</small>
+                                        ${data.category ? `<small class="text-secondary"><i class="fas fa-folder me-1"></i>${getCategoryName(data.category)}</small>` : ''}
+                                    </div>
+                                    <div class="mb-2">
+                                        ${data.category ? `<span class="badge bg-primary me-2">${getCategoryName(data.category)}</span>` : ''}
+                                        ${data.tags && data.tags.length > 0 ? data.tags.map(tag => `<span class="badge bg-secondary me-1">${tag}</span>`).join('') : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex gap-2 flex-wrap">
+                                <a href='${data.downloadURL}' target='_blank' class='btn btn-outline-primary btn-sm'>
+                                    <i class='fas fa-download me-1'></i>تحميل
+                                </a>
+                                <a href='${data.downloadURL}' target='_blank' class='btn btn-outline-secondary btn-sm'>
+                                    <i class='fas fa-eye me-1'></i>عرض
+                                </a>
+                                <button class='btn btn-outline-info btn-sm' onclick='copyToClipboard("${data.downloadURL}")'>
+                                    <i class='fas fa-copy me-1'></i>نسخ الرابط
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            searchResults.innerHTML = html;
+        }
+
+        // دالة لحساب صلة النتيجة بالبحث
+        function calculateRelevance(query, title, description, fileName, tags) {
+            let relevance = 0;
+            
+            // العنوان له أولوية أعلى
+            if (title.includes(query)) {
+                relevance += title.startsWith(query) ? 10 : 5;
+            }
+            
+            // الوصف له أولوية متوسطة
+            if (description.includes(query)) {
+                relevance += 3;
+            }
+            
+            // اسم الملف له أولوية متوسطة
+            if (fileName.includes(query)) {
+                relevance += 2;
+            }
+            
+            // العلامات لها أولوية منخفضة
+            tags.forEach(tag => {
+                if (tag.toLowerCase().includes(query)) {
+                    relevance += 1;
+                }
+            });
+            
+            return relevance;
+        }
+
+        // دالة لتمييز النص المطابق
+        function highlightText(text, query) {
+            if (!text || !query) return text;
+            
+            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, '<mark class="bg-warning">$1</mark>');
+        }
+
+        // دالة لنسخ الرابط
+        function copyToClipboard(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                // إظهار تنبيه نجاح
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
+                alert.style.zIndex = '9999';
+                alert.innerHTML = '<i class="fas fa-check me-2"></i>تم نسخ الرابط بنجاح';
+                document.body.appendChild(alert);
+                
+                setTimeout(() => {
+                    alert.remove();
+                }, 3000);
+            }).catch(err => {
+                console.error('خطأ في نسخ الرابط:', err);
+            });
+        }
+
+        // دالة لترجمة أسماء الفئات
+        function getCategoryName(category) {
+            const categories = {
+                'contracts': 'عقود',
+                'reports': 'تقارير',
+                'invoices': 'فواتير',
+                'letters': 'رسائل',
+                'other': 'أخرى'
+            };
+            return categories[category] || category;
+        }
+    </script>
+</body>
+</html>

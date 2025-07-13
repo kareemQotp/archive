@@ -2,298 +2,165 @@
 
 {% block title %}{{ document.title }}{% endblock %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/document-view.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <div class="row">
+<div class="container py-4">
+    <nav aria-label="مسار التنقل" class="mb-4">
+        <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="{{ url_for('document.index') }}">المستندات</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ document.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
         <!-- Document Details -->
-        <div class="col-md-4">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h4 class="mb-0">تفاصيل المستند</h4>
-                </div>
-                <div class="card-body">
-                    <h5 class="card-title">{{ document.title }}</h5>
-                    <p class="text-muted mb-3">{{ document.description or 'لا يوجد وصف' }}</p>
-                    
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">تاريخ الرفع</dt>
-                        <dd class="col-sm-8">{{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}</dd>
-                        
-                        <dt class="col-sm-4">النوع</dt>
-                        <dd class="col-sm-8">{{ document.file_type }}</dd>
-                        
-                        <dt class="col-sm-4">الحجم</dt>
-                        <dd class="col-sm-8">{{ '{:.1f}'.format(document.file_size / 1024 / 1024) }} ميجابايت</dd>
-                        
-                        <dt class="col-sm-4">رفع بواسطة</dt>
-                        <dd class="col-sm-8">{{ document.uploaded_by.username }}</dd>
-                        
-                        {% if document.tags %}
-                        <dt class="col-sm-4">التصنيفات</dt>
-                        <dd class="col-sm-8">
-                            {% for tag in document.tag_list %}
-                            <span class="badge bg-secondary">{{ tag }}</span>
-                            {% endfor %}
-                        </dd>
-                        {% endif %}
-                        
-                        <dt class="col-sm-4">الباركود</dt>
-                        <dd class="col-sm-8">
-                            <code>{{ document.barcode }}</code>
-                            <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
-                                    onclick="printBarcode('{{ document.barcode }}')">
-                                <i class="fas fa-print"></i>
-                            </button>
-                        </dd>
-                    </dl>
-                </div>
-                
-                <div class="card-footer">
-                    <div class="d-grid gap-2">
-                        <a href="#previewContainer" class="btn btn-primary">
-                            <i class="fas fa-eye"></i> عرض المستند
-                        </a>
-                        <a href="{{ url_for('document.download', id=document.id) }}" class="btn btn-outline-success">
-                            <i class="fas fa-download"></i> تحميل المستند
-                        </a>
-                        
-                        {% if current_user.is_admin %}
-                        <a href="{{ url_for('document.manage_permissions', doc_id=document.id) }}" class="btn btn-outline-info">
-                            <i class="fas fa-user-lock"></i> إدارة الصلاحيات
-                        </a>
-                        {% endif %}
-                        
-                        {% if current_user.is_admin or current_user.is_archive_officer %}
-                        <a href="{{ url_for('document.edit', id=document.id) }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-edit"></i> تعديل المستند
-                        </a>
-                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                            <i class="fas fa-trash"></i> حذف المستند
-                        </button>
-                        {% endif %}
+        <div class="col-md-4 order-md-2">
+            <div class="card document-details">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="h5 mb-0">تفاصيل المستند</h2>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('document.download', id=document.id) }}" 
+                               class="btn btn-light" aria-label="تحميل المستند">
+                                <i class="fas fa-download" aria-hidden="true"></i>
+                                <span class="d-none d-sm-inline ms-1">تحميل</span>
+                            </a>
+                            {% if document.user_can_edit(current_user) %}
+                            <a href="{{ url_for('document.edit', id=document.id) }}" 
+                               class="btn btn-light" aria-label="تعديل المستند">
+                                <i class="fas fa-edit" aria-hidden="true"></i>
+                                <span class="d-none d-sm-inline ms-1">تعديل</span>
+                            </a>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Related Documents -->
-            {% if related_documents %}
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="mb-0">مستندات ذات صلة</h4>
+                
+                <div class="card-body">
+                    <h3 class="h5 card-title">{{ document.title }}</h3>
+                    {% if document.description %}
+                    <p class="text-muted mb-3">{{ document.description }}</p>
+                    {% endif %}
+                    
+                    <div class="document-metadata">
+                        <dl>
+                            <div class="document-metadata-item">
+                                <dt>تاريخ الرفع</dt>
+                                <dd>{{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}</dd>
+                            </div>
+                            
+                            <div class="document-metadata-item">
+                                <dt>النوع</dt>
+                                <dd>
+                                    <i class="fas {{ document.get_file_icon() }}" aria-hidden="true"></i>
+                                    <span>{{ document.file_type }}</span>
+                                </dd>
+                            </div>
+                            
+                            <div class="document-metadata-item">
+                                <dt>الحجم</dt>
+                                <dd>{{ '{:.1f}'.format(document.file_size / 1024 / 1024) }} ميجابايت</dd>
+                            </div>
+                            
+                            <div class="document-metadata-item">
+                                <dt>رفع بواسطة</dt>
+                                <dd>{{ document.uploaded_by.username }}</dd>
+                            </div>
+                            
+                            {% if document.tag_list %}
+                            <div class="document-metadata-item">
+                                <dt>التصنيفات</dt>
+                                <dd>
+                                    <div class="tag-list">
+                                        {%- for tag in document.tag_list -%}
+                                        <span class="tag">{{ tag }}</span>
+                                        {%- endfor -%}
+                                    </div>
+                                </dd>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="document-metadata-item">
+                                <dt>الباركود</dt>
+                                <dd>
+                                    <div class="d-flex align-items-center">
+                                        <code>{{ document.barcode }}</code>
+                                        <button type="button" class="btn btn-sm btn-outline-primary ms-2" 
+                                                onclick="printBarcode('{{ document.barcode }}')"
+                                                aria-label="طباعة الباركود">
+                                            <i class="fas fa-print" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    {% if document.barcode_path %}
+                                    <img src="{{ url_for('static', filename=document.barcode_path) }}" 
+                                         alt="باركود المستند" class="barcode-image mt-2">
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
                 </div>
-                <div class="list-group list-group-flush">
-                    {% for related in related_documents %}
-                    <a href="{{ url_for('document.view', id=related.id) }}" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">{{ related.title }}</h6>
-                            <small class="text-muted">{{ related.upload_date.strftime('%Y-%m-%d') }}</small>
-                        </div>
-                        {% if related.tags %}
-                        <div class="mt-1">
-                            {% for tag in related.tag_list[:3] %}
-                            <span class="badge bg-secondary">{{ tag }}</span>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </a>
-                    {% endfor %}
+                
+                {% if current_user.is_admin %}
+                <div class="card-footer bg-light">
+                    <form id="permissionsForm" action="{{ url_for('document.manage_permissions', id=document.id) }}" 
+                          method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <fieldset>
+                            <legend class="h6 mb-3">إدارة الصلاحيات</legend>
+                            <div id="userPermissions" class="user-permissions">
+                                <div class="text-center py-2">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">جاري التحميل...</span>
+                                    </div>
+                                    <span>جاري تحميل المستخدمين...</span>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="fas fa-save" aria-hidden="true"></i>
+                                <span>حفظ الصلاحيات</span>
+                            </button>
+                        </fieldset>
+                    </form>
                 </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
         
         <!-- Document Preview -->
-        <div class="col-md-8">
+        <div class="col-md-8 order-md-1">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">معاينة المستند</h4>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="zoomIn()">
-                            <i class="fas fa-search-plus"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="zoomOut()">
-                            <i class="fas fa-search-minus"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="rotatePreview()">
-                            <i class="fas fa-redo"></i>
-                        </button>
-                    </div>
-                </div>
                 <div class="card-body p-0">
-                    <div class="preview-container" id="previewContainer">
-                        {% if document.file_type.startswith('image/') %}
-                        <img src="{{ url_for('document.download', id=document.id) }}" 
-                             class="preview-content" id="previewContent" alt="{{ document.title }}">
-                        {% elif document.file_type == 'application/pdf' %}
-                        <div id="pdfViewer" class="preview-content">
-                            <canvas id="pdfCanvas"></canvas>
-                            <div class="pdf-controls mt-3">
-                                <button class="btn btn-outline-secondary btn-sm" id="prevPage" disabled>
-                                    <i class="fas fa-chevron-right"></i> السابق
-                                </button>
-                                <span class="mx-2" id="pageInfo">صفحة <span id="currentPage">1</span> من <span id="pageCount">1</span></span>
-                                <button class="btn btn-outline-secondary btn-sm" id="nextPage" disabled>
-                                    التالي <i class="fas fa-chevron-left"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-                        <script>
-                            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                            
-                            let pdfDoc = null;
-                            let pageNum = 1;
-                            let pageRendering = false;
-                            let pageNumPending = null;
-                            const canvas = document.getElementById('pdfCanvas');
-                            const context = canvas.getContext('2d');
-                            
-                            // تحسين دعم النصوص العربية والإنجليزية
-                            context.textAlign = 'right';
-                            context.direction = 'rtl';
-                            context.font = '14px "Noto Sans Arabic", "Noto Sans", Arial';
-                            context.textBaseline = 'middle';
-                            context.textRendering = 'optimizeLegibility';
-                            context.fontKerning = 'normal';
-                            
-                            function renderPage(num) {
-                                pageRendering = true;
-                                pdfDoc.getPage(num).then(function(page) {
-                                    const viewport = page.getViewport({ scale: 1.5 });
-                                    canvas.height = viewport.height;
-                                    canvas.width = viewport.width;
-                                    
-                                    const renderContext = {
-                                        canvasContext: context,
-                                        viewport: viewport,
-                                        enableTextLayer: true,
-                                        textLayerMode: 2,
-                                        renderTextLayer: true,
-                                        useSystemFonts: true,
-                                        disableFontFace: false,
-                                        enhanceTextSelection: true,
-                                        renderInteractiveForms: true,
-                                        enableScripting: false
-                                    };
-                                    
-                                    const renderTask = page.render(renderContext);
-                                    renderTask.promise.then(function() {
-                                        pageRendering = false;
-                                        if (pageNumPending !== null) {
-                                            renderPage(pageNumPending);
-                                            pageNumPending = null;
-                                        }
-                                    });
-                                });
-                                
-                                document.getElementById('currentPage').textContent = num;
-                                document.getElementById('prevPage').disabled = num <= 1;
-                                document.getElementById('nextPage').disabled = num >= pdfDoc.numPages;
-                            }
-                            
-                            function queueRenderPage(num) {
-                                if (pageRendering) {
-                                    pageNumPending = num;
-                                } else {
-                                    renderPage(num);
-                                }
-                            }
-                            
-                            function onPrevPage() {
-                                if (pageNum <= 1) return;
-                                pageNum--;
-                                queueRenderPage(pageNum);
-                            }
-                            
-                            function onNextPage() {
-                                if (pageNum >= pdfDoc.numPages) return;
-                                pageNum++;
-                                queueRenderPage(pageNum);
-                            }
-                            
-                            document.getElementById('prevPage').addEventListener('click', onPrevPage);
-                            document.getElementById('nextPage').addEventListener('click', onNextPage);
-                            
-                            pdfjsLib.getDocument({
-                                url: '{{ url_for('document.download', id=document.id) }}',
-                                cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-                                cMapPacked: true,
-                                standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/',
-                                enableXfa: true,
-                                useSystemFonts: true,
-                                disableRange: false,
-                                disableStream: false,
-                                disableAutoFetch: false,
-                                rangeChunkSize: 65536,
-                                isEvalSupported: true,
-                                useWorkerFetch: true,
-                                maxImageSize: 4096 * 4096,
-                                cMapPacked: true,
-                                standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/',
-                                fontExtraProperties: true
-                            }).promise.then(function(pdf) {
-                                    pdfDoc = pdf;
-                                    document.getElementById('pageCount').textContent = pdf.numPages;
-                                    renderPage(pageNum);
-                                })
-                                .catch(function(error) {
-                                    console.error('Error loading PDF:', error);
-                                    const pdfViewer = document.getElementById('pdfViewer');
-                                    pdfViewer.innerHTML = '<div class="text-center py-5"><i class="fas fa-exclamation-circle fa-4x text-danger mb-3"></i><h5 class="text-muted">حدث خطأ أثناء تحميل الملف</h5></div>';
-                                });
-                            </script>
-                        {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-file fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">لا يمكن معاينة هذا النوع من الملفات</h5>
-                            <p class="text-muted">يمكنك تحميل الملف لعرضه</p>
-                        </div>
-                        {% endif %}
+                    {% if document.file_type.startswith('image/') %}
+                    <div class="document-preview-container">
+                        <img src="{{ url_for('static', filename=document.file_path) }}" 
+                             alt="{{ document.title }}" class="document-preview-image">
                     </div>
+                    {% elif document.file_type == 'application/pdf' %}
+                    <div class="document-preview-container">
+                        <iframe src="{{ url_for('static', filename=document.file_path) }}"
+                                class="document-preview-iframe" 
+                                title="عرض {{ document.title }}"></iframe>
+                    </div>
+                    {% else %}
+                    <div class="document-preview-container text-center">
+                        <div>
+                            <i class="fas {{ document.get_file_icon() }} fa-4x text-muted mb-3" 
+                               aria-hidden="true"></i>
+                            <h4 class="text-muted">لا يمكن معاينة هذا النوع من الملفات</h4>
+                            <p class="text-muted mb-4">يمكنك تحميل الملف لعرضه</p>
+                            <a href="{{ url_for('document.download', id=document.id) }}" 
+                               class="btn btn-primary">
+                                <i class="fas fa-download" aria-hidden="true"></i>
+                                <span>تحميل الملف</span>
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Confirmation Modal -->
-{% if current_user.id == document.uploaded_by_id or current_user.is_admin %}
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">تأكيد الحذف</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>هل أنت متأكد من حذف هذا المستند؟ هذا الإجراء لا يمكن التراجع عنه.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <form action="{{ url_for('document.delete', id=document.id) }}" method="POST" class="d-inline">
-                    <button type="submit" class="btn btn-danger">حذف</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- Barcode Print Modal -->
-<div class="modal fade" id="barcodeModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">طباعة الباركود</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <svg id="barcodeImage"></svg>
-                <p class="mt-2">{{ document.barcode }}</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                <button type="button" class="btn btn-primary" onclick="window.print()">طباعة</button>
             </div>
         </div>
     </div>
@@ -301,92 +168,25 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script src="{{ url_for('static', filename='js/document-view.js') }}"></script>
 <script>
-// Preview controls
-let currentZoom = 1;
-let currentRotation = 0;
-const previewContent = document.getElementById('previewContent');
-
-function zoomIn() {
-    currentZoom = Math.min(currentZoom + 0.1, 3);
-    updatePreview();
-}
-
-function zoomOut() {
-    currentZoom = Math.max(currentZoom - 0.1, 0.5);
-    updatePreview();
-}
-
-function rotatePreview() {
-    currentRotation = (currentRotation + 90) % 360;
-    updatePreview();
-}
-
-function updatePreview() {
-    previewContent.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
-}
-
-// Barcode handling
-function printBarcode(barcode) {
-    const modal = new bootstrap.Modal(document.getElementById('barcodeModal'));
-    JsBarcode("#barcodeImage", barcode, {
-        format: "CODE128",
-        width: 2,
-        height: 100,
-        displayValue: true
+(function() {
+    'use strict';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const viewer = new DocumentViewer();
+        const currentUsers = JSON.parse('{{ document.allowed_users|map(attribute="id")|list|tojson|safe }}');
+        const usersUrl = '{{ url_for("auth.get_documentation_users") }}';
+        const barcodeUrl = '{{ url_for("static", filename=document.barcode_path) if document.barcode_path else "" }}';
+        
+        // Initialize viewer
+        viewer.init(currentUsers, usersUrl);
+        
+        // Set up global print function
+        window.printBarcode = function(barcode) {
+            viewer.printBarcode(barcode, barcodeUrl);
+        };
     });
-    modal.show();
-}
-
-// Print styles
-if (window.matchMedia) {
-    const mediaQueryList = window.matchMedia('print');
-    mediaQueryList.addListener(function(mql) {
-        if (mql.matches) {
-            document.body.classList.add('printing');
-        } else {
-            document.body.classList.remove('printing');
-        }
-    });
-}
+})();
 </script>
-
-<style>
-.preview-container {
-    overflow: auto;
-    max-height: 800px;
-    text-align: center;
-}
-
-.preview-content {
-    max-width: 100%;
-    height: 800px;
-    transition: transform 0.3s ease;
-    transform-origin: center center;
-}
-
-#barcodeImage {
-    max-width: 100%;
-}
-
-#barcodeImage svg {
-    max-width: 100%;
-}
-
-@media print {
-    .no-print {
-        display: none !important;
-    }
-    
-    .preview-container {
-        max-height: none;
-    }
-    
-    .preview-content {
-        max-width: 100% !important;
-        transform: none !important;
-    }
-}
-</style>
 {% endblock %}

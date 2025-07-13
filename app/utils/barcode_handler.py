@@ -6,6 +6,7 @@ from barcode import Code128
 from barcode.writer import ImageWriter
 from typing import Optional, List, Dict, Any
 from PIL import Image
+import base64
 
 def generate_barcode(data: str, output_path: str) -> str:
     """Generate a barcode image from the given data."""
@@ -17,6 +18,28 @@ def generate_barcode(data: str, output_path: str) -> str:
         print(f"Error generating barcode: {e}")
         return ""
 
+def enhance_barcode_image(image: np.ndarray) -> np.ndarray:
+    """Enhance image for better barcode detection."""
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Apply adaptive thresholding
+    thresh = cv2.adaptiveThreshold(
+        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+        cv2.THRESH_BINARY, 11, 2
+    )
+    
+    # Noise reduction
+    denoised = cv2.fastNlMeansDenoising(thresh)
+    
+    # Edge enhancement
+    kernel = np.array([[-1,-1,-1],
+                      [-1, 9,-1],
+                      [-1,-1,-1]])
+    sharpened = cv2.filter2D(denoised, -1, kernel)
+    
+    return sharpened
+
 def scan_barcode_from_image(image_path: str) -> List[Dict[str, Any]]:
     """Scan and decode barcodes from an image file."""
     try:
@@ -25,117 +48,114 @@ def scan_barcode_from_image(image_path: str) -> List[Dict[str, Any]]:
         if image is None:
             raise ValueError("Could not read image file")
         
-        # Convert to grayscale
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # Decode barcodes
-        barcodes = decode(gray)
-        
+        # Try different preprocessing techniques
         results = []
-        for barcode in barcodes:
-            result = {
-                'data': barcode.data.decode('utf-8'),
-                'type': barcode.type,
+        
+        # Try original image
+        barcodes = decode(image)
+        results.extend([{
+            'data': b.data.decode('utf-8'),
+            'type': b.type,
+            'rect': {
+                'left': b.rect.left,
+                'top': b.rect.top,
+                'width': b.rect.width,
+                'height': b.rect.height
+            },
+            'quality': 'high'
+        } for b in barcodes])
+        
+        if not results:
+            # Try enhanced image
+            enhanced = enhance_barcode_image(image)
+            barcodes = decode(enhanced)
+            results.extend([{
+                'data': b.data.decode('utf-8'),
+                'type': b.type,
                 'rect': {
-                    'left': barcode.rect.left,
-                    'top': barcode.rect.top,
-                    'width': barcode.rect.width,
-                    'height': barcode.rect.height
-                }
-            }
-            results.append(result)
+                    'left': b.rect.left,
+                    'top': b.rect.top,
+                    'width': b.rect.width,
+                    'height': b.rect.height
+                },
+                'quality': 'medium'
+            } for b in barcodes])
         
         return results
     except Exception as e:
         print(f"Error scanning barcode: {e}")
         return []
 
-def scan_barcode_from_bytes(image_bytes: bytes) -> List[Dict[str, Any]]:
-    """Scan and decode barcodes from image bytes."""
+def scan_barcode_from_bytes(image_data: str) -> List[Dict[str, Any]]:
+    """Scan and decode barcodes from base64 encoded image data."""
     try:
-        # Convert bytes to numpy array
+        # Remove data URL prefix if present
+        if 'base64,' in image_data:
+            image_data = image_data.split('base64,')[1]
+            
+        # Decode base64 image
+        image_bytes = base64.b64decode(image_data)
         nparr = np.frombuffer(image_bytes, np.uint8)
         image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
         if image is None:
-            raise ValueError("Could not decode image bytes")
+            raise ValueError("Could not decode image data")
         
-        # Convert to grayscale
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # Decode barcodes
-        barcodes = decode(gray)
-        
+        # Try different preprocessing techniques
         results = []
-        for barcode in barcodes:
-            result = {
-                'data': barcode.data.decode('utf-8'),
-                'type': barcode.type,
+        
+        # Try original image
+        barcodes = decode(image)
+        if barcodes:
+            results.extend([{
+                'data': b.data.decode('utf-8'),
+                'type': b.type,
                 'rect': {
-                    'left': barcode.rect.left,
-                    'top': barcode.rect.top,
-                    'width': barcode.rect.width,
-                    'height': barcode.rect.height
-                }
-            }
-            results.append(result)
+                    'left': b.rect.left,
+                    'top': b.rect.top,
+                    'width': b.rect.width,
+                    'height': b.rect.height
+                },
+                'quality': 'high'
+            } for b in barcodes])
+        else:
+            # Try enhanced image
+            enhanced = enhance_barcode_image(image)
+            barcodes = decode(enhanced)
+            results.extend([{
+                'data': b.data.decode('utf-8'),
+                'type': b.type,
+                'rect': {
+                    'left': b.rect.left,
+                    'top': b.rect.top,
+                    'width': b.rect.width,
+                    'height': b.rect.height
+                },
+                'quality': 'medium'
+            } for b in barcodes])
         
         return results
     except Exception as e:
-        print(f"Error scanning barcode: {e}")
+        print(f"Error scanning barcode from bytes: {e}")
         return []
 
-def enhance_barcode_image(image_path: str, output_path: Optional[str] = None) -> Optional[str]:
-    """Enhance image for better barcode detection."""
+def validate_barcode_data(barcode_data: str) -> bool:
+    """Validate barcode data format."""
     try:
-        # Read image
-        image = cv2.imread(image_path)
-        if image is None:
-            raise ValueError("Could not read image file")
-        
-        # Convert to grayscale
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # Apply adaptive thresholding
-        thresh = cv2.adaptiveThreshold(
-            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
-        )
-        
-        # Apply morphological operations
-        kernel = np.ones((3,3), np.uint8)
-        morph = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-        
-        # Save enhanced image
-        if output_path is None:
-            path, ext = os.path.splitext(image_path)
-            output_path = f"{path}_enhanced{ext}"
-            
-        cv2.imwrite(output_path, morph)
-        return output_path
-        
-    except Exception as e:
-        print(f"Error enhancing image: {e}")
-        return None
-
-def validate_barcode(barcode_data: str) -> bool:
-    """Validate barcode data format and checksum."""
-    try:
-        # Remove any whitespace
-        barcode_data = barcode_data.strip()
-        
-        # Check length
-        if len(barcode_data) < 6:
+        # Check if data matches expected format (hash_timestamp)
+        parts = barcode_data.split('_')
+        if len(parts) != 2:
             return False
             
-        # Check if alphanumeric
-        if not barcode_data.isalnum():
+        # Validate hash part (8 characters)
+        if len(parts[0]) != 8 or not all(c in '0123456789abcdef' for c in parts[0].lower()):
             return False
             
-        # Validate Code128 checksum if present
-        if len(barcode_data) > 6 and barcode_data[-1].isdigit():
-            code = Code128(barcode_data[:-1])
-            return code.validate()
+        # Validate timestamp part
+        timestamp = int(parts[1])
+        if timestamp <= 0:
+            return False
             
         return True
-        
-    except Exception:
+    except:
         return False

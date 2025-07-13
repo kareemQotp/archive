@@ -20,6 +20,7 @@
                     {% endwith %}
                     
                     <form method="POST" id="editForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="title" class="form-label">عنوان المستند*</label>
                             <input type="text" class="form-control" id="title" name="title" 
@@ -36,9 +37,12 @@
                             <label class="form-label">التصنيفات</label>
                             <div class="input-group mb-2">
                                 <input type="text" class="form-control" id="tagInput" 
-                                       placeholder="أدخل التصنيف واضغط Enter" list="tagsList">
-                                <button class="btn btn-outline-secondary" type="button" onclick="addTag()">
-                                    <i class="fas fa-plus"></i>
+                                       placeholder="أدخل التصنيف واضغط Enter" list="tagsList"
+                                       aria-label="Enter tag">
+                                <button class="btn btn-outline-secondary" type="button" 
+                                        onclick="addTag()" title="إضافة تصنيف"
+                                        aria-label="Add tag">
+                                    <i class="fas fa-plus" aria-hidden="true"></i>
                                 </button>
                             </div>
                             <div id="tagList" class="d-flex flex-wrap gap-2">
@@ -46,7 +50,7 @@
                                 <span class="badge bg-primary">
                                     {{ tag }}
                                     <button type="button" class="btn-close btn-close-white ms-2" 
-                                            onclick="removeTag('{{ tag }}')" aria-label="Remove"></button>
+                                            onclick="removeTag('{{ tag }}')" aria-label="Remove {{ tag }} tag"></button>
                                 </span>
                                 {% endfor %}
                             </div>
@@ -59,7 +63,7 @@
                             <div class="card">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">
-                                        <i class="fas fa-file fa-2x text-primary me-3"></i>
+                                        <i class="fas fa-file fa-2x text-primary me-3" aria-hidden="true"></i>
                                         <div>
                                             <h6 class="mb-1">{{ document.filename }}</h6>
                                             <small class="text-muted">
@@ -74,10 +78,10 @@
                         
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> حفظ التغييرات
+                                <i class="fas fa-save" aria-hidden="true"></i> حفظ التغييرات
                             </button>
                             <a href="{{ url_for('document.view', id=document.id) }}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> إلغاء
+                                <i class="fas fa-times" aria-hidden="true"></i> إلغاء
                             </a>
                         </div>
                     </form>
@@ -122,25 +126,29 @@ function updateTags() {
         <span class="badge bg-primary">
             ${tag}
             <button type="button" class="btn-close btn-close-white ms-2" 
-                    onclick="removeTag('${tag}')" aria-label="Remove"></button>
+                    onclick="removeTag('${tag}')" aria-label="Remove ${tag} tag"></button>
         </span>
     `).join('');
     tagsHidden.value = JSON.stringify(Array.from(tags));
 }
 
 // Load existing tags for autocomplete
-fetch('{{ url_for("document.get_tags") }}')
-    .then(response => response.json())
-    .then(existingTags => {
-        const datalist = document.getElementById('tagsList');
-        existingTags.forEach(tag => {
-            if (!tags.has(tag)) {
-                const option = document.createElement('option');
-                option.value = tag;
-                datalist.appendChild(option);
-            }
-        });
+fetch('{{ url_for("document.get_tags") }}', {
+    headers: {
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+    }
+})
+.then(response => response.json())
+.then(existingTags => {
+    const datalist = document.getElementById('tagsList');
+    existingTags.forEach(tag => {
+        if (!tags.has(tag)) {
+            const option = document.createElement('option');
+            option.value = tag;
+            datalist.appendChild(option);
+        }
     });
+});
 
 // Form validation
 document.getElementById('editForm').addEventListener('submit', (e) => {

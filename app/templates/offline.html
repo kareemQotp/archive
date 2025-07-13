@@ -1,104 +1,102 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>غير متصل - نظام إدارة الأرشيف</title>
-    
-    <!-- Bootstrap RTL -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="/static/css/style.css" rel="stylesheet">
-    
-    <style>
-        .offline-container {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-        
-        .offline-icon {
-            font-size: 4rem;
-            color: var(--primary-color);
-            margin-bottom: 1rem;
-        }
-        
-        .retry-button {
-            margin-top: 1rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="offline-container">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="card shadow-sm">
-                        <div class="card-body p-5">
-                            <i class="fas fa-wifi-slash offline-icon"></i>
-                            <h1 class="h3 mb-3">أنت غير متصل بالإنترنت</h1>
-                            <p class="text-muted">
-                                يبدو أنك غير متصل بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.
-                            </p>
-                            <div class="cached-content mt-4" style="display: none;">
-                                <hr>
-                                <h2 class="h5 mb-3">المحتوى المتوفر دون اتصال:</h2>
-                                <ul class="list-unstyled" id="cached-pages">
-                                    <!-- Will be populated by JavaScript -->
-                                </ul>
-                            </div>
-                            <button class="btn btn-primary retry-button" onclick="window.location.reload()">
-                                <i class="fas fa-sync-alt"></i>
-                                إعادة المحاولة
-                            </button>
-                        </div>
-                    </div>
+{% extends "base.html" %}
+
+{% block title %}غير متصل بالإنترنت{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center py-5">
+            <i class="fas fa-wifi-slash fa-4x text-muted mb-4"></i>
+            <h1 class="h3 mb-4">لا يوجد اتصال بالإنترنت</h1>
+            <p class="text-muted mb-4">
+                يبدو أنك غير متصل بالإنترنت. يمكنك الاستمرار في استعراض المستندات المحفوظة مسبقاً،
+                ولكن بعض الميزات قد لا تكون متاحة حتى يتم استعادة الاتصال.
+            </p>
+
+            <div class="offline-actions">
+                <button id="retry-connection" class="btn btn-primary mb-3">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    إعادة المحاولة
+                </button>
+
+                <div class="d-grid gap-2">
+                    <a href="/document" class="btn btn-outline-secondary">
+                        <i class="fas fa-folder me-2"></i>
+                        استعراض المستندات المحفوظة
+                    </a>
+                    <a href="/document/upload" class="btn btn-outline-secondary">
+                        <i class="fas fa-upload me-2"></i>
+                        المستندات المعلقة للرفع
+                    </a>
+                </div>
+            </div>
+
+            <div id="sync-status" class="mt-4 d-none">
+                <div class="alert alert-info">
+                    <i class="fas fa-sync fa-spin me-2"></i>
+                    جاري مزامنة البيانات...
                 </div>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        // Check for cached pages
-        if ('caches' in window) {
-            caches.open('archive-v1').then(cache => {
-                cache.keys().then(requests => {
-                    if (requests.length > 0) {
-                        const cachedContent = document.querySelector('.cached-content');
-                        cachedContent.style.display = 'block';
-                        
-                        const cachedPages = document.getElementById('cached-pages');
-                        requests.forEach(request => {
-                            const url = new URL(request.url);
-                            if (url.pathname !== '/offline.html') {
-                                const li = document.createElement('li');
-                                li.innerHTML = `
-                                    <a href="${url.pathname}" class="text-decoration-none">
-                                        <i class="fas fa-file-alt me-2"></i>
-                                        ${url.pathname}
-                                    </a>
-                                `;
-                                cachedPages.appendChild(li);
-                            }
-                        });
-                    }
-                });
-            });
-        }
+{% block scripts %}
+<script type="module">
+    import { network } from '/static/js/modules/core.js';
+    import { eventBus, EVENTS } from '/static/js/modules/events.js';
+    import { toast } from '/static/js/modules/ui.js';
 
-        // Check connection status periodically
-        function checkConnection() {
-            if (navigator.onLine) {
-                window.location.reload();
+    document.addEventListener('DOMContentLoaded', () => {
+        const retryBtn = document.getElementById('retry-connection');
+        const syncStatus = document.getElementById('sync-status');
+
+        // Handle retry button click
+        retryBtn?.addEventListener('click', async () => {
+            retryBtn.disabled = true;
+            
+            try {
+                const isOnline = await network.checkConnectivity();
+                if (isOnline) {
+                    // Show sync status
+                    syncStatus.classList.remove('d-none');
+                    
+                    // Trigger background sync
+                    await network.syncOfflineData();
+                    
+                    // Redirect to home page
+                    window.location.href = '/';
+                } else {
+                    toast.show({
+                        type: 'warning',
+                        title: 'لا يوجد اتصال',
+                        message: 'ما زلت غير متصل بالإنترنت. الرجاء المحاولة لاحقاً.'
+                    });
+                }
+            } catch (error) {
+                console.error('Connection check failed:', error);
+            } finally {
+                retryBtn.disabled = false;
+                syncStatus.classList.add('d-none');
             }
-        }
+        });
 
-        window.addEventListener('online', checkConnection);
-        setInterval(checkConnection, 5000);
-    </script>
-</body>
-</html>
+        // Handle online status changes
+        eventBus.subscribe(EVENTS.NETWORK_CHANGE, ({ isOnline }) => {
+            if (isOnline) {
+                toast.show({
+                    type: 'success',
+                    title: 'متصل',
+                    message: 'تم استعادة الاتصال بالإنترنت'
+                });
+                
+                // Redirect after a short delay
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            }
+        });
+    });
+</script>
+{% endblock %}

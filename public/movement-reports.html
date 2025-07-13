@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقارير حركة الملفات - نظام الأرشيف</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    
+    <style>
+        * {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .main-content {
+            margin-right: 280px;
+            transition: margin-right 0.3s ease;
+            padding: 2rem;
+        }
+
+        .sidebar-collapsed .main-content {
+            margin-right: 0;
+        }
+
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-title {
+            background: linear-gradient(135deg, #fd7e14 0%, #667eea 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 2.5rem;
+        }
+
+        .stats-card {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-primary { color: #17a2b8; }
+        .stats-success { color: #28a745; }
+        .stats-warning { color: #ffc107; }
+        .stats-danger { color: #dc3545; }
+
+        .report-card {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .department-chart {
+            height: 300px;
+            display: flex;
+            align-items: end;
+            justify-content: space-around;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+
+        .chart-bar {
+            width: 40px;
+            background: linear-gradient(to top, #17a2b8, #667eea);
+            border-radius: 4px 4px 0 0;
+            display: flex;
+            align-items: end;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            padding: 0.5rem 0;
+            position: relative;
+        }
+
+        .chart-label {
+            position: absolute;
+            bottom: -30px;
+            font-size: 0.75rem;
+            color: #6c757d;
+            transform: rotate(-45deg);
+            white-space: nowrap;
+        }
+
+        .movement-table {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead {
+            background: linear-gradient(135deg, #17a2b8 0%, #667eea 100%);
+            color: white;
+        }
+
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #17a2b8;
+            box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #fd7e14 0%, #667eea 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(253, 126, 20, 0.4);
+        }
+
+        .badge {
+            border-radius: 50px;
+            padding: 0.5rem 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-right: 0;
+                padding: 1rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .department-chart {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-archive"></i>
+                <span>نظام الأرشيف</span>
+            </div>
+            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="user-info" id="userInfo">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </div>
+        
+        <nav class="sidebar-nav" id="sidebarNav">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </nav>
+    </aside>
+
+    <div class="overlay" id="overlay"></div>
+
+    <main class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="page-title mb-2">تقارير حركة الملفات</h1>
+                    <p class="text-muted mb-0">إحصائيات وتقارير شاملة لحركة الملفات بين الأقسام</p>
+                </div>
+                <button class="btn btn-primary" onclick="exportReport()">
+                    <i class="fas fa-download me-2"></i>
+                    تصدير التقرير
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number stats-primary" id="totalMovements">-</div>
+                    <div class="text-muted">إجمالي الحركات</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number stats-success" id="completedMovements">-</div>
+                    <div class="text-muted">حركات مكتملة</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number stats-warning" id="pendingMovements">-</div>
+                    <div class="text-muted">حركات معلقة</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number stats-danger" id="activeFiles">-</div>
+                    <div class="text-muted">ملفات نشطة</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Department Activity Chart -->
+        <div class="report-card">
+            <h5 class="mb-3">
+                <i class="fas fa-chart-bar me-2"></i>
+                نشاط الأقسام
+            </h5>
+            <div class="department-chart" id="departmentChart">
+                <!-- سيتم ملؤها بـ JavaScript -->
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="report-card">
+            <h5 class="mb-3">
+                <i class="fas fa-filter me-2"></i>
+                فلترة التقارير
+            </h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">من تاريخ</label>
+                    <input type="date" class="form-control" id="fromDate" title="تاريخ البداية">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">إلى تاريخ</label>
+                    <input type="date" class="form-control" id="toDate" title="تاريخ النهاية">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">القسم</label>
+                    <select class="form-control" id="departmentReport" title="اختر القسم">
+                        <option value="">جميع الأقسام</option>
+                        <option value="archive">الأرشيف</option>
+                        <option value="legal">الشؤون القانونية</option>
+                        <option value="governance">الحوكمة والامتثال</option>
+                        <option value="collection">إدارة التحصيل</option>
+                        <option value="securitization">إدارة التوريق</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" onclick="generateReport()">
+                        <i class="fas fa-chart-line me-2"></i>
+                        إنشاء التقرير
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Movements Table -->
+        <div class="report-card">
+            <h5 class="mb-3">
+                <i class="fas fa-list me-2"></i>
+                الحركات الأخيرة
+            </h5>
+            <div class="movement-table">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>رقم الملف</th>
+                            <th>اسم الملف</th>
+                            <th>من</th>
+                            <th>إلى</th>
+                            <th>المستخدم</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movementsTableBody">
+                        <!-- سيتم ملؤها بـ JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        // Initialize unified auth system
+        let permissionController;
+        let currentUser = null;
+        let sidebarManager = null;
+        let reportData = {};
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        // Initialize permission controller if available
+                        if (window.UIPermissionController) {
+                            permissionController = new UIPermissionController(unifiedAuth);
+                        }
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Set up auth state listener
+            unifiedAuth.onAuthStateChanged((user) => {
+                handleAuthStateChange(user);
+            });
+        });
+
+        async function handleAuthStateChange(user) {
+            if (!user) {
+                window.location.href = 'login.html?message=session-expired';
+                return;
+            }
+
+            currentUser = user;
+
+            // Allow access for all authenticated users
+            console.log('✅ Movement reports access granted for authenticated user');
+
+            // Update permission-based UI
+            if (permissionController) {
+                permissionController.updateUI();
+            }
+            
+            // Update sidebar with proper role
+            if (window.sidebarManager) {
+                const userRole = unifiedAuth.getCurrentUserRole();
+                window.sidebarManager.updateSidebarNav(true, userRole);
+            }
+
+            // Initialize the page
+            await initializePage();
+        }
+
+        // Department names
+        const departmentNames = {
+            archive: 'الأرشيف',
+            legal: 'الشؤون القانونية',
+            governance: 'الحوكمة والامتثال',
+            collection: 'إدارة التحصيل',
+            securitization: 'إدارة التوريق'
+        };
+
+        // Status names
+        const statusNames = {
+            in_archive: 'في الأرشيف',
+            transferred: 'تم النقل',
+            received: 'تم الاستلام',
+            in_transit: 'في الطريق'
+        };
+
+        // Remove the old DOMContentLoaded listener - now handled by unified auth system
+        // Initialize default dates when page loads
+        function initializePage() {
+            sidebarManager = new SidebarManager();
+            
+            // Set default dates (last 30 days)
+            const today = new Date();
+            const lastMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('toDate').valueAsDate = today;
+            document.getElementById('fromDate').valueAsDate = lastMonth;
+        }
+
+        // Call initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePage);
+        } else {
+            initializePage();
+        }
+
+        async function loadReportData() {
+            try {
+                await loadMovementStatistics();
+            } catch (error) {
+                console.error('خطأ في تحميل بيانات التقرير:', error);
+                authSystem.logError('report-load-error', error);
+            }
+        }
+
+        async function loadMovementStatistics() {
+            try {
+                // Load movements data
+                const movementsSnapshot = await authSystem.db.collection('file_movements')
+                    .orderBy('timestamp', 'desc')
+                    .limit(100)
+                    .get();
+
+                const movements = [];
+                movementsSnapshot.forEach(doc => {
+                    movements.push({ id: doc.id, ...doc.data() });
+                });
+
+                reportData.movements = movements;
+                updateStatistics();
+                updateDepartmentChart();
+                updateMovementsTable();
+
+            } catch (error) {
+                console.error('خطأ في تحميل بيانات التقارير:', error);
+            }
+        }
+
+        function updateStatistics() {
+            const movements = reportData.movements || [];
+            
+            const totalMovements = movements.length;
+            const completedMovements = movements.filter(m => m.status === 'received').length;
+            const pendingMovements = movements.filter(m => m.status === 'in_transit').length;
+            const activeFiles = new Set(movements.map(m => m.fileNumber)).size;
+
+            document.getElementById('totalMovements').textContent = totalMovements;
+            document.getElementById('completedMovements').textContent = completedMovements;
+            document.getElementById('pendingMovements').textContent = pendingMovements;
+            document.getElementById('activeFiles').textContent = activeFiles;
+        }
+
+        function updateDepartmentChart() {
+            const movements = reportData.movements || [];
+            const departmentStats = {};
+
+            // Initialize departments
+            Object.keys(departmentNames).forEach(dept => {
+                departmentStats[dept] = 0;
+            });
+
+            // Count movements by department
+            movements.forEach(movement => {
+                if (movement.toDepartment && departmentStats.hasOwnProperty(movement.toDepartment)) {
+                    departmentStats[movement.toDepartment]++;
+                }
+            });
+
+            const maxCount = Math.max(...Object.values(departmentStats));
+            const chartContainer = document.getElementById('departmentChart');
+            
+            chartContainer.innerHTML = Object.entries(departmentStats).map(([dept, count]) => {
+                const height = maxCount > 0 ? (count / maxCount) * 200 : 0;
+                return `
+                    <div class="chart-bar" style="height: ${height}px;">
+                        ${count}
+                        <div class="chart-label">${departmentNames[dept]}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateMovementsTable() {
+            const movements = reportData.movements || [];
+            const tableBody = document.getElementById('movementsTableBody');
+            
+            tableBody.innerHTML = movements.slice(0, 20).map(movement => {
+                const statusClass = movement.status === 'received' ? 'success' : 
+                                   movement.status === 'in_transit' ? 'warning' : 'secondary';
+                
+                return `
+                    <tr>
+                        <td>${movement.fileNumber}</td>
+                        <td>${movement.fileName || '-'}</td>
+                        <td>${departmentNames[movement.fromDepartment] || movement.fromDepartment || '-'}</td>
+                        <td>${departmentNames[movement.toDepartment] || movement.toDepartment || '-'}</td>
+                        <td>${movement.userDisplayName || 'غير معروف'}</td>
+                        <td>${movement.timestamp ? new Date(movement.timestamp.toDate()).toLocaleDateString('ar-SA') : '-'}</td>
+                        <td>
+                            <span class="badge bg-${statusClass}">
+                                ${statusNames[movement.status] || movement.status}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function generateReport() {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const department = document.getElementById('departmentReport').value;
+
+            if (!fromDate || !toDate) {
+                alert('يرجى تحديد التواريخ');
+                return;
+            }
+
+            try {
+                let query = authSystem.db.collection('file_movements')
+                    .where('timestamp', '>=', new Date(fromDate))
+                    .where('timestamp', '<=', new Date(toDate + 'T23:59:59'))
+                    .orderBy('timestamp', 'desc');
+
+                if (department) {
+                    query = query.where('toDepartment', '==', department);
+                }
+
+                const snapshot = await query.get();
+                const filteredMovements = [];
+                
+                snapshot.forEach(doc => {
+                    filteredMovements.push({ id: doc.id, ...doc.data() });
+                });
+
+                reportData.movements = filteredMovements;
+                updateStatistics();
+                updateDepartmentChart();
+                updateMovementsTable();
+
+            } catch (error) {
+                console.error('خطأ في إنشاء التقرير:', error);
+                alert('حدث خطأ في إنشاء التقرير');
+            }
+        }
+
+        function exportReport() {
+            const movements = reportData.movements || [];
+            
+            // Create CSV content
+            let csvContent = "رقم الملف,اسم الملف,من,إلى,المستخدم,التاريخ,الحالة,الملاحظات\n";
+            
+            movements.forEach(movement => {
+                const row = [
+                    movement.fileNumber,
+                    movement.fileName || '',
+                    departmentNames[movement.fromDepartment] || movement.fromDepartment || '',
+                    departmentNames[movement.toDepartment] || movement.toDepartment || '',
+                    movement.userDisplayName || '',
+                    movement.timestamp ? new Date(movement.timestamp.toDate()).toLocaleDateString('ar-SA') : '',
+                    statusNames[movement.status] || movement.status,
+                    movement.notes || ''
+                ].map(cell => `"${cell}"`).join(',');
+                
+                csvContent += row + "\n";
+            });
+
+            // Download CSV
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `تقرير_حركة_الملفات_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

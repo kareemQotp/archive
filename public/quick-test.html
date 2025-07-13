@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار سريع - تحميل المكونات</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/test-styles.css">
+</head>
+<body class="bg-light">
+    <div class="container my-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card test-card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">🧪 اختبار سريع لتحميل المكونات</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="loading" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">جاري التحميل...</span>
+                            </div>
+                            <p class="mt-2">جاري فحص المكونات...</p>
+                        </div>
+                        
+                        <div id="results">
+                            <h5>نتائج الفحص:</h5>
+                            <div id="component-status"></div>
+                            
+                            <hr>
+                            
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" id="testAuth">اختبار المصادقة</button>
+                                <button class="btn btn-secondary" id="testPermissions">اختبار الصلاحيات</button>
+                                <button class="btn btn-success" id="testNotifications">اختبار الإشعارات</button>
+                                <button class="btn btn-info" id="testAnalytics">اختبار التحليلات</button>
+                                <button class="btn btn-warning" id="testDataManager">اختبار مدير البيانات</button>
+                                <button class="btn btn-danger" id="testFirebase">اختبار Firebase Messaging</button>
+                            </div>
+                        </div>
+                        
+                        <div id="test-output" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js"></script>
+    
+    <!-- Firebase Initialization -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <!-- Scripts -->
+    <script src="assets/js/emergency-fix.js"></script>
+    <script src="assets/js/script-loader.js"></script>
+    <script src="assets/js/app-config.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/cloud-services.js"></script>
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/notifications.js"></script>
+    <script src="assets/js/data-manager.js"></script>
+    <script src="assets/js/analytics.js"></script>
+
+    <script>
+        async function runQuickTest() {
+            const loadingDiv = document.getElementById('loading');
+            const resultsDiv = document.getElementById('results');
+            const statusDiv = document.getElementById('component-status');
+            const outputDiv = document.getElementById('test-output');
+
+            try {
+                // انتظار تحميل Firebase أولاً
+                let attempts = 0;
+                while ((typeof firebase === 'undefined' || !window.auth) && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase غير محمل');
+                }
+
+                // انتظار تحميل script loader
+                attempts = 0;
+                while (!window.ensureScriptsLoaded && attempts < 30) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (!window.ensureScriptsLoaded) {
+                    console.warn('Script loader غير متاح، المتابعة بدون تحميل إضافي');
+                } else {
+                    // Load scripts
+                    console.log('🔄 بدء تحميل المكونات...');
+                    const verification = await window.ensureScriptsLoaded();
+                }
+
+                // انتظار تحميل unifiedAuth
+                attempts = 0;
+                while (!window.unifiedAuth && attempts < 30) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                // Check components
+                const components = [
+                    { name: 'Firebase App', key: 'firebase', global: 'firebase' },
+                    { name: 'نظام المصادقة الموحد', key: 'unifiedAuth', global: 'unifiedAuth' },
+                    { name: 'خدمات السحابة', key: 'NotificationService', global: 'NotificationService' },
+                    { name: 'إعدادات التطبيق', key: 'APP_CONFIG', global: 'APP_CONFIG' },
+                    { name: 'أدوار المستخدمين', key: 'USER_ROLES', global: 'USER_ROLES' },
+                    { name: 'نظام الإشعارات', key: 'notify', global: 'notify' },
+                    { name: 'مدير البيانات', key: 'dataManager', global: 'dataManager' },
+                    { name: 'نظام التحليلات', key: 'analytics', global: 'analytics' }
+                ];
+
+                let html = '<div class="row">';
+                
+                components.forEach(component => {
+                    const exists = window[component.global] !== undefined;
+                    const statusClass = exists ? 'status-success' : 'status-error';
+                    const icon = exists ? 'fas fa-check-circle' : 'fas fa-times-circle';
+                    const status = exists ? 'محمل' : 'غير محمل';
+                    
+                    html += `
+                        <div class="col-md-6 mb-2">
+                            <div class="d-flex align-items-center">
+                                <i class="${icon} ${statusClass} me-2"></i>
+                                <span>${component.name}: <strong class="${statusClass}">${status}</strong></span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                statusDiv.innerHTML = html;
+
+                // Hide loading, show results
+                loadingDiv.style.display = 'none';
+                resultsDiv.style.display = 'block';
+
+                // Set up test buttons
+                setupTestButtons(outputDiv);
+
+                console.log('✅ اكتمل الفحص السريع');
+
+            } catch (error) {
+                console.error('❌ خطأ في الفحص:', error);
+                
+                loadingDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>خطأ في التحميل:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function setupTestButtons(outputDiv) {
+            // Test authentication
+            document.getElementById('testAuth').addEventListener('click', async () => {
+                if (window.unifiedAuth) {
+                    try {
+                        const currentUser = await window.unifiedAuth.getCurrentUser();
+                        const userRole = await window.unifiedAuth.getCurrentUserRole();
+                        
+                        outputDiv.innerHTML += `
+                            <div class="alert alert-success">
+                                ✅ نظام المصادقة يعمل<br>
+                                <small>المستخدم: ${currentUser ? currentUser.email : 'غير مسجل دخول'}</small><br>
+                                <small>الدور: ${userRole || 'غير محدد'}</small>
+                            </div>
+                        `;
+                    } catch (error) {
+                        outputDiv.innerHTML += `<div class="alert alert-danger">❌ خطأ في المصادقة: ${error.message}</div>`;
+                    }
+                } else {
+                    outputDiv.innerHTML += '<div class="alert alert-danger">❌ نظام المصادقة الموحد غير متاح</div>';
+                }
+            });
+
+            // Test permissions
+            document.getElementById('testPermissions').addEventListener('click', async () => {
+                if (window.unifiedAuth) {
+                    try {
+                        const permissions = await window.unifiedAuth.loadUserPermissions();
+                        const canUpload = await window.unifiedAuth.hasPermission('files.create');
+                        const canManage = await window.unifiedAuth.hasPermission('admin.manage');
+                        
+                        outputDiv.innerHTML += `
+                            <div class="alert alert-info">
+                                ℹ️ اختبار الصلاحيات<br>
+                                <small>رفع الملفات: ${canUpload ? '✅ مسموح' : '❌ غير مسموح'}</small><br>
+                                <small>إدارة النظام: ${canManage ? '✅ مسموح' : '❌ غير مسموح'}</small><br>
+                                <small>إجمالي الصلاحيات: ${Object.keys(permissions).length}</small>
+                            </div>
+                        `;
+                    } catch (error) {
+                        outputDiv.innerHTML += `<div class="alert alert-danger">❌ خطأ في الصلاحيات: ${error.message}</div>`;
+                    }
+                } else {
+                    outputDiv.innerHTML += '<div class="alert alert-danger">❌ نظام الصلاحيات غير متاح</div>';
+                }
+            });
+
+            // Test Firebase messaging
+            document.getElementById('testFirebase').addEventListener('click', () => {
+                if (window.NotificationService) {
+                    try {
+                        const service = new window.NotificationService();
+                        outputDiv.innerHTML += `
+                            <div class="alert alert-success">
+                                ✅ خدمة Firebase Messaging متاحة<br>
+                                <small>الحالة: ${service.messaging ? 'نشط' : 'غير نشط'}</small>
+                            </div>
+                        `;
+                    } catch (error) {
+                        outputDiv.innerHTML += `<div class="alert alert-warning">⚠️ Firebase Messaging: ${error.message}</div>`;
+                    }
+                } else {
+                    outputDiv.innerHTML += '<div class="alert alert-danger">❌ خدمة الإشعارات غير متاحة</div>';
+                }
+            });
+
+            // Test notifications
+            document.getElementById('testNotifications').addEventListener('click', () => {
+                if (window.notify) {
+                    window.notify.success('اختبار ناجح', 'نظام الإشعارات يعمل بشكل صحيح!');
+                    window.notify.info('معلومات', 'هذا إشعار معلوماتي');
+                    outputDiv.innerHTML += '<div class="alert alert-success">✅ تم اختبار نظام الإشعارات بنجاح</div>';
+                } else {
+                    outputDiv.innerHTML += '<div class="alert alert-danger">❌ نظام الإشعارات غير متاح</div>';
+                }
+            });
+
+            // Test analytics
+            document.getElementById('testAnalytics').addEventListener('click', () => {
+                if (window.analytics) {
+                    window.analytics.trackEvent('Test', 'quick-test', 'analytics-test');
+                    const report = window.analytics.generateReport(1);
+                    outputDiv.innerHTML += `
+                        <div class="alert alert-info">
+                            ℹ️ تم اختبار نظام التحليلات<br>
+                            <small>الأحداث: ${report.summary.totalEvents || 0}</small>
+                        </div>
+                    `;
+                } else {
+                    outputDiv.innerHTML += '<div class="alert alert-danger">❌ نظام التحليلات غير متاح</div>';
+                }
+            });
+
+            // Test data manager
+            document.getElementById('testDataManager').addEventListener('click', () => {
+                if (window.dataManager) {
+                    const stats = window.dataManager.getCacheStats();
+                    window.dataManager.addToSyncQueue({
+                        type: 'test',
+                        data: { message: 'اختبار مدير البيانات' },
+                        timestamp: Date.now()
+                    });
+                    
+                    outputDiv.innerHTML += `
+                        <div class="alert alert-warning">
+                            ⚠️ تم اختبار مدير البيانات<br>
+                            <small>حالة الاتصال: ${stats.isOnline ? 'متصل' : 'غير متصل'}</small><br>
+                            <small>حجم التخزين المؤقت: ${stats.size}</small>
+                        </div>
+                    `;
+                } else {
+                    outputDiv.innerHTML += '<div class="alert alert-danger">❌ مدير البيانات غير متاح</div>';
+                }
+            });
+        }
+
+        // Start the test when page loads
+        window.addEventListener('load', () => {
+            setTimeout(runQuickTest, 500);
+        });
+    </script>
+</body>
+</html>

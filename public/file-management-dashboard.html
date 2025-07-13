@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة تتبع الملفات - نظام الأرشيف</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    
+    <style>
+        * {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .main-content {
+            margin-right: 280px;
+            transition: margin-right 0.3s ease;
+            padding: 2rem;
+        }
+
+        .sidebar-collapsed .main-content {
+            margin-right: 0;
+        }
+
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-title {
+            background: linear-gradient(135deg, #6f42c1 0%, #667eea 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 2.5rem;
+        }
+
+        .management-card {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .management-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-card {
+            text-align: center;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px dashed #e9ecef;
+        }
+
+        .action-card:hover {
+            border-color: #6f42c1;
+            background: rgba(111, 66, 193, 0.05);
+        }
+
+        .action-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6f42c1 0%, #667eea 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 2rem;
+        }
+
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .pending-files {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            background: #e9ecef;
+        }
+
+        .file-info h6 {
+            margin-bottom: 0.25rem;
+            color: #495057;
+        }
+
+        .file-info small {
+            color: #6c757d;
+        }
+
+        .file-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+
+        .status-urgent {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6f42c1 0%, #667eea 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(111, 66, 193, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-right: 0;
+                padding: 1rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .action-card {
+                padding: 1.5rem;
+            }
+
+            .action-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-archive"></i>
+                <span>نظام الأرشيف</span>
+            </div>
+            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="user-info" id="userInfo">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </div>
+        
+        <nav class="sidebar-nav" id="sidebarNav">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </nav>
+    </aside>
+
+    <div class="overlay" id="overlay"></div>
+
+    <main class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="page-title mb-2">إدارة تتبع الملفات</h1>
+                    <p class="text-muted mb-0">مركز التحكم في نظام تتبع حركة الملفات</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" onclick="refreshData()">
+                        <i class="fas fa-sync me-2"></i>
+                        تحديث البيانات
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Statistics -->
+        <div class="quick-stats">
+            <div class="stat-item">
+                <div class="stat-number text-primary" id="totalFilesTracked">-</div>
+                <div class="text-muted">ملفات متتبعة</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number text-warning" id="pendingTransfers">-</div>
+                <div class="text-muted">نقل معلق</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number text-success" id="completedToday">-</div>
+                <div class="text-muted">مكتمل اليوم</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number text-danger" id="urgentFiles">-</div>
+                <div class="text-muted">ملفات عاجلة</div>
+            </div>
+        </div>
+
+        <!-- Management Actions -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="management-card">
+                    <div class="action-card" onclick="window.location.href='file-tracking.html'">
+                        <div class="action-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <h5 class="mb-2">تتبع الملفات</h5>
+                        <p class="text-muted">عرض ومتابعة حركة الملفات بين الأقسام</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="management-card">
+                    <div class="action-card" onclick="window.location.href='movement-reports.html'">
+                        <div class="action-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h5 class="mb-2">التقارير</h5>
+                        <p class="text-muted">تقارير وإحصائيات شاملة لحركة الملفات</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="management-card">
+                    <div class="action-card" onclick="openBulkTransferModal()">
+                        <div class="action-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <h5 class="mb-2">نقل مجمع</h5>
+                        <p class="text-muted">نقل عدة ملفات في عملية واحدة</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Files -->
+        <div class="management-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    الملفات المعلقة
+                </h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadPendingFiles()">
+                    <i class="fas fa-refresh me-1"></i>
+                    تحديث
+                </button>
+            </div>
+            <div class="pending-files" id="pendingFilesList">
+                <!-- سيتم ملؤها بـ JavaScript -->
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="management-card">
+            <h5 class="mb-3">
+                <i class="fas fa-history me-2"></i>
+                النشاط الأخير
+            </h5>
+            <div id="recentActivity">
+                <!-- سيتم ملؤها بـ JavaScript -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Bulk Transfer Modal -->
+    <div class="modal fade" id="bulkTransferModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-layer-group me-2"></i>
+                        نقل مجمع للملفات
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" title="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bulkTransferForm">
+                        <div class="mb-3">
+                            <label class="form-label">أرقام الملفات (كل رقم في سطر منفصل)</label>
+                            <textarea class="form-control" id="bulkFileNumbers" rows="5" placeholder="أدخل أرقام الملفات، كل رقم في سطر منفصل"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">من القسم</label>
+                                    <select class="form-control" id="bulkFromDept" title="اختر القسم المرسل" required>
+                                        <option value="">اختر القسم</option>
+                                        <option value="archive">الأرشيف</option>
+                                        <option value="legal">الشؤون القانونية</option>
+                                        <option value="governance">الحوكمة والامتثال</option>
+                                        <option value="collection">إدارة التحصيل</option>
+                                        <option value="securitization">إدارة التوريق</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">إلى القسم</label>
+                                    <select class="form-control" id="bulkToDept" title="اختر القسم المستقبل" required>
+                                        <option value="">اختر القسم</option>
+                                        <option value="archive">الأرشيف</option>
+                                        <option value="legal">الشؤون القانونية</option>
+                                        <option value="governance">الحوكمة والامتثال</option>
+                                        <option value="collection">إدارة التحصيل</option>
+                                        <option value="securitization">إدارة التوريق</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ملاحظات النقل</label>
+                            <textarea class="form-control" id="bulkNotes" rows="3" placeholder="أدخل ملاحظات حول سبب النقل"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="processBulkTransfer()">
+                        <i class="fas fa-share me-2"></i>
+                        نقل الملفات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        // Initialize unified auth system
+        let permissionController;
+        let currentUser = null;
+        let sidebarManager = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        // Initialize permission controller if available
+                        if (window.UIPermissionController) {
+                            permissionController = new UIPermissionController(unifiedAuth);
+                        }
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Set up auth state listener
+            unifiedAuth.onAuthStateChanged((user) => {
+                handleAuthStateChange(user);
+            });
+        });
+
+        async function handleAuthStateChange(user) {
+            if (!user) {
+                window.location.href = 'login.html?message=session-expired';
+                return;
+            }
+
+            currentUser = user;
+
+            // Allow access for all authenticated users
+            console.log('✅ File management access granted for authenticated user');
+
+            // Update permission-based UI
+            if (permissionController) {
+                permissionController.updateUI();
+            }
+            
+            // Update sidebar with proper role
+            if (window.sidebarManager) {
+                const userRole = unifiedAuth.getCurrentUserRole();
+                window.sidebarManager.updateSidebarNav(true, userRole);
+            }
+
+            // Load dashboard data
+            await loadDashboardData();
+        }
+
+        // Department names
+        const departmentNames = {
+            archive: 'الأرشيف',
+            legal: 'الشؤون القانونية',
+            governance: 'الحوكمة والامتثال',
+            collection: 'إدارة التحصيل',
+            securitization: 'إدارة التوريق'
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            sidebarManager = new SidebarManager();
+            
+            // Remove old auth listener - now handled by unified auth system
+        });
+
+        async function loadDashboardData() {
+            try {
+                await Promise.all([
+                    loadStatistics(),
+                    loadPendingFiles(),
+                    loadRecentActivity()
+                ]);
+            } catch (error) {
+                console.error('خطأ في تحميل بيانات لوحة الإدارة:', error);
+                authSystem.logError('dashboard-load-error', error);
+            }
+        }
+
+        async function loadStatistics() {
+            try {
+                const movementsSnapshot = await authSystem.db.collection('file_movements')
+                    .orderBy('timestamp', 'desc')
+                    .limit(500)
+                    .get();
+
+                const movements = [];
+                movementsSnapshot.forEach(doc => {
+                    movements.push(doc.data());
+                });
+
+                // Calculate statistics
+                const totalFiles = new Set(movements.map(m => m.fileNumber)).size;
+                const pendingTransfers = movements.filter(m => m.status === 'in_transit').length;
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const completedToday = movements.filter(m => 
+                    m.status === 'received' && 
+                    m.timestamp && 
+                    m.timestamp.toDate() >= today
+                ).length;
+
+                // Simulate urgent files (files pending for more than 7 days)
+                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                const urgentFiles = movements.filter(m => 
+                    m.status === 'in_transit' && 
+                    m.timestamp && 
+                    m.timestamp.toDate() < weekAgo
+                ).length;
+
+                // Update UI
+                document.getElementById('totalFilesTracked').textContent = totalFiles;
+                document.getElementById('pendingTransfers').textContent = pendingTransfers;
+                document.getElementById('completedToday').textContent = completedToday;
+                document.getElementById('urgentFiles').textContent = urgentFiles;
+
+            } catch (error) {
+                console.error('خطأ في تحميل الإحصائيات:', error);
+            }
+        }
+
+        async function loadPendingFiles() {
+            const container = document.getElementById('pendingFilesList');
+            
+            try {
+                const pendingSnapshot = await authSystem.db.collection('file_movements')
+                    .where('status', '==', 'in_transit')
+                    .orderBy('timestamp', 'desc')
+                    .limit(10)
+                    .get();
+
+                if (pendingSnapshot.empty) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <p>لا توجد ملفات معلقة حالياً</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const pendingFiles = [];
+                pendingSnapshot.forEach(doc => {
+                    pendingFiles.push({ id: doc.id, ...doc.data() });
+                });
+
+                container.innerHTML = pendingFiles.map(file => {
+                    const isUrgent = file.timestamp && 
+                        (Date.now() - file.timestamp.toDate().getTime()) > (7 * 24 * 60 * 60 * 1000);
+                    
+                    return `
+                        <div class="file-item">
+                            <div class="file-info flex-grow-1">
+                                <h6>${file.fileName || file.fileNumber}</h6>
+                                <small>من ${departmentNames[file.fromDepartment]} إلى ${departmentNames[file.toDepartment]}</small>
+                            </div>
+                            <div class="file-status ${isUrgent ? 'status-urgent' : 'status-pending'}">
+                                ${isUrgent ? 'عاجل' : 'معلق'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('خطأ في تحميل الملفات المعلقة:', error);
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        خطأ في تحميل البيانات
+                    </div>
+                `;
+            }
+        }
+
+        async function loadRecentActivity() {
+            const container = document.getElementById('recentActivity');
+            
+            try {
+                const recentSnapshot = await authSystem.db.collection('file_movements')
+                    .orderBy('timestamp', 'desc')
+                    .limit(5)
+                    .get();
+
+                if (recentSnapshot.empty) {
+                    container.innerHTML = `
+                        <div class="text-center py-3 text-muted">
+                            <p>لا توجد نشاطات حديثة</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const activities = [];
+                recentSnapshot.forEach(doc => {
+                    activities.push(doc.data());
+                });
+
+                container.innerHTML = activities.map(activity => `
+                    <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
+                        <div class="me-3">
+                            <i class="fas fa-${activity.action === 'transfer' ? 'share' : 'inbox'} text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <small class="text-muted">
+                                ${activity.action === 'transfer' ? 'نقل' : 'استلام'} ملف 
+                                ${activity.fileNumber} 
+                                ${activity.action === 'transfer' ? 'إلى' : 'من'} 
+                                ${departmentNames[activity.toDepartment || activity.fromDepartment]}
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                ${activity.userDisplayName} - 
+                                ${activity.timestamp ? new Date(activity.timestamp.toDate()).toLocaleString('ar-SA') : ''}
+                            </small>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('خطأ في تحميل النشاط الأخير:', error);
+            }
+        }
+
+        function refreshData() {
+            loadDashboardData();
+        }
+
+        function openBulkTransferModal() {
+            const modal = new bootstrap.Modal(document.getElementById('bulkTransferModal'));
+            modal.show();
+        }
+
+        async function processBulkTransfer() {
+            const fileNumbers = document.getElementById('bulkFileNumbers').value
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+            
+            const fromDept = document.getElementById('bulkFromDept').value;
+            const toDept = document.getElementById('bulkToDept').value;
+            const notes = document.getElementById('bulkNotes').value.trim();
+
+            if (fileNumbers.length === 0) {
+                alert('يرجى إدخال أرقام الملفات');
+                return;
+            }
+
+            if (!fromDept || !toDept) {
+                alert('يرجى اختيار الأقسام');
+                return;
+            }
+
+            if (fromDept === toDept) {
+                alert('لا يمكن نقل الملفات لنفس القسم');
+                return;
+            }
+
+            try {
+                const batch = authSystem.db.batch();
+                let successCount = 0;
+
+                for (const fileNumber of fileNumbers) {
+                    const movementRef = authSystem.db.collection('file_movements').doc();
+                    batch.set(movementRef, {
+                        fileNumber: fileNumber,
+                        fileName: `ملف ${fileNumber}`,
+                        fromDepartment: fromDept,
+                        toDepartment: toDept,
+                        action: 'transfer',
+                        status: 'in_transit',
+                        notes: notes + ` (نقل مجمع)`,
+                        userId: currentUser.uid,
+                        userEmail: currentUser.email,
+                        userDisplayName: currentUser.displayName,
+                        timestamp: authSystem.db.FieldValue.serverTimestamp()
+                    });
+                    successCount++;
+                }
+
+                await batch.commit();
+
+                // Close modal and refresh
+                bootstrap.Modal.getInstance(document.getElementById('bulkTransferModal')).hide();
+                document.getElementById('bulkTransferForm').reset();
+                loadDashboardData();
+                
+                alert(`تم نقل ${successCount} ملف بنجاح`);
+
+            } catch (error) {
+                console.error('خطأ في النقل المجمع:', error);
+                alert('حدث خطأ في النقل المجمع');
+            }
+        }
+    </script>
+</body>
+</html>

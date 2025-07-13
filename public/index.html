@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الأرشيف - الصفحة الرئيسية</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- تطبيق الألوان الجديدة -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Permission-based styling system -->
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    
+    <!-- نظام الأدوار -->
+    <script src="assets/js/roles.js"></script>
+    <!-- نظام القائمة الجانبية -->
+    <script src="assets/js/sidebar.js"></script>
+    <!-- إعداد عناصر التنقل -->
+    <script src="assets/js/navigation-setup.js"></script>
+    <!-- نظام تسجيل الأنشطة -->
+    <script src="assets/js/activity-logger.js"></script>
+    <!-- نظام الإشعارات المتقدم -->
+    <script src="assets/js/notifications.js"></script>
+    <script src="assets/js/advanced-alerts.js"></script>
+    <script src="assets/js/smart-notifications.js"></script>
+    <script src="assets/js/notification-integration.js"></script>
+    
+    <style>
+        /* CSS Variables for consistent theming */
+        :root {
+            --primary: #00b4d8;
+            --secondary: #0077b6;
+            --ocean-deep: #023e8a;
+            --ocean-light: #caf0f8;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --border-radius: 12px;
+            --box-shadow: 0 8px 25px rgba(0, 180, 216, 0.15);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Body and background */
+        body {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+            background: linear-gradient(135deg, var(--ocean-light) 0%, #90e0ef 50%, var(--primary) 100%);
+            min-height: 100vh;
+            direction: rtl;
+        }
+
+        /* Container styles */
+        .container-main {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            max-width: 1200px;
+        }
+
+        /* Welcome card improvements */
+        .welcome-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            padding: 3rem 2rem;
+            box-shadow: var(--box-shadow);
+            -webkit-backdrop-filter: blur(15px);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .welcome-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--ocean-deep) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .lead {
+            font-size: 1.25rem;
+            color: var(--dark);
+            margin-bottom: 2rem;
+            font-weight: 400;
+        }
+
+        /* Auth buttons styling */
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .auth-buttons .btn {
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            border-radius: var(--border-radius);
+            min-width: 160px;
+            transition: var(--transition);
+        }
+
+        /* Feature cards styling */
+        .feature-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            transition: var(--transition);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 180, 216, 0.25);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--ocean-deep));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2rem;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .feature-card h4 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--ocean-deep);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card p {
+            color: #6c757d;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Navbar styling */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(15px);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(0, 180, 216, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 180, 216, 0.1);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--ocean-deep) !important;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .navbar-brand:hover {
+            transform: scale(1.02);
+            color: var(--primary) !important;
+        }
+
+        /* Sidebar improvements */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            width: 280px;
+            background: rgba(255, 255, 255, 0.98);
+            -webkit-backdrop-filter: blur(15px);
+            backdrop-filter: blur(15px);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+            z-index: 1050;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 1px solid rgba(0, 180, 216, 0.1);
+        }
+        
+        .sidebar.show {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(0, 180, 216, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h5 {
+            color: var(--ocean-deep);
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .sidebar-close {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--ocean-deep);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .sidebar-close:hover {
+            background-color: var(--ocean-light);
+            color: var(--primary);
+        }
+        
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .sidebar-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Sidebar navigation */
+        .sidebar-nav {
+            list-style: none;
+            padding: 1rem 0;
+            margin: 0;
+        }
+
+        .sidebar-nav-item {
+            margin: 0;
+        }
+
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: var(--dark);
+            text-decoration: none;
+            transition: var(--transition);
+            border-radius: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav-link:hover {
+            background-color: var(--ocean-light);
+            color: var(--ocean-deep);
+            text-decoration: none;
+        }
+
+        .sidebar-nav-link.active {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .sidebar-nav-link i {
+            width: 20px;
+            margin-left: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-nav-link.active i {
+            color: white;
+        }
+
+        /* Menu toggle button */
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--ocean-deep);
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: 50%;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-toggle:hover {
+            background-color: var(--ocean-light);
+            color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        /* User info section */
+        .user-info {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--box-shadow);
+            border-right: 4px solid var(--primary);
+            transition: var(--transition);
+        }
+
+        .user-info:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 180, 216, 0.2);
+        }
+
+        .user-info h3 {
+            color: var(--ocean-deep);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-info p {
+            color: #6c757d;
+            margin: 0;
+        }
+
+        /* Button styling */
+        .btn {
+            font-weight: 600;
+            border-radius: var(--border-radius);
+            padding: 0.75rem 1.5rem;
+            transition: var(--transition);
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--ocean-deep));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 180, 216, 0.3);
+            background: linear-gradient(135deg, var(--ocean-deep), var(--primary));
+        }
+
+        .btn-outline-primary {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 180, 216, 0.3);
+        }
+
+        .btn-outline-danger {
+            border: 2px solid var(--danger);
+            color: var(--danger);
+            background: transparent;
+        }
+
+        .btn-outline-danger:hover {
+            background: var(--danger);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            color: white;
+            padding: 3rem;
+        }
+
+        .loading h4 {
+            color: white;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.3em;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container-main {
+                padding: 1rem;
+            }
+
+            .welcome-card {
+                padding: 2rem 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .welcome-title {
+                font-size: 2rem;
+            }
+
+            .auth-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .auth-buttons .btn {
+                width: 100%;
+                max-width: 280px;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .feature-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+
+            .user-info {
+                padding: 1.5rem;
+            }
+
+            .user-info .row {
+                text-align: center;
+            }
+
+            .user-info .col-auto {
+                margin-top: 1rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .welcome-title {
+                font-size: 1.75rem;
+            }
+
+            .lead {
+                font-size: 1.1rem;
+            }
+
+            .feature-card h4 {
+                font-size: 1.25rem;
+            }
+        }
+
+        /* Animation keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInFromRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% { 
+                box-shadow: 0 0 0 0 rgba(0, 180, 216, 0.4); 
+            }
+            70% { 
+                box-shadow: 0 0 0 10px rgba(0, 180, 216, 0); 
+            }
+            100% { 
+                box-shadow: 0 0 0 0 rgba(0, 180, 216, 0); 
+            }
+        }
+
+        /* Apply animations */
+        .welcome-card {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .feature-card {
+            animation: fadeInUp 0.6s ease-out;
+            animation-fill-mode: both;
+        }
+
+        .feature-card:nth-child(1) { animation-delay: 0.1s; }
+        .feature-card:nth-child(2) { animation-delay: 0.2s; }
+        .feature-card:nth-child(3) { animation-delay: 0.3s; }
+        .feature-card:nth-child(4) { animation-delay: 0.4s; }
+        .feature-card:nth-child(5) { animation-delay: 0.5s; }
+        .feature-card:nth-child(6) { animation-delay: 0.6s; }
+
+        /* Enhanced effects */
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(0, 180, 216, 0.05) 50%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand" href="#">
+                    <i class="fas fa-archive me-2"></i>
+                    نظام الأرشيف
+                </a>
+            </div>
+            <div class="navbar-nav ms-auto" id="navbarContent">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h5 class="mb-0">القائمة الرئيسية</h5>
+        <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+        <ul class="sidebar-nav" id="sidebarNav">
+            <!-- Will be populated by JavaScript -->
+        </ul>
+    </div>
+
+    <!-- Loading State -->
+    <div class="container container-main" id="loadingState">
+        <div class="loading">
+            <div class="spinner-border text-light mb-3" role="status">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+            <h4>جاري تحميل التطبيق...</h4>
+        </div>
+    </div>
+
+    <!-- Not Authenticated State -->
+    <div class="container container-main d-none" id="notAuthenticatedState">
+        <div class="welcome-card">
+            <h1 class="welcome-title">مرحباً بك في نظام الأرشيف</h1>
+            <p class="lead text-muted mb-4">
+                نظام إدارة الوثائق المتطور مع تقنية Firebase
+            </p>
+            <div class="auth-buttons">
+                <a href="login.html" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    تسجيل الدخول
+                </a>
+                <a href="register.html" class="btn btn-outline-primary">
+                    <i class="fas fa-user-plus me-2"></i>
+                    إنشاء حساب جديد
+                </a>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="row">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <h4 class="mb-3">التخزين السحابي</h4>
+                    <p class="text-muted">
+                        احفظ ملفاتك في السحابة مع Firebase Storage
+                        مع ضمان الأمان والوصول السريع
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <h4 class="mb-3">مسح الباركود</h4>
+                    <p class="text-muted">
+                        تقنية متطورة لمسح الباركود وتسريع
+                        عملية البحث والفهرسة
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h4 class="mb-3">إدارة المستخدمين</h4>
+                    <p class="text-muted">
+                        نظام صلاحيات متقدم مع Firebase Auth
+                        لإدارة فرق العمل بكفاءة
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authenticated State -->
+    <div class="container container-main d-none" id="authenticatedState">
+        <div class="user-info">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="mb-1">مرحباً، <span id="userDisplayName"></span></h3>
+                    <p class="text-muted mb-0" id="userEmail"></p>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-danger" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt me-2"></i>
+                        تسجيل الخروج
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="row">
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-upload"></i>
+                    </div>
+                    <h4 class="mb-3">رفع الملفات</h4>
+                    <p class="text-muted mb-3">
+                        رفع وإدارة الوثائق في النظام
+                    </p>
+                    <button class="btn btn-primary" onclick="goToUpload()">
+                        ابدأ الآن
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h4 class="mb-3">البحث في الأرشيف</h4>
+                    <p class="text-muted mb-3">
+                        البحث السريع في جميع الوثائق
+                    </p>
+                    <button class="btn btn-primary" onclick="goToSearch()">
+                        بحث
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <h4 class="mb-3">مسح الباركود</h4>
+                    <p class="text-muted mb-3">
+                        استخدام كاميرا الجهاز لمسح الرموز
+                    </p>
+                    <button class="btn btn-primary" onclick="goToScanner()">
+                        مسح
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-route"></i>
+                    </div>
+                    <h4 class="mb-3">تتبع حركة الملفات</h4>
+                    <p class="text-muted mb-3">
+                        متابعة حركة الملفات بين الإدارات
+                    </p>
+                    <button class="btn btn-primary" onclick="goToFileTracking()">
+                        تتبع
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h4 class="mb-3">تقارير الحركة</h4>
+                    <p class="text-muted mb-3">
+                        إحصائيات وتقارير حركة الملفات
+                    </p>
+                    <button class="btn btn-primary" onclick="goToMovementReports()">
+                        التقارير
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <h4 class="mb-3">إدارة الملفات</h4>
+                    <p class="text-muted mb-3">
+                        لوحة إدارة الملفات المركزية والتحكم الشامل
+                    </p>
+                    <button class="btn btn-primary" onclick="goToFileManagement()">
+                        إدارة الملفات
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <h4 class="mb-3">إعدادات الإشعارات</h4>
+                    <p class="text-muted mb-3">
+                        تخصيص إعدادات الإشعارات والتنبيهات
+                    </p>
+                    <button class="btn btn-primary" onclick="goToNotificationSettings()">
+                        إدارة الإشعارات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <!-- App Configuration and Utils -->
+    <script src="assets/js/app-config.js"></script>
+    
+    <!-- Cloud Functions Services -->
+    <script src="assets/js/cloud-services.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        // Initialize unified auth system
+        let permissionController;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        // Initialize permission controller
+                        permissionController = new UIPermissionController(unifiedAuth);
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Set up auth state listener with unified auth
+            unifiedAuth.onAuthStateChanged((user) => {
+                handleAuthStateChange(user);
+            });
+
+            // Initialize sidebar functionality
+            initializeSidebar();
+        });
+
+        // Elements
+        const loadingState = document.getElementById('loadingState');
+        const notAuthenticatedState = document.getElementById('notAuthenticatedState');
+        const authenticatedState = document.getElementById('authenticatedState');
+        const navbarContent = document.getElementById('navbarContent');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebarClose = document.getElementById('sidebarClose');
+        const sidebarNav = document.getElementById('sidebarNav');
+
+        // Sidebar functionality
+        let sidebarVisible = false;
+
+        function toggleSidebar() {
+            if (sidebarVisible) {
+                hideSidebar();
+            } else {
+                showSidebar();
+            }
+        }
+
+        function showSidebar() {
+            sidebar.classList.add('show');
+            sidebarOverlay.classList.add('show');
+            sidebarVisible = true;
+            
+            // Update menu toggle icon
+            menuToggle.innerHTML = '<i class="fas fa-times"></i>';
+            menuToggle.title = 'إغلاق القائمة';
+        }
+
+        function hideSidebar() {
+            sidebar.classList.remove('show');
+            sidebarOverlay.classList.remove('show');
+            sidebarVisible = false;
+            
+            // Update menu toggle icon  
+            menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            menuToggle.title = 'فتح القائمة';
+        }
+
+        // Event listeners
+        function initializeSidebar() {
+            if (menuToggle) menuToggle.addEventListener('click', toggleSidebar);
+            if (sidebarClose) sidebarClose.addEventListener('click', hideSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', hideSidebar);
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth <= 768 && sidebarVisible && 
+                    !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+                    hideSidebar();
+                }
+            });
+            
+            // Initialize sidebar state based on screen size
+            if (window.innerWidth <= 768) {
+                hideSidebar();
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768 && sidebarVisible) {
+                // On mobile, show overlay when sidebar is open
+                sidebarOverlay.classList.add('show');
+            } else {
+                // On desktop, hide overlay
+                sidebarOverlay.classList.remove('show');
+            }
+        });
+
+        // Initialize sidebar on page load
+        window.addEventListener('load', initializeSidebar);
+        
+        // Add keyboard support
+        document.addEventListener('keydown', (e) => {
+            // Close sidebar with Escape key
+            if (e.key === 'Escape' && sidebarVisible) {
+                hideSidebar();
+            }
+        });
+
+        // Update sidebar navigation
+        function updateSidebarNav(isAuthenticated) {
+            if (isAuthenticated) {
+                sidebarNav.innerHTML = `
+                    <li class="sidebar-nav-item">
+                        <a href="index.html" class="sidebar-nav-link ${window.location.pathname.includes('index.html') || window.location.pathname === '/' ? 'active' : ''}">
+                            <i class="fas fa-home"></i>
+                            الصفحة الرئيسية
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="dashboard.html" class="sidebar-nav-link ${window.location.pathname.includes('dashboard.html') ? 'active' : ''}">
+                            <i class="fas fa-tachometer-alt"></i>
+                            لوحة التحكم
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <hr class="my-2">
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="upload.html" class="sidebar-nav-link ${window.location.pathname.includes('upload.html') ? 'active' : ''}">
+                            <i class="fas fa-file-upload"></i>
+                            رفع الملفات
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="search.html" class="sidebar-nav-link ${window.location.pathname.includes('search.html') ? 'active' : ''}">
+                            <i class="fas fa-search"></i>
+                            البحث في الأرشيف
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="scanner.html" class="sidebar-nav-link ${window.location.pathname.includes('scanner.html') ? 'active' : ''}">
+                            <i class="fas fa-qrcode"></i>
+                            مسح الباركود
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="qr-generator.html" class="sidebar-nav-link ${window.location.pathname.includes('qr-generator.html') ? 'active' : ''}">
+                            <i class="fas fa-qrcode"></i>
+                            إنشاء رموز QR
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <hr class="my-2">
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="file-tracking.html" class="sidebar-nav-link ${window.location.pathname.includes('file-tracking.html') ? 'active' : ''}" title="تتبع حركة الملفات بين الإدارات">
+                            <i class="fas fa-route"></i>
+                            تتبع حركة الملفات
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="movement-reports.html" class="sidebar-nav-link ${window.location.pathname.includes('movement-reports.html') ? 'active' : ''}" title="تقارير وإحصائيات حركة الملفات">
+                            <i class="fas fa-chart-line"></i>
+                            تقارير الحركة
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="file-management-dashboard.html" class="sidebar-nav-link ${window.location.pathname.includes('file-management-dashboard.html') ? 'active' : ''}" title="لوحة إدارة الملفات المركزية">
+                            <i class="fas fa-tasks"></i>
+                            إدارة الملفات
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <hr class="my-2">
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="profile.html" class="sidebar-nav-link ${window.location.pathname.includes('profile.html') ? 'active' : ''}">
+                            <i class="fas fa-user"></i>
+                            الملف الشخصي
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="notification-settings.html" class="sidebar-nav-link ${window.location.pathname.includes('notification-settings.html') ? 'active' : ''}" title="إدارة إعدادات الإشعارات">
+                            <i class="fas fa-bell"></i>
+                            إعدادات الإشعارات
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="notification-test.html" class="sidebar-nav-link ${window.location.pathname.includes('notification-test.html') ? 'active' : ''}" title="اختبار نظام الإشعارات">
+                            <i class="fas fa-vial"></i>
+                            اختبار الإشعارات
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" id="adminMenuSection" style="display: none;">
+                        <hr class="my-2">
+                    </li>
+                    <li class="sidebar-nav-item" id="adminMenu" style="display: none;">
+                        <a href="create-admin.html" class="sidebar-nav-link ${window.location.pathname.includes('create-admin.html') ? 'active' : ''}" title="إنشاء حسابات الإدارة">
+                            <i class="fas fa-user-shield"></i>
+                            إدارة المسؤولين
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item" id="adminRolesMenu" style="display: none;">
+                        <a href="admin-management.html" class="sidebar-nav-link ${window.location.pathname.includes('admin-management.html') ? 'active' : ''}" title="إدارة الأدوار والصلاحيات">
+                            <i class="fas fa-users-cog"></i>
+                            إدارة الأدوار
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <hr class="my-3">
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="#" class="sidebar-nav-link" onclick="logout(); return false;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            تسجيل الخروج
+                        </a>
+                    </li>
+                `;
+
+                // Check user role and show admin menu if needed
+                setTimeout(() => {
+                    checkUserRoleAndShowAdminMenu();
+                }, 500);
+            } else {
+                sidebarNav.innerHTML = `
+                    <li class="sidebar-nav-item">
+                        <a href="index.html" class="sidebar-nav-link ${window.location.pathname.includes('index.html') || window.location.pathname === '/' ? 'active' : ''}">
+                            <i class="fas fa-home"></i>
+                            الصفحة الرئيسية
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <hr class="my-2">
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="login.html" class="sidebar-nav-link ${window.location.pathname.includes('login.html') ? 'active' : ''}">
+                            <i class="fas fa-sign-in-alt"></i>
+                            تسجيل الدخول
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="register.html" class="sidebar-nav-link ${window.location.pathname.includes('register.html') ? 'active' : ''}">
+                            <i class="fas fa-user-plus"></i>
+                            إنشاء حساب جديد
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <hr class="my-2">
+                    </li>
+                    <li class="sidebar-nav-item">
+                        <a href="forgot-password.html" class="sidebar-nav-link ${window.location.pathname.includes('forgot-password.html') ? 'active' : ''}">
+                            <i class="fas fa-key text-warning"></i>
+                            نسيت كلمة المرور
+                        </a>
+                    </li>
+                `;
+            }
+        }
+
+        // Handle authentication state changes
+        function handleAuthStateChange(user) {
+            // Hide loading with smooth transition
+            setTimeout(() => {
+                loadingState.classList.add('d-none');
+            }, 500);
+            
+            if (user) {
+                // User is signed in
+                showAuthenticatedState(user);
+                // Update permission-based UI
+                if (permissionController) {
+                    permissionController.updateUI();
+                }
+            } else {
+                // User is signed out
+                showNotAuthenticatedState();
+            }
+        }
+
+        function showAuthenticatedState(user) {
+            notAuthenticatedState.classList.add('d-none');
+            authenticatedState.classList.remove('d-none');
+            
+            // Update user info with enhanced display
+            const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم');
+            document.getElementById('userDisplayName').textContent = displayName;
+            document.getElementById('userEmail').textContent = user.email || '';
+            
+            // Add user status indicator
+            const userInfo = document.querySelector('.user-info');
+            if (userInfo) {
+                const statusIndicator = document.createElement('div');
+                statusIndicator.className = 'position-absolute top-0 end-0 p-2';
+                statusIndicator.innerHTML = '<i class="fas fa-circle text-success" style="font-size: 0.7rem;" title="متصل"></i>';
+                userInfo.style.position = 'relative';
+                userInfo.appendChild(statusIndicator);
+            }
+            
+            // Update navbar with enhanced user info
+            navbarContent.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <span class="navbar-text me-3 d-none d-md-inline">
+                        <i class="fas fa-user me-1 text-ocean"></i>
+                        <strong>${displayName}</strong>
+                    </span>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>
+                            <span class="d-none d-sm-inline">الحساب</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="profile.html">
+                                <i class="fas fa-user me-2"></i>الملف الشخصي
+                            </a></li>
+                            <li><a class="dropdown-item" href="notification-settings.html">
+                                <i class="fas fa-bell me-2"></i>إعدادات الإشعارات
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="logout(); return false;">
+                                <i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+
+            // Update sidebar
+            updateSidebarNav(true);
+            
+            // Add welcome notification
+            showWelcomeNotification(displayName);
+            
+            // Check user role after a short delay to ensure profile is loaded
+            setTimeout(() => {
+                checkUserRoleAndShowAdminMenu();
+            }, 1000);
+        }
+
+        function showNotAuthenticatedState() {
+            authenticatedState.classList.add('d-none');
+            notAuthenticatedState.classList.remove('d-none');
+            
+            // Update navbar
+            navbarContent.innerHTML = `
+                <a href="login.html" class="btn btn-outline-primary btn-sm me-2">
+                    <i class="fas fa-sign-in-alt me-1"></i>
+                    دخول
+                </a>
+                <a href="register.html" class="btn btn-primary btn-sm">
+                    <i class="fas fa-user-plus me-1"></i>
+                    تسجيل
+                </a>
+            `;
+
+            // Update sidebar
+            updateSidebarNav(false);
+        }
+
+        async function logout() {
+            // Show loading indicator
+            const logoutButtons = document.querySelectorAll('[onclick*="logout"]');
+            logoutButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الخروج...';
+            });
+            
+            try {
+                // Use unified auth system for logout
+                await unifiedAuth.signOut();
+                console.log('تم تسجيل الخروج بنجاح');
+                // Hide sidebar on logout
+                hideSidebar();
+            } catch (error) {
+                console.error('خطأ في تسجيل الخروج:', error);
+                alert('حدث خطأ في تسجيل الخروج. يرجى المحاولة مرة أخرى.');
+                
+                // Reset buttons
+                logoutButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-out-alt"></i> تسجيل الخروج';
+                });
+            }
+        }
+
+        // Check user role and show admin menu - enhanced with unified auth
+        async function checkUserRoleAndShowAdminMenu() {
+            if (!unifiedAuth.isAuthenticated) return;
+
+            try {
+                // Wait for user profile to be fully loaded
+                let attempts = 0;
+                while (!unifiedAuth.userProfile && attempts < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                // Show loading indicator for admin menu
+                const adminMenuItems = document.querySelectorAll('#adminMenuSection, #adminMenu, #adminRolesMenu, #usersMenu');
+                
+                // Get user role from unified auth system
+                const userRole = unifiedAuth.getCurrentUserRole();
+                const userEmail = unifiedAuth.currentUser?.email;
+                
+                console.log('🔍 Checking user role:', userRole, 'for user:', userEmail);
+                
+                // Show admin menu for Admin role
+                if (userRole === 'admin') {
+                    adminMenuItems.forEach(item => {
+                        if (item) item.style.display = 'block';
+                    });
+                    
+                    console.log('✅ تم عرض قائمة الإدارة للمستخدم:', userEmail);
+                    
+                    // Add admin badge to navbar
+                    const navbarText = document.querySelector('.navbar-text');
+                    if (navbarText && !navbarText.querySelector('.badge')) {
+                        navbarText.innerHTML += ' <span class="badge bg-warning text-dark ms-1">مدير</span>';
+                    }
+                } else {
+                    console.log('ℹ️ المستخدم ليس مديراً:', userRole, 'for', userEmail);
+                    // Hide admin menu items
+                    adminMenuItems.forEach(item => {
+                        if (item) item.style.display = 'none';
+                    });
+                }
+            } catch (error) {
+                console.error('❌ خطأ في فحص دور المستخدم:', error);
+            }
+        }
+
+        // Create user profile if missing - enhanced with unified auth
+        async function createUserProfile(user) {
+            try {
+                // Use unified auth system for profile creation
+                await unifiedAuth.createUserProfile(user);
+                console.log('✅ تم إنشاء ملف شخصي للمستخدم:', user.email);
+            } catch (error) {
+                console.error('❌ خطأ في إنشاء ملف المستخدم:', error);
+            }
+        }
+
+        // Navigation functions with loading states
+        function goToUpload() {
+            showNavigationLoading('جاري الانتقال لصفحة رفع الملفات...');
+            setTimeout(() => {
+                window.location.href = 'upload.html';
+            }, 500);
+        }
+
+        function goToSearch() {
+            showNavigationLoading('جاري الانتقال لصفحة البحث...');
+            setTimeout(() => {
+                window.location.href = 'search.html';
+            }, 500);
+        }
+
+        function goToScanner() {
+            showNavigationLoading('جاري تحضير الماسح الضوئي...');
+            setTimeout(() => {
+                window.location.href = 'scanner.html';
+            }, 500);
+        }
+
+        function goToFileTracking() {
+            showNavigationLoading('جاري تحميل نظام التتبع...');
+            setTimeout(() => {
+                window.location.href = 'file-tracking.html';
+            }, 500);
+        }
+
+        function goToMovementReports() {
+            showNavigationLoading('جاري تحضير التقارير...');
+            setTimeout(() => {
+                window.location.href = 'movement-reports.html';
+            }, 500);
+        }
+
+        function goToFileManagement() {
+            showNavigationLoading('جاري تحميل لوحة الإدارة...');
+            setTimeout(() => {
+                window.location.href = 'file-management-dashboard.html';
+            }, 500);
+        }
+
+        function goToNotificationSettings() {
+            showNavigationLoading('جاري تحميل إعدادات الإشعارات...');
+            setTimeout(() => {
+                window.location.href = 'notification-settings.html';
+            }, 500);
+        }
+
+        function goToCreateAdmin() {
+            showNavigationLoading('جاري تحميل إدارة المدراء...');
+            setTimeout(() => {
+                window.location.href = 'create-admin.html';
+            }, 500);
+        }
+
+        function goToAdminManagement() {
+            showNavigationLoading('جاري تحميل إدارة الأدوار...');
+            setTimeout(() => {
+                window.location.href = 'admin-management.html';
+            }, 500);
+        }
+
+        // Show navigation loading
+        function showNavigationLoading(message) {
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'navigationLoading';
+            loadingOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 180, 216, 0.9);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                color: white;
+                font-family: 'Cairo', sans-serif;
+            `;
+            
+            loadingOverlay.innerHTML = `
+                <div class="spinner-border text-light mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">جاري التحميل...</span>
+                </div>
+                <h4 class="text-white">${message}</h4>
+            `;
+            
+            document.body.appendChild(loadingOverlay);
+        }
+
+        // Show welcome notification
+        function showWelcomeNotification(displayName) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, var(--primary), var(--ocean-deep));
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 8px 25px rgba(0, 180, 216, 0.3);
+                z-index: 1000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                font-family: 'Cairo', sans-serif;
+                max-width: 300px;
+            `;
+            
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <div>
+                        <strong>أهلاً وسهلاً، ${displayName}!</strong>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">تم تسجيل الدخول بنجاح</div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Animate out
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // Initialize activity logging
+        document.addEventListener('DOMContentLoaded', function() {
+            // Log page access
+            if (window.activityLogger) {
+                window.activityLogger.logSystemAccess('dashboard', 'main');
+                
+                // Log navigation clicks
+                document.addEventListener('click', function(e) {
+                    if (e.target.closest('a, button')) {
+                        const element = e.target.closest('a, button');
+                        const text = element.textContent.trim();
+                        const href = element.href || element.getAttribute('onclick');
+                        
+                        window.activityLogger.logCustomActivity('navigation', 'click', {
+                            elementType: element.tagName.toLowerCase(),
+                            text: text,
+                            href: href
+                        });
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الملف الشخصي - نظام الأرشيف</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    <style>
+        :root {
+            --ocean-deep: #1a365d;
+            --ocean-blue: #2d5a87;
+            --ocean-light: #4299e1;
+            --wave-foam: #bee3f8;
+            --sand-light: #fef5e7;
+            --coral: #ed8936;
+            --gradient-ocean: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-sunset: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --gradient-aurora: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        body {
+            background: var(--gradient-ocean);
+            min-height: 100vh;
+            padding-bottom: 2rem;
+        }
+
+        .profile-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            margin: 2rem auto;
+            max-width: 600px;
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .profile-avatar-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+
+        .profile-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .profile-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .status-indicator {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-active { background: #48bb78; }
+        .status-pending { background: #ed8936; }
+        .status-inactive { background: #e53e3e; }
+
+        .profile-info h2 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--ocean-deep);
+            font-size: 2.2rem;
+        }
+
+        .profile-subtitle {
+            color: var(--ocean-blue);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .info-card-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            background: var(--gradient-ocean);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .info-card h5 {
+            font-weight: 600;
+            color: var(--ocean-deep);
+            margin-bottom: 0.5rem;
+        }
+
+        .info-card p {
+            color: var(--ocean-blue);
+            margin: 0;
+        }
+
+        .badge-custom {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: 2px solid transparent;
+        }
+
+        .badge-admin {
+            background: var(--gradient-sunset);
+            color: white;
+        }
+
+        .badge-manager {
+            background: var(--gradient-aurora);
+            color: white;
+        }
+
+        .badge-user {
+            background: var(--gradient-ocean);
+            color: white;
+        }
+
+        .badge-pending {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+
+        .btn-custom {
+            padding: 0.75rem 2rem;
+            border-radius: 30px;
+            font-weight: 600;
+            text-transform: none;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary-custom {
+            background: var(--gradient-ocean);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .btn-outline-custom {
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--ocean-deep);
+            border: 2px solid var(--ocean-light);
+        }
+
+        .btn-outline-custom:hover {
+            background: var(--ocean-light);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(67, 153, 225, 0.4);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--ocean-deep);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--ocean-blue);
+            margin-top: 0.25rem;
+        }
+
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .stats-hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .profile-header {
+                margin: 1rem;
+                padding: 2rem 1.5rem;
+            }
+            
+            .profile-avatar {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .profile-info h2 {
+                font-size: 1.8rem;
+            }
+            
+            .info-cards {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .profile-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn-custom {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-archive me-2"></i>
+                    نظام الأرشيف
+                </a>
+            </div>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo"></span>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    خروج
+                </button>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="profile-header text-center">
+            <div class="profile-avatar-container">
+                <img src="assets/images/icon-192.png" alt="الصورة الشخصية" class="profile-avatar" id="profileAvatar">
+                <div class="status-indicator status-active" id="statusIndicator" title="حالة المستخدم"></div>
+            </div>
+            
+            <div class="profile-info">
+                <h2 id="profileName">جاري التحميل...</h2>
+                <p class="profile-subtitle" id="profileEmail">جاري التحميل...</p>
+                <div class="mb-3">
+                    <span class="badge badge-custom badge-user" id="profileRole">جاري التحميل...</span>
+                </div>
+            </div>
+
+            <!-- معلومات مفصلة -->
+            <div class="info-cards">
+                <div class="info-card">
+                    <div class="info-card-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <h5>الإدارة</h5>
+                    <p id="profileDepartment">جاري التحميل...</p>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-card-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h5>تاريخ الانضمام</h5>
+                    <p id="profileJoinDate">جاري التحميل...</p>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-card-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h5>آخر دخول</h5>
+                    <p id="profileLastLogin">جاري التحميل...</p>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-card-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h5>حالة الحساب</h5>
+                    <p id="profileStatus">جاري التحميل...</p>
+                </div>
+            </div>
+
+            <!-- إحصائيات سريعة -->
+            <div class="stats-grid stats-hidden" id="userStats">
+                <div class="stat-card">
+                    <div class="stat-number" id="statDocuments">0</div>
+                    <div class="stat-label">المستندات</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statUploads">0</div>
+                    <div class="stat-label">الرفوعات</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statDownloads">0</div>
+                    <div class="stat-label">التحميلات</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="statActivity">0</div>
+                    <div class="stat-label">النشاط</div>
+                </div>
+            </div>
+
+            <!-- أزرار العمليات -->
+            <div class="profile-actions">
+                <button class="btn btn-custom btn-primary-custom" onclick="editProfile()">
+                    <i class="fas fa-user-edit me-2"></i>
+                    تعديل البيانات
+                </button>
+                <button class="btn btn-custom btn-outline-custom" onclick="changePassword()">
+                    <i class="fas fa-key me-2"></i>
+                    تغيير كلمة المرور
+                </button>
+                <button class="btn btn-custom btn-outline-custom" onclick="viewActivity()">
+                    <i class="fas fa-history me-2"></i>
+                    سجل النشاط
+                </button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <script src="assets/js/sidebar.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    
+    <script>
+        // Initialize unified auth system
+        let authSystem;
+        let permissionController;
+        let currentUserData = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        authSystem = unifiedAuth;
+                        // Initialize permission controller
+                        permissionController = new UIPermissionController(authSystem);
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Set up auth state listener
+            authSystem.onAuthStateChanged((user) => {
+                handleAuthStateChange(user);
+            });
+        });
+
+        async function handleAuthStateChange(user) {
+            if (!user) {
+                window.location.href = 'login.html?message=session-expired';
+                return;
+            }
+
+            try {
+                // Update permission-based UI
+                if (permissionController) {
+                    permissionController.updateUI();
+                }
+                
+                // Update sidebar with proper role
+                if (window.sidebarManager) {
+                    const userRole = authSystem.getCurrentUserRole();
+                    window.sidebarManager.updateSidebarNav(true, userRole);
+                }
+
+                // تحديث معلومات المستخدم الأساسية
+                updateBasicUserInfo(user);
+                
+                // جلب البيانات المفصلة من Firestore
+                await loadUserDetails(user);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل بيانات المستخدم:', error);
+                // Log error using console instead of authSystem.logError
+                console.error('Profile load error:', { error: error.message, userId: user ? user.uid : 'unknown' });
+            }
+        }
+
+        function updateBasicUserInfo(user) {
+            document.getElementById('userInfo').innerHTML = `<i class="fas fa-user me-1"></i> ${user.displayName || user.email}`;
+            document.getElementById('profileName').textContent = user.displayName || 'بدون اسم';
+            document.getElementById('profileEmail').textContent = user.email;
+            document.getElementById('profileAvatar').src = user.photoURL || 'assets/images/icon-192.png';
+        }
+
+        async function loadUserDetails(user) {
+            try {
+                // Get user data from unified auth system
+                currentUserData = authSystem.getCurrentUserData();
+                
+                if (!currentUserData) {
+                    // Fallback: load from Firestore
+                    const doc = await authSystem.db.collection('users').doc(user.uid).get();
+                    
+                    if (doc.exists) {
+                        currentUserData = doc.data();
+                    }
+                }
+                
+                if (currentUserData) {
+                    console.log('User data loaded:', currentUserData);
+                    
+                    // تحديث الدور
+                    updateUserRole(currentUserData.role, currentUserData.status);
+                    
+                    // تحديث معلومات الإدارة
+                    document.getElementById('profileDepartment').textContent = currentUserData.departmentName || currentUserData.department || 'غير محدد';
+                    
+                    // تحديث التواريخ
+                    updateDates(currentUserData);
+                    
+                    // تحديث حالة المستخدم
+                    updateUserStatus(currentUserData.status, currentUserData.isActive);
+                    
+                    // تحميل الإحصائيات إذا كان المستخدم نشطاً
+                    if (currentUserData.isActive && currentUserData.status === 'approved') {
+                        await loadUserStats(user.uid);
+                    }
+                } else {
+                    console.warn('User document not found in Firestore');
+                    // إظهار بيانات افتراضية
+                    setDefaultUserData();
+                }                } catch (error) {
+                    console.error('Error loading user details:', error);
+                    // Log error using console instead of authSystem.logError
+                    console.error('User details load error:', { error: error.message, userId: user ? user.uid : 'unknown' });
+                    setDefaultUserData();
+                }
+        }
+
+        function updateUserRole(role, status) {
+            const roleElement = document.getElementById('profileRole');
+            let roleText = 'مستخدم';
+            let roleClass = 'badge-user';
+            
+            if (status === 'pending') {
+                roleText = 'في انتظار الموافقة';
+                roleClass = 'badge-pending';
+            } else {
+                switch (role) {
+                    case 'admin':
+                    case 'super-admin':
+                        roleText = 'مدير النظام';
+                        roleClass = 'badge-admin';
+                        break;
+                    case 'department-admin':
+                        roleText = 'مدير إدارة';
+                        roleClass = 'badge-manager';
+                        break;
+                    case 'manager':
+                        roleText = 'مدير';
+                        roleClass = 'badge-manager';
+                        break;
+                    case 'editor':
+                        roleText = 'محرر';
+                        roleClass = 'badge-user';
+                        break;
+                    case 'viewer':
+                        roleText = 'مشاهد';
+                        roleClass = 'badge-user';
+                        break;
+                    default:
+                        roleText = role || 'مستخدم';
+                }
+            }
+            
+            roleElement.textContent = roleText;
+            roleElement.className = `badge badge-custom ${roleClass}`;
+        }
+
+        function updateDates(userData) {
+            // تاريخ الانضمام
+            if (userData.createdAt) {
+                const joinDate = userData.createdAt.toDate();
+                document.getElementById('profileJoinDate').textContent = joinDate.toLocaleDateString('ar-SA');
+            } else {
+                document.getElementById('profileJoinDate').textContent = 'غير متوفر';
+            }
+            
+            // آخر دخول
+            if (userData.lastLogin) {
+                const lastLogin = userData.lastLogin.toDate();
+                const now = new Date();
+                const diffTime = now - lastLogin;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let lastLoginText;
+                if (diffDays === 0) {
+                    lastLoginText = 'اليوم';
+                } else if (diffDays === 1) {
+                    lastLoginText = 'أمس';
+                } else if (diffDays < 7) {
+                    lastLoginText = `منذ ${diffDays} أيام`;
+                } else {
+                    lastLoginText = lastLogin.toLocaleDateString('ar-SA');
+                }
+                
+                document.getElementById('profileLastLogin').textContent = lastLoginText;
+            } else {
+                document.getElementById('profileLastLogin').textContent = 'غير متوفر';
+            }
+        }
+
+        function updateUserStatus(status, isActive) {
+            const statusElement = document.getElementById('profileStatus');
+            const statusIndicator = document.getElementById('statusIndicator');
+            
+            let statusText = 'غير محدد';
+            let indicatorClass = 'status-inactive';
+            
+            if (status === 'approved' && isActive) {
+                statusText = 'نشط';
+                indicatorClass = 'status-active';
+            } else if (status === 'pending') {
+                statusText = 'في انتظار الموافقة';
+                indicatorClass = 'status-pending';
+            } else if (status === 'suspended') {
+                statusText = 'معلق';
+                indicatorClass = 'status-inactive';
+            } else if (status === 'rejected') {
+                statusText = 'مرفوض';
+                indicatorClass = 'status-inactive';
+            } else {
+                statusText = 'غير نشط';
+                indicatorClass = 'status-inactive';
+            }
+            
+            statusElement.textContent = statusText;
+            statusIndicator.className = `status-indicator ${indicatorClass}`;
+            statusIndicator.title = `حالة المستخدم: ${statusText}`;
+        }
+
+        async function loadUserStats(userId) {
+            try {
+                // هذه دالة مبدئية للإحصائيات - يمكن تطويرها لاحقاً
+                const stats = {
+                    documents: Math.floor(Math.random() * 50),
+                    uploads: Math.floor(Math.random() * 30),
+                    downloads: Math.floor(Math.random() * 100),
+                    activity: Math.floor(Math.random() * 200)
+                };
+                
+                document.getElementById('statDocuments').textContent = stats.documents;
+                document.getElementById('statUploads').textContent = stats.uploads;
+                document.getElementById('statDownloads').textContent = stats.downloads;
+                document.getElementById('statActivity').textContent = stats.activity;
+                
+                // إظهار قسم الإحصائيات
+                document.getElementById('userStats').classList.remove('stats-hidden');
+            } catch (error) {
+                console.error('Error loading user stats:', error);
+            }
+        }
+
+        function setDefaultUserData() {
+            document.getElementById('profileDepartment').textContent = 'غير محدد';
+            document.getElementById('profileJoinDate').textContent = 'غير متوفر';
+            document.getElementById('profileLastLogin').textContent = 'غير متوفر';
+            document.getElementById('profileStatus').textContent = 'غير محدد';
+            document.getElementById('profileRole').textContent = 'مستخدم';
+        }
+        // Enhanced logout function
+        async function logout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                try {
+                    await authSystem.signOut();
+                    window.location.href = 'index.html';
+                } catch (error) {
+                    console.error('Error signing out:', error);
+                    // Log error using console instead of authSystem.logError
+                    console.error('Logout error:', { error: error.message });
+                    alert('حدث خطأ في تسجيل الخروج');
+                }
+            }
+        }
+
+        function editProfile() {
+            // سيتم تطوير هذه الميزة لاحقاً
+            const modal = `
+                <div class="modal fade" id="editProfileModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">تعديل البيانات الشخصية</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-center">
+                                    <i class="fas fa-tools fa-3x text-warning mb-3"></i><br>
+                                    هذه الميزة قيد التطوير وستكون متاحة قريباً
+                                </p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // إضافة المودال إلى الصفحة وعرضه
+            document.body.insertAdjacentHTML('beforeend', modal);
+            const modalElement = new bootstrap.Modal(document.getElementById('editProfileModal'));
+            modalElement.show();
+            
+            // إزالة المودال بعد الإغلاق
+            document.getElementById('editProfileModal').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+            });
+        }
+
+        async function changePassword() {
+            try {
+                const user = authSystem.getCurrentUser();
+                if (user && user.email) {
+                    const confirmed = confirm('سيتم إرسال رابط تغيير كلمة المرور إلى بريدك الإلكتروني. هل تريد المتابعة؟');
+                    if (confirmed) {
+                        await authSystem.sendPasswordResetEmail(user.email);
+                        alert('تم إرسال رابط تغيير كلمة المرور إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد.');
+                        
+                        // Log password reset request using console
+                        console.log('Password reset requested for:', user.email);
+                    }
+                } else {
+                    alert('لم يتم العثور على بيانات المستخدم');
+                }
+            } catch (error) {
+                console.error('Error sending password reset email:', error);
+                // Log error using console instead of authSystem.logError
+                console.error('Password reset error:', { error: error.message });
+                alert('حدث خطأ في إرسال البريد الإلكتروني. يرجى المحاولة مرة أخرى.');
+            }
+        }
+
+        function viewActivity() {
+            // سيتم تطوير هذه الميزة لاحقاً
+            const modal = `
+                <div class="modal fade" id="activityModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">سجل النشاط</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="text-center">
+                                    <i class="fas fa-history fa-3x text-info mb-3"></i>
+                                    <h6>سجل النشاط</h6>
+                                    <p class="text-muted">
+                                        هذه الميزة قيد التطوير وستتيح لك مراجعة جميع أنشطتك في النظام
+                                    </p>
+                                    <div class="mt-4">
+                                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                            <span><i class="fas fa-sign-in-alt text-success me-2"></i>تسجيل دخول</span>
+                                            <small class="text-muted">اليوم</small>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                            <span><i class="fas fa-user-edit text-primary me-2"></i>تحديث الملف الشخصي</span>
+                                            <small class="text-muted">أمس</small>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span><i class="fas fa-upload text-warning me-2"></i>رفع مستند</span>
+                                            <small class="text-muted">منذ يومين</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // إضافة المودال إلى الصفحة وعرضه
+            document.body.insertAdjacentHTML('beforeend', modal);
+            const modalElement = new bootstrap.Modal(document.getElementById('activityModal'));
+            modalElement.show();
+            
+            // إزالة المودال بعد الإغلاق
+            document.getElementById('activityModal').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+            });
+        }
+    </script>
+</body>
+</html>

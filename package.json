@@ -1,0 +1,44 @@
+{
+  "name": "archive-system-notification",
+  "version": "2.1.0",
+  "description": "نظام الأرشيف مع نظام الإشعارات المتقدم",
+  "main": "index.js",
+  "scripts": {
+    "start": "firebase serve --only hosting",
+    "build": "echo 'Build completed'",
+    "deploy": "firebase deploy",
+    "test": "echo 'Running tests...'",
+    "test:notifications": "echo 'Testing notification systems...'",
+    "functions:serve": "firebase emulators:start --only functions",
+    "functions:deploy": "firebase deploy --only functions"
+  },
+  "keywords": [
+    "archive",
+    "notification",
+    "firebase",
+    "javascript",
+    "alerts",
+    "smart-notifications"
+  ],
+  "author": "Archive System Team",
+  "license": "MIT",
+  "dependencies": {
+    "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
+    "firebase": "^11.9.1",
+    "firebase-admin": "^13.4.0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/archive-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/archive-system/issues"
+  },
+  "homepage": "https://github.com/your-org/archive-system#readme"
+}

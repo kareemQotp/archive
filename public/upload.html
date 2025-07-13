@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رفع الملفات - نظام الأرشيف</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- تطبيق الألوان الجديدة -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <!-- Permission-based styling system -->
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    
+    <style>
+        /* Upload page specific styles */
+
+        * {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .main-container {
+            padding: 2rem 0;
+        }
+
+        .upload-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 2rem;
+        }
+
+        .upload-title {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .drop-zone {
+            border: 3px dashed #cbd5e0;
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .drop-zone-icon {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .drop-zone-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .drop-zone-subtext {
+            color: var(--text-secondary);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-list {
+            margin-top: 2rem;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .file-icon.pdf { background: #e53e3e; }
+        .file-icon.doc, .file-icon.docx { background: #3182ce; }
+        .file-icon.xls, .file-icon.xlsx { background: #38a169; }
+        .file-icon.png, .file-icon.jpg, .file-icon.jpeg { background: #d69e2e; }
+        .file-icon.default { background: #718096; }
+
+        .progress {
+            height: 8px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-outline-secondary {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            border: none;
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, 
+                rgba(72, 187, 120, 0.9) 0%, 
+                rgba(56, 178, 172, 0.9) 100%
+            );
+            color: white;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, 
+                rgba(245, 87, 108, 0.9) 0%, 
+                rgba(220, 38, 127, 0.9) 100%
+            );
+            color: white;
+        }
+
+        .form-floating > .form-control {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .form-floating > .form-control:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            color: var(--primary);
+        }
+
+        #documentDescription {
+            height: 100px;
+        }
+
+        /* Bulk Upload Styles */
+        .bulk-upload-tabs {
+            margin-bottom: 2rem;
+        }
+
+        .nav-tabs .nav-link {
+            border-radius: 12px 12px 0 0;
+            border: none;
+            background: rgba(255, 255, 255, 0.5);
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .bulk-metadata-options {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .bulk-file-item {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .bulk-file-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-metadata-row {
+            display: none;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .file-metadata-row.show {
+            display: block;
+        }
+
+        .bulk-progress-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .overall-progress {
+            margin-bottom: 1rem;
+        }
+
+        .individual-progress {
+            margin-bottom: 0.5rem;
+        }
+
+        .metadata-toggle-btn {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.75rem;
+        }
+
+        /* Hidden elements */
+        .d-none-initial {
+            display: none !important;
+        }
+
+        .progress-bar-initial {
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-archive me-2"></i>
+                    نظام الأرشيف
+                </a>
+            </div>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo">
+                    <!-- User info will be populated by JavaScript -->
+                </span>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    خروج
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container main-container">
+        <div class="upload-card">
+            <h1 class="upload-title">رفع الملفات</h1>
+            
+            <!-- Alert Container -->
+            <div id="alertContainer"></div>
+
+            <!-- Bulk Upload Tabs -->
+            <div class="bulk-upload-tabs">
+                <ul class="nav nav-tabs" id="uploadTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="single-tab" data-bs-toggle="tab" data-bs-target="#single-upload" type="button" role="tab">
+                            <i class="fas fa-file me-2"></i>رفع ملف واحد
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk-upload" type="button" role="tab">
+                            <i class="fas fa-files me-2"></i>الرفع المجمع
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="uploadTabContent">
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="uploadTabContent">
+                
+                <!-- Single Upload Tab -->
+                <div class="tab-pane fade show active" id="single-upload" role="tabpanel">
+                    <!-- Upload Form -->
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <!-- Drop Zone -->
+                            <div class="drop-zone" id="dropZone">
+                                <div class="drop-zone-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <div class="drop-zone-text">اسحب الملفات هنا أو انقر للاختيار</div>
+                                <div class="drop-zone-subtext">يدعم PDF, DOC, DOCX, XLS, XLSX, PNG, JPG</div>
+                                <input type="file" class="file-input" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg">
+                            </div>
+
+                            <!-- File List -->
+                            <div class="file-list" id="fileList"></div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <!-- File Metadata -->
+                            <div class="upload-card">
+                                <h5 class="mb-3">معلومات الملف</h5>
+                                
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="documentTitle" placeholder="عنوان الوثيقة">
+                                    <label for="documentTitle">عنوان الوثيقة</label>
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <textarea class="form-control" id="documentDescription" placeholder="وصف الوثيقة"></textarea>
+                                    <label for="documentDescription">وصف الوثيقة</label>
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <select class="form-control" id="documentCategory">
+                                        <option value="">اختر الفئة</option>
+                                        <option value="contracts">عقود</option>
+                                        <option value="reports">تقارير</option>
+                                        <option value="invoices">فواتير</option>
+                                        <option value="letters">رسائل</option>
+                                        <option value="other">أخرى</option>
+                                    </select>
+                                    <label for="documentCategory">فئة الوثيقة</label>
+                                </div>
+
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="documentTags" placeholder="العلامات (مفصولة بفاصلة)">
+                                    <label for="documentTags">العلامات</label>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary" id="uploadBtn" onclick="uploadFiles()">
+                                        <i class="fas fa-upload me-2"></i>
+                                        رفع الملفات
+                                    </button>
+                                    <a href="index.html" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-right me-2"></i>
+                                        العودة للرئيسية
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Upload Tab -->
+                <div class="tab-pane fade" id="bulk-upload" role="tabpanel">
+                    <div class="row">
+                        <div class="col-12">
+                            <!-- Bulk Drop Zone -->
+                            <div class="drop-zone" id="bulkDropZone">
+                                <div class="drop-zone-icon">
+                                    <i class="fas fa-files"></i>
+                                </div>
+                                <div class="drop-zone-text">اسحب عدة ملفات هنا للرفع المجمع</div>
+                                <div class="drop-zone-subtext">يدعم PDF, DOC, DOCX, XLS, XLSX, PNG, JPG</div>
+                                <input type="file" class="file-input" id="bulkFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg">
+                            </div>
+
+                            <!-- Bulk Metadata Options -->
+                            <div class="bulk-metadata-options d-none-initial" id="bulkMetadataOptions">
+                                <h5 class="mb-3">خيارات البيانات الوصفية</h5>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="metadataMode" id="unifiedMetadata" value="unified" checked>
+                                            <label class="form-check-label" for="unifiedMetadata">
+                                                بيانات موحدة لجميع الملفات
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="metadataMode" id="individualMetadata" value="individual">
+                                            <label class="form-check-label" for="individualMetadata">
+                                                بيانات منفصلة لكل ملف
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Unified Metadata Form -->
+                                <div id="unifiedMetadataForm">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-floating mb-3">
+                                                <input type="text" class="form-control" id="bulkDocumentTitle" placeholder="عنوان أساسي للوثائق">
+                                                <label for="bulkDocumentTitle">عنوان أساسي</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-floating mb-3">
+                                                <select class="form-control" id="bulkDocumentCategory">
+                                                    <option value="">اختر الفئة</option>
+                                                    <option value="contracts">عقود</option>
+                                                    <option value="reports">تقارير</option>
+                                                    <option value="invoices">فواتير</option>
+                                                    <option value="letters">رسائل</option>
+                                                    <option value="other">أخرى</option>
+                                                </select>
+                                                <label for="bulkDocumentCategory">فئة الوثائق</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-floating mb-3">
+                                        <textarea class="form-control" id="bulkDocumentDescription" placeholder="وصف عام للوثائق"></textarea>
+                                        <label for="bulkDocumentDescription">وصف عام</label>
+                                    </div>
+
+                                    <div class="form-floating mb-3">
+                                        <input type="text" class="form-control" id="bulkDocumentTags" placeholder="العلامات (مفصولة بفاصلة)">
+                                        <label for="bulkDocumentTags">العلامات</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bulk File List -->
+                            <div class="file-list" id="bulkFileList"></div>
+
+                            <!-- Bulk Upload Controls -->
+                            <div class="d-grid gap-2 mt-3 d-none-initial" id="bulkUploadControls">
+                                <button class="btn btn-primary" id="bulkUploadBtn" onclick="uploadBulkFiles()">
+                                    <i class="fas fa-upload me-2"></i>
+                                    رفع جميع الملفات
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="clearBulkFiles()">
+                                    <i class="fas fa-trash me-2"></i>
+                                    مسح جميع الملفات
+                                </button>
+                            </div>
+
+                            <!-- Bulk Progress -->
+                            <div class="bulk-progress-container d-none-initial" id="bulkProgressContainer">
+                                <h6>تقدم الرفع</h6>
+                                <div class="overall-progress">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>التقدم الإجمالي</span>
+                                        <span id="overallProgressText">0%</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-initial" id="overallProgressBar"></div>
+                                    </div>
+                                </div>
+                                <div id="individualProgressList"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay d-none" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner-border mb-3" role="status">
+                <span class="visually-hidden">جاري الرفع...</span>
+            </div>
+            <h5>جاري رفع الملفات...</h5>
+            <p class="text-muted mb-0" id="uploadProgress">0%</p>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <!-- App Configuration and Utils -->
+    <script src="assets/js/app-config.js"></script>
+    
+    <!-- Cloud Functions Services -->
+    <script src="assets/js/cloud-services.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        // Initialize unified auth system
+        let permissionController;
+        let selectedFiles = [];
+        let bulkFiles = [];
+        let uploadInProgress = false;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        // Initialize permission controller if needed
+                        if (window.UIPermissionController) {
+                            permissionController = new UIPermissionController(unifiedAuth);
+                        }
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Set up auth state listener
+            unifiedAuth.onAuthStateChanged((user) => {
+                handleAuthStateChange(user);
+            });
+
+            // Initialize upload functionality
+            initializeUploadSystem();
+        });
+
+        async function handleAuthStateChange(user) {
+            if (!user) {
+                window.location.href = 'login.html?message=session-expired';
+                return;
+            }
+
+            console.log('User in upload page:', user.email);
+            console.log('User role:', unifiedAuth.getCurrentUserRole());
+            
+            // Allow access for all
+            
+            console.log('✅ Permission granted for file upload');
+            
+            // Update user info display
+            const displayName = user.displayName || user.email.split('@')[0];
+            document.getElementById('userInfo').innerHTML = `
+                <i class="fas fa-user me-1"></i>
+                ${displayName}
+            `;
+
+            // Update permission-based UI
+            if (permissionController) {
+                permissionController.updateUI();
+            }
+
+            // Update sidebar with proper role
+            if (window.sidebarManager) {
+                const userRole = unifiedAuth.getCurrentUserRole();
+                window.sidebarManager.updateSidebarNav(true, userRole);
+            }
+        }
+
+        // Initialize upload system functionality
+        function initializeUploadSystem() {
+            // Drop Zone Events
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                handleFiles(files);
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                handleFiles(files);
+            });
+
+            // Bulk Upload Events
+            const bulkDropZone = document.getElementById('bulkDropZone');
+            const bulkFileInput = document.getElementById('bulkFileInput');
+
+            bulkDropZone.addEventListener('click', () => bulkFileInput.click());
+
+            bulkDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                bulkDropZone.classList.add('dragover');
+            });
+
+            bulkDropZone.addEventListener('dragleave', () => {
+                bulkDropZone.classList.remove('dragover');
+            });
+
+            bulkDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                bulkDropZone.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                handleBulkFiles(files);
+            });
+
+            bulkFileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                handleBulkFiles(files);
+            });
+
+            // Metadata mode change handler
+            document.addEventListener('change', (e) => {
+                if (e.target.name === 'metadataMode') {
+                    toggleMetadataMode(e.target.value);
+                }
+            });
+        }
+
+        function handleFiles(files) {
+            const allowedTypes = [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'image/png',
+                'image/jpeg',
+                'image/jpg'
+            ];
+
+            const validFiles = files.filter(file => {
+                if (!allowedTypes.includes(file.type)) {
+                    showAlert(`نوع الملف غير مدعوم: ${file.name}`, 'danger');
+                    return false;
+                }
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    showAlert(`الملف كبير جداً (حد أقصى 10MB): ${file.name}`, 'danger');
+                    return false;
+                }
+                return true;
+            });
+
+            selectedFiles = [...selectedFiles, ...validFiles];
+            displayFiles();
+        }
+
+        function displayFiles() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                const fileSize = formatFileSize(file.size);
+                
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="file-icon ${fileExtension}">
+                            <i class="fas fa-file${getFileIcon(fileExtension)}"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1">${file.name}</h6>
+                            <small class="text-muted">${fileSize}</small>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar" id="progress-${index}" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm" onclick="removeFile(${index})">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                fileList.appendChild(fileItem);
+            });
+
+            document.getElementById('uploadBtn').disabled = selectedFiles.length === 0;
+        }
+
+        function getFileIcon(extension) {
+            switch(extension) {
+                case 'pdf': return '-pdf';
+                case 'doc':
+                case 'docx': return '-word';
+                case 'xls':
+                case 'xlsx': return '-excel';
+                case 'png':
+                case 'jpg':
+                case 'jpeg': return '-image';
+                default: return '';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displayFiles();
+        }
+
+        async function uploadFiles() {
+            if (selectedFiles.length === 0) {
+                showAlert('يرجى اختيار ملفات للرفع', 'danger');
+                return;
+            }
+
+            const title = document.getElementById('documentTitle').value.trim();
+            const description = document.getElementById('documentDescription').value.trim();
+            const category = document.getElementById('documentCategory').value;
+            const tags = document.getElementById('documentTags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
+
+            // تحقق من الحقول المطلوبة
+            if (!title) {
+                showAlert('يرجى إدخال عنوان الوثيقة', 'danger');
+                return;
+            }
+            if (!category) {
+                showAlert('يرجى اختيار فئة الوثيقة', 'danger');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const user = unifiedAuth.currentUser;
+                let allSuccess = true;
+                let errorMessages = [];
+                
+                for (let index = 0; index < selectedFiles.length; index++) {
+                    const file = selectedFiles[index];
+                    try {
+                        // Use DocumentUploadService from cloud-services.js
+                        const uploadService = new DocumentUploadService();
+                        
+                        // Set up progress callback
+                        uploadService.onProgress((progress) => {
+                            updateFileProgress(index, progress);
+                        });
+
+                        // Upload file using Cloud Functions
+                        const uploadResult = await uploadService.uploadFile(file, {
+                            category: category,
+                            department: document.getElementById('department')?.value || 'general'
+                        });
+
+                        // Generate file number using Cloud Function
+                        const fileNumberResult = await cloudFunctionService.generateFileNumber();
+                        
+                        // Process document with metadata using Cloud Function
+                        const documentData = {
+                            title: title || file.name,
+                            description: description,
+                            category: category,
+                            tags: tags,
+                            fileName: file.name,
+                            fileSize: file.size,
+                            fileType: file.type,
+                            filePath: uploadResult.filePath,
+                            fileNumber: fileNumberResult.fileNumber,
+                            department: document.getElementById('department')?.value || 'general',
+                            status: 'active',
+                            createdBy: user.uid,
+                            createdAt: new Date().toISOString()
+                        };
+
+                        const docResult = await cloudFunctionService.uploadDocument(documentData);
+                        
+                        updateFileProgress(index, 100);
+                        
+                        // Log successful upload
+                        if (window.activityLogger) {
+                            window.activityLogger.logDocumentUpload(
+                                docResult.documentId, 
+                                file.name,
+                                'upload_success'
+                            );
+                        }
+
+                    } catch (error) {
+                        allSuccess = false;
+                        errorMessages.push(`${file.name}: ${error.message}`);
+                        updateFileProgress(index, 0, true);
+                        
+                        // Log failed upload
+                        if (window.activityLogger) {
+                            window.activityLogger.logDocumentUpload(
+                                null, 
+                                file.name,
+                                'upload_failed',
+                                error.message
+                            );
+                        }
+                    }
+                }
+
+                showLoading(false);
+                
+                if (allSuccess) {
+                    showAlert('تم رفع جميع الملفات بنجاح!', 'success');
+                } else if (errorMessages.length > 0 && errorMessages.length < selectedFiles.length) {
+                    showAlert('تم رفع بعض الملفات بنجاح، وبعضها فشل:\n' + errorMessages.join('\n'), 'warning');
+                } else {
+                    showAlert('فشل رفع جميع الملفات:\n' + errorMessages.join('\n'), 'danger');
+                }
+                
+                // إعادة تعيين النموذج فقط إذا نجح رفع كل الملفات
+                if (allSuccess) {
+                    selectedFiles = [];
+                    displayFiles();
+                    document.getElementById('documentTitle').value = '';
+                    document.getElementById('documentDescription').value = '';
+                    document.getElementById('documentCategory').value = '';
+                    document.getElementById('documentTags').value = '';
+                }
+                
+            } catch (error) {
+                showLoading(false);
+                showAlert('حدث خطأ أثناء رفع الملفات: ' + error.message, 'danger');
+                
+                // Log error
+                if (window.activityLogger) {
+                    window.activityLogger.logError('upload_system_error', error);
+                }
+            }
+        }
+
+        function updateFileProgress(index, progress, hasError = false) {
+            const progressBar = document.getElementById(`progress-${index}`);
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+                if (hasError) {
+                    progressBar.classList.add('bg-danger');
+                    progressBar.classList.remove('bg-primary');
+                } else if (progress === 100) {
+                    progressBar.classList.add('bg-success');
+                    progressBar.classList.remove('bg-primary');
+                }
+            }
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) {
+                overlay.classList.remove('d-none');
+            } else {
+                overlay.classList.add('d-none');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            alertContainer.innerHTML = alertHtml;
+        }
+
+        function logout() {
+            auth.signOut().then(() => {
+                window.location.href = 'index.html';
+            });
+        }
+
+        // Bulk Upload Functions
+        function handleBulkFiles(files) {
+            const allowedTypes = [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'image/png',
+                'image/jpeg',
+                'image/jpg'
+            ];
+
+            const validFiles = files.filter(file => {
+                if (!allowedTypes.includes(file.type)) {
+                    showAlert(`نوع الملف غير مدعوم: ${file.name}`, 'danger');
+                    return false;
+                }
+                if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                    showAlert(`الملف كبير جداً (حد أقصى 10MB): ${file.name}`, 'danger');
+                    return false;
+                }
+                return true;
+            });
+
+            bulkFiles = [...bulkFiles, ...validFiles];
+            displayBulkFiles();
+            
+            if (bulkFiles.length > 0) {
+                document.getElementById('bulkMetadataOptions').classList.remove('d-none-initial');
+                document.getElementById('bulkUploadControls').classList.remove('d-none-initial');
+            }
+        }
+
+        function displayBulkFiles() {
+            const fileList = document.getElementById('bulkFileList');
+            fileList.innerHTML = '';
+
+            bulkFiles.forEach((file, index) => {
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                const fileSize = formatFileSize(file.size);
+                
+                const fileItem = document.createElement('div');
+                fileItem.className = 'bulk-file-item';
+                fileItem.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="file-icon ${fileExtension}">
+                            <i class="fas fa-file${getFileIcon(fileExtension)}"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1">${file.name}</h6>
+                            <small class="text-muted">${fileSize}</small>
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar" id="bulk-progress-${index}" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm metadata-toggle-btn" onclick="toggleFileMetadata(${index})">
+                                <i class="fas fa-edit me-1"></i>
+                                تحرير البيانات
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="removeBulkFile(${index})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="file-metadata-row" id="metadata-${index}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="title-${index}" placeholder="عنوان الملف" value="${file.name.split('.')[0]}">
+                                    <label for="title-${index}">عنوان الملف</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <select class="form-control" id="category-${index}">
+                                        <option value="">اختر الفئة</option>
+                                        <option value="contracts">عقود</option>
+                                        <option value="reports">تقارير</option>
+                                        <option value="invoices">فواتير</option>
+                                        <option value="letters">رسائل</option>
+                                        <option value="other">أخرى</option>
+                                    </select>
+                                    <label for="category-${index}">فئة الملف</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="description-${index}" placeholder="وصف الملف"></textarea>
+                            <label for="description-${index}">وصف الملف</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="tags-${index}" placeholder="العلامات (مفصولة بفاصلة)">
+                            <label for="tags-${index}">العلامات</label>
+                        </div>
+                    </div>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function toggleFileMetadata(index) {
+            const metadataRow = document.getElementById(`metadata-${index}`);
+            metadataRow.classList.toggle('show');
+        }
+
+        function removeBulkFile(index) {
+            bulkFiles.splice(index, 1);
+            displayBulkFiles();
+            
+            if (bulkFiles.length === 0) {
+                document.getElementById('bulkMetadataOptions').classList.add('d-none-initial');
+                document.getElementById('bulkUploadControls').classList.add('d-none-initial');
+            }
+        }
+
+        function clearBulkFiles() {
+            bulkFiles = [];
+            displayBulkFiles();
+            document.getElementById('bulkMetadataOptions').classList.add('d-none-initial');
+            document.getElementById('bulkUploadControls').classList.add('d-none-initial');
+            document.getElementById('bulkProgressContainer').classList.add('d-none-initial');
+        }
+
+        function toggleMetadataMode(mode) {
+            const unifiedForm = document.getElementById('unifiedMetadataForm');
+            if (mode === 'unified') {
+                unifiedForm.style.display = 'block';
+            } else {
+                unifiedForm.style.display = 'none';
+            }
+        }
+
+        async function uploadBulkFiles() {
+            if (bulkFiles.length === 0) {
+                showAlert('يرجى اختيار ملفات للرفع', 'danger');
+                return;
+            }
+
+            if (uploadInProgress) {
+                showAlert('عملية رفع قيد التنفيذ بالفعل', 'warning');
+                return;
+            }
+
+            const metadataMode = document.querySelector('input[name="metadataMode"]:checked').value;
+            let bulkMetadata = {};
+
+            if (metadataMode === 'unified') {
+                const title = document.getElementById('bulkDocumentTitle').value.trim();
+                const description = document.getElementById('bulkDocumentDescription').value.trim();
+                const category = document.getElementById('bulkDocumentCategory').value;
+                const tags = document.getElementById('bulkDocumentTags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
+
+                if (!category) {
+                    showAlert('يرجى اختيار فئة الوثائق', 'danger');
+                    return;
+                }
+
+                bulkMetadata = { title, description, category, tags };
+            }
+
+            uploadInProgress = true;
+            document.getElementById('bulkProgressContainer').classList.remove('d-none-initial');
+            document.getElementById('bulkUploadBtn').disabled = true;
+
+            try {
+                const user = unifiedAuth.currentUser;
+                let successCount = 0;
+                let errorMessages = [];
+
+                // Create individual progress indicators
+                const progressList = document.getElementById('individualProgressList');
+                progressList.innerHTML = '';
+                
+                bulkFiles.forEach((file, index) => {
+                    const progressItem = document.createElement('div');
+                    progressItem.className = 'individual-progress';
+                    progressItem.innerHTML = `
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small">${file.name}</span>
+                            <span class="small" id="file-progress-text-${index}">0%</span>
+                        </div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar" id="file-progress-bar-${index}" style="width: 0%"></div>
+                        </div>
+                    `;
+                    progressList.appendChild(progressItem);
+                });
+
+                for (let index = 0; index < bulkFiles.length; index++) {
+                    const file = bulkFiles[index];
+                    try {
+                        // Update file progress
+                        updateBulkFileProgress(index, 10, 'جاري الرفع...');
+
+                        const storageRef = storage.ref(`documents/${user.uid}/${Date.now()}_${file.name}`);
+                        
+                        // Upload with progress tracking
+                        const uploadTask = storageRef.put(file);
+                        
+                        uploadTask.on('state_changed', 
+                            (snapshot) => {
+                                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                                updateBulkFileProgress(index, progress, `${Math.round(progress)}%`);
+                            }, 
+                            (error) => {
+                                throw error;
+                            }
+                        );
+
+                        await uploadTask;
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+
+                        // Get metadata for this file
+                        let fileMetadata;
+                        if (metadataMode === 'unified') {
+                            fileMetadata = {
+                                title: bulkMetadata.title ? `${bulkMetadata.title} - ${file.name.split('.')[0]}` : file.name.split('.')[0],
+                                description: bulkMetadata.description,
+                                category: bulkMetadata.category,
+                                tags: bulkMetadata.tags
+                            };
+                        } else {
+                            const title = document.getElementById(`title-${index}`).value.trim() || file.name.split('.')[0];
+                            const description = document.getElementById(`description-${index}`).value.trim();
+                            const category = document.getElementById(`category-${index}`).value;
+                            const tags = document.getElementById(`tags-${index}`).value.split(',').map(tag => tag.trim()).filter(tag => tag);
+
+                            if (!category) {
+                                throw new Error('يرجى اختيار فئة للملف');
+                            }
+
+                            fileMetadata = { title, description, category, tags };
+                        }
+
+                        // Save document data to Firestore
+                        const docData = {
+                            title: fileMetadata.title,
+                            description: fileMetadata.description,
+                            category: fileMetadata.category,
+                            tags: fileMetadata.tags,
+                            fileName: file.name,
+                            fileSize: file.size,
+                            fileType: file.type,
+                            downloadURL: downloadURL,
+                            uploadedBy: user.uid,
+                            uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            isActive: true,
+                            uploadMethod: 'bulk'
+                        };
+
+                        await db.collection('documents').add(docData);
+                        updateBulkFileProgress(index, 100, 'مكتمل');
+                        successCount++;
+
+                    } catch (err) {
+                        errorMessages.push(`فشل رفع الملف: ${file.name} - ${err.message}`);
+                        updateBulkFileProgress(index, 0, 'فشل');
+                    }
+
+                    // Update overall progress
+                    const overallProgress = ((index + 1) / bulkFiles.length) * 100;
+                    updateOverallProgress(overallProgress);
+                }
+
+                uploadInProgress = false;
+                document.getElementById('bulkUploadBtn').disabled = false;
+
+                if (successCount === bulkFiles.length) {
+                    showAlert(`تم رفع جميع الملفات بنجاح! (${successCount} ملف)`, 'success');
+                    setTimeout(() => {
+                        clearBulkFiles();
+                    }, 3000);
+                } else if (successCount > 0) {
+                    showAlert(`تم رفع ${successCount} من ${bulkFiles.length} ملف بنجاح.\nالأخطاء:\n${errorMessages.join('\n')}`, 'warning');
+                } else {
+                    showAlert(`فشل رفع جميع الملفات:\n${errorMessages.join('\n')}`, 'danger');
+                }
+
+            } catch (error) {
+                uploadInProgress = false;
+                document.getElementById('bulkUploadBtn').disabled = false;
+                showAlert('حدث خطأ عام أثناء رفع الملفات: ' + error.message, 'danger');
+            }
+        }
+
+        function updateBulkFileProgress(index, progress, text) {
+            const progressBar = document.getElementById(`file-progress-bar-${index}`);
+            const progressText = document.getElementById(`file-progress-text-${index}`);
+            
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+            }
+            if (progressText) {
+                progressText.textContent = text;
+            }
+        }
+
+        function updateOverallProgress(progress) {
+            const progressBar = document.getElementById('overallProgressBar');
+            const progressText = document.getElementById('overallProgressText');
+            
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+            }
+            if (progressText) {
+                progressText.textContent = `${Math.round(progress)}%`;
+            }
+        }
+    </script>
+</body>
+</html>

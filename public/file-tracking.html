@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تتبع حركة الملفات - نظام الأرشيف</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    
+    <style>
+        * {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .main-content {
+            margin-right: 280px;
+            transition: margin-right 0.3s ease;
+            padding: 2rem;
+        }
+
+        .sidebar-collapsed .main-content {
+            margin-right: 0;
+        }
+
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-title {
+            background: linear-gradient(135deg, #17a2b8 0%, #667eea 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 2.5rem;
+        }
+
+        .tracking-card {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .tracking-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .movement-timeline {
+            position: relative;
+            padding: 1.5rem 0;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 1rem 0 1rem 3rem;
+            border-right: 3px solid #e9ecef;
+        }
+
+        .timeline-item:last-child {
+            border-right: none;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            right: -8px;
+            top: 1.5rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #17a2b8;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-marker.transfer {
+            background: #dc3545;
+        }
+
+        .timeline-marker.receive {
+            background: #28a745;
+        }
+
+        .timeline-marker.archive {
+            background: #6c757d;
+        }
+
+        .file-info-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .department-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+            color: white;
+            display: inline-block;
+        }
+
+        .dept-archive { background: #6c757d; }
+        .dept-legal { background: #007bff; }
+        .dept-governance { background: #28a745; }
+        .dept-collection { background: #fd7e14; }
+        .dept-securitization { background: #6f42c1; }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .status-in-archive {
+            background: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
+        }
+
+        .status-transferred {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        .status-received {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .status-in-transit {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+
+        .search-controls {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #17a2b8 0%, #667eea 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(23, 162, 184, 0.4);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #17a2b8 0%, #667eea 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-left: 0.75rem;
+        }
+
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #17a2b8;
+            box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6c757d;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
+        }
+
+        .loading-container {
+            height: 200px;
+        }
+
+        /* Scanner Styles */
+        .scanner-container {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .scanner-video {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+
+        .scanner-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px solid #17a2b8;
+            border-radius: 12px;
+            background: rgba(23, 162, 184, 0.1);
+        }
+
+        .scanner-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #17a2b8;
+            animation: scanLine 2s ease-in-out infinite;
+        }
+
+        @keyframes scanLine {
+            0%, 100% { top: 0; }
+            50% { top: calc(100% - 3px); }
+        }
+
+        .scanner-instructions {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(23, 162, 184, 0.1);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .scanned-result {
+            background: rgba(40, 167, 69, 0.1);
+            border: 2px solid #28a745;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .scanned-result.show {
+            display: block;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .scanner-controls {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .scanner-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            background: #17a2b8;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .scanner-btn:hover {
+            background: #138496;
+        }
+
+        .scanner-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .file-info-display {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 2px solid #28a745;
+        }
+
+        .qr-code-display {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            border: 2px dashed #17a2b8;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading-height {
+            height: 200px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-right: 0;
+                padding: 1rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .timeline-item {
+                padding-right: 1.5rem;
+            }
+
+            .scanner-video {
+                height: 250px;
+            }
+
+            .scanner-overlay {
+                width: 150px;
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-archive"></i>
+                <span>نظام الأرشيف</span>
+            </div>
+            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="user-info" id="userInfo">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </div>
+        
+        <nav class="sidebar-nav" id="sidebarNav">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </nav>
+    </aside>
+
+    <div class="overlay" id="overlay"></div>
+
+    <main class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="page-title mb-2">تتبع حركة الملفات</h1>
+                    <p class="text-muted mb-0">متابعة انتقال الملفات بين الأقسام والإدارات</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#scanTransferModal">
+                        <i class="fas fa-qrcode me-2"></i>
+                        مسح ونقل ملف
+                    </button>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#scanReceiveModal">
+                        <i class="fas fa-scan me-2"></i>
+                        مسح واستلام ملف
+                    </button>
+                    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#manualEntryModal">
+                        <i class="fas fa-keyboard me-2"></i>
+                        إدخال يدوي
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Controls -->
+        <div class="search-controls">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">البحث عن ملف</label>
+                    <input type="text" class="form-control" id="searchFile" placeholder="رقم الملف أو اسم الملف">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">القسم/الإدارة</label>
+                    <select class="form-control" id="departmentFilter" title="اختر القسم للفلترة">
+                        <option value="">جميع الأقسام</option>
+                        <option value="archive">الأرشيف</option>
+                        <option value="legal">الشؤون القانونية</option>
+                        <option value="governance">الحوكمة والامتثال</option>
+                        <option value="collection">إدارة التحصيل</option>
+                        <option value="securitization">إدارة التوريق</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">حالة الملف</label>
+                    <select class="form-control" id="statusFilter" title="اختر الحالة للفلترة">
+                        <option value="">جميع الحالات</option>
+                        <option value="in_archive">في الأرشيف</option>
+                        <option value="transferred">تم النقل</option>
+                        <option value="received">تم الاستلام</option>
+                        <option value="in_transit">في الطريق</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" onclick="searchFileMovements()">
+                        <i class="fas fa-search me-2"></i>
+                        بحث
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Movements List -->
+        <div id="movementsContainer">
+            <div class="d-flex justify-content-center align-items-center loading-container">
+                <div class="spinner-border text-primary"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scan and Transfer Modal -->
+    <div class="modal fade" id="scanTransferModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-qrcode me-2"></i>
+                        مسح ونقل ملف
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" title="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="scanner-instructions">
+                        <i class="fas fa-qrcode fa-2x text-primary mb-2"></i>
+                        <h6>قم بتوجيه الكاميرا نحو رمز QR أو الباركود الخاص بالملف</h6>
+                        <p class="text-muted mb-0">تأكد من وضوح الرمز وثبات الكاميرا</p>
+                    </div>
+
+                    <div class="scanner-container" id="transferScannerContainer">
+                        <video id="transferScannerVideo" class="scanner-video" autoplay></video>
+                        <div class="scanner-overlay"></div>
+                    </div>
+
+                    <div class="scanner-controls">
+                        <button class="scanner-btn" id="startTransferScan">
+                            <i class="fas fa-play me-1"></i>
+                            بدء المسح
+                        </button>
+                        <button class="scanner-btn" id="stopTransferScan" disabled>
+                            <i class="fas fa-stop me-1"></i>
+                            إيقاف المسح
+                        </button>
+                        <button class="scanner-btn" id="switchTransferCamera">
+                            <i class="fas fa-camera-rotate me-1"></i>
+                            تبديل الكاميرا
+                        </button>
+                    </div>
+
+                    <div class="scanned-result d-none" id="transferScannedResult">
+                        <h6 class="text-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            تم مسح الملف بنجاح!
+                        </h6>
+                        <div class="file-info-display" id="transferFileInfo">
+                            <!-- سيتم ملؤها ببيانات الملف -->
+                        </div>
+                    </div>
+
+                    <div id="transferFormSection" class="d-none">
+                        <form id="transferScanForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">إلى القسم</label>
+                                        <select class="form-control" id="scanTransferToDept" title="اختر القسم المستقبل" required>
+                                            <option value="">اختر القسم المستقبل</option>
+                                            <option value="archive">الأرشيف</option>
+                                            <option value="legal">الشؤون القانونية</option>
+                                            <option value="governance">الحوكمة والامتثال</option>
+                                            <option value="collection">إدارة التحصيل</option>
+                                            <option value="securitization">إدارة التوريق</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">أولوية النقل</label>
+                                        <select class="form-control" id="transferPriority" title="اختر أولوية النقل">
+                                            <option value="normal">عادي</option>
+                                            <option value="urgent">عاجل</option>
+                                            <option value="critical">حرج</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">ملاحظات النقل</label>
+                                <textarea class="form-control" id="scanTransferNotes" rows="3" placeholder="أدخل سبب النقل والملاحظات"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary d-none" id="confirmTransferBtn" onclick="confirmScannedTransfer()">
+                        <i class="fas fa-share me-2"></i>
+                        تأكيد النقل
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan and Receive Modal -->
+    <div class="modal fade" id="scanReceiveModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-scan me-2"></i>
+                        مسح واستلام ملف
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" title="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="scanner-instructions">
+                        <i class="fas fa-inbox fa-2x text-success mb-2"></i>
+                        <h6>قم بمسح رمز QR الخاص بالملف المراد استلامه</h6>
+                        <p class="text-muted mb-0">سيتم التحقق من حالة الملف تلقائياً</p>
+                    </div>
+
+                    <div class="scanner-container" id="receiveScannerContainer">
+                        <video id="receiveScannerVideo" class="scanner-video" autoplay></video>
+                        <div class="scanner-overlay"></div>
+                    </div>
+
+                    <div class="scanner-controls">
+                        <button class="scanner-btn" id="startReceiveScan">
+                            <i class="fas fa-play me-1"></i>
+                            بدء المسح
+                        </button>
+                        <button class="scanner-btn" id="stopReceiveScan" disabled>
+                            <i class="fas fa-stop me-1"></i>
+                            إيقاف المسح
+                        </button>
+                        <button class="scanner-btn" id="switchReceiveCamera">
+                            <i class="fas fa-camera-rotate me-1"></i>
+                            تبديل الكاميرا
+                        </button>
+                    </div>
+
+                    <div class="scanned-result d-none" id="receiveScannedResult">
+                        <h6 class="text-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            تم العثور على الملف!
+                        </h6>
+                        <div class="file-info-display" id="receiveFileInfo">
+                            <!-- سيتم ملؤها ببيانات الملف -->
+                        </div>
+                    </div>
+
+                    <div id="receiveFormSection" class="d-none">
+                        <form id="receiveScanForm">
+                            <div class="mb-3">
+                                <label class="form-label">حالة الملف عند الاستلام</label>
+                                <select class="form-control" id="receiveCondition" title="اختر حالة الملف">
+                                    <option value="good">سليم</option>
+                                    <option value="damaged">تالف</option>
+                                    <option value="incomplete">ناقص</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">ملاحظات الاستلام</label>
+                                <textarea class="form-control" id="scanReceiveNotes" rows="3" placeholder="أدخل ملاحظات حول حالة الملف"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-success d-none" id="confirmReceiveBtn" onclick="confirmScannedReceive()">
+                        <i class="fas fa-check me-2"></i>
+                        تأكيد الاستلام
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Entry Modal (Fallback) -->
+    <div class="modal fade" id="manualEntryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-keyboard me-2"></i>
+                        إدخال يدوي للملف
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" title="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        استخدم هذا الخيار فقط في حالة عدم عمل الماسح الضوئي
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">رقم الملف أو رمز QR</label>
+                        <input type="text" class="form-control" id="manualFileCode" placeholder="أدخل رقم الملف">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">نوع العملية</label>
+                        <select class="form-control" id="manualOperation" title="اختر نوع العملية">
+                            <option value="transfer">نقل ملف</option>
+                            <option value="receive">استلام ملف</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="processManualEntry()">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        متابعة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    <script src="assets/js/activity-logger.js"></script>
+
+    <script>
+        // Initialize unified auth system
+        let authSystem;
+        let permissionController;
+        let currentUser = null;
+        let sidebarManager = null;
+        
+        // Scanner related variables
+        let transferScanner = null;
+        let receiveScanner = null;
+        let currentScanData = null;
+        let transferCameraIndex = 0;
+        let receiveCameraIndex = 0;
+        let availableCameras = [];
+
+        // Department names in Arabic
+        const departmentNames = {
+            archive: 'الأرشيف',
+            legal: 'الشؤون القانونية',
+            governance: 'الحوكمة والامتثال',
+            collection: 'إدارة التحصيل',
+            securitization: 'إدارة التوريق'
+        };
+
+        // Status names in Arabic
+        const statusNames = {
+            in_archive: 'في الأرشيف',
+            transferred: 'تم النقل',
+            received: 'تم الاستلام',
+            in_transit: 'في الطريق'
+        };
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        authSystem = unifiedAuth;
+                        // Initialize permission controller
+                        permissionController = new UIPermissionController(authSystem);
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+            
+            sidebarManager = new SidebarManager();
+            
+            // Initialize scanner controls
+            initializeScannerControls();
+            
+            // Set up auth state listener with unified auth
+            authSystem.onAuthStateChanged(async (user) => {
+                handleAuthStateChange(user);
+            });
+        });
+
+        async function handleAuthStateChange(user) {
+            if (!user) {
+                // Redirect to login with enhanced message
+                window.location.href = 'login.html?message=session-expired';
+                return;
+            }
+
+            currentUser = user;
+            await checkPermissions();
+            
+            // Log page access
+            if (window.activityLogger) {
+                window.activityLogger.logSystemAccess('file-tracking', 'file_movement_tracking');
+            }
+            
+            loadFileMovements();
+        }
+
+        async function checkPermissions() {
+            try {
+                // Check for specific permission using the unified auth system
+                if (!authSystem.hasPermission('track_file_movements')) {
+                    alert('ليس لديك صلاحية لتتبع حركة الملفات');
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+
+                // Update sidebar with permission-based navigation
+                if (sidebarManager) {
+                    sidebarManager.updateSidebarNav(true);
+                }
+
+                // Update permission-based UI
+                if (permissionController) {
+                    permissionController.updateUI();
+                }
+            } catch (error) {
+                console.error('خطأ في التحقق من الصلاحيات:', error);
+                authSystem.logError('file-tracking-permissions-error', error);
+            }
+        }
+
+        async function loadFileMovements(filters = {}) {
+            const container = document.getElementById('movementsContainer');
+            
+            try {
+                container.innerHTML = `
+                    <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+                `;
+
+                let query = authSystem.db.collection('file_movements').orderBy('timestamp', 'desc');
+
+                // Apply simple filters to avoid composite index requirements
+                if (filters.fileNumber) {
+                    // For file number search, use equality filter only
+                    query = authSystem.db.collection('file_movements')
+                        .where('fileNumber', '==', filters.fileNumber)
+                        .orderBy('timestamp', 'desc');
+                } else {
+                    // For general listing, use simple orderBy
+                    query = authSystem.db.collection('file_movements').orderBy('timestamp', 'desc');
+                }
+
+                const snapshot = await query.limit(50).get();
+                
+                // Apply client-side filtering for department and status if needed
+                let filteredDocs = snapshot.docs;
+                
+                if (filters.department) {
+                    filteredDocs = filteredDocs.filter(doc => {
+                        const data = doc.data();
+                        return data.toDepartment === filters.department || data.fromDepartment === filters.department;
+                    });
+                }
+                
+                if (filters.status) {
+                    filteredDocs = filteredDocs.filter(doc => {
+                        const data = doc.data();
+                        return data.status === filters.status;
+                    });
+                }
+                
+                if (filteredDocs.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <h5>لا توجد حركات ملفات</h5>
+                            <p>لم يتم العثور على أي حركات للملفات</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Group movements by file
+                const fileMovements = {};
+                filteredDocs.forEach(doc => {
+                    const movement = { id: doc.id, ...doc.data() };
+                    const fileKey = movement.fileNumber;
+                    
+                    if (!fileMovements[fileKey]) {
+                        fileMovements[fileKey] = {
+                            fileNumber: movement.fileNumber,
+                            fileName: movement.fileName,
+                            movements: []
+                        };
+                    }
+                    fileMovements[fileKey].movements.push(movement);
+                });
+
+                // Sort movements within each file by timestamp
+                Object.values(fileMovements).forEach(file => {
+                    file.movements.sort((a, b) => {
+                        const timeA = a.timestamp ? a.timestamp.toDate() : new Date(0);
+                        const timeB = b.timestamp ? b.timestamp.toDate() : new Date(0);
+                        return timeB - timeA;
+                    });
+                });
+
+                renderFileMovements(fileMovements);
+
+            } catch (error) {
+                console.error('خطأ في تحميل حركات الملفات:', error);
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        خطأ في تحميل البيانات: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function renderFileMovements(fileMovements) {
+            const container = document.getElementById('movementsContainer');
+            
+            container.innerHTML = Object.values(fileMovements).map(file => {
+                const latestMovement = file.movements[0];
+                const currentStatus = latestMovement ? latestMovement.status : 'unknown';
+                const currentLocation = latestMovement ? (latestMovement.toDepartment || latestMovement.fromDepartment) : 'unknown';
+
+                return `
+                    <div class="tracking-card">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="mb-1">
+                                    <i class="fas fa-file-alt me-2"></i>
+                                    ${file.fileName || 'ملف غير محدد'}
+                                </h5>
+                                <p class="text-muted mb-2">رقم الملف: ${file.fileNumber}</p>
+                                <div class="d-flex gap-2">
+                                    <span class="department-badge dept-${currentLocation}">
+                                        ${departmentNames[currentLocation] || currentLocation}
+                                    </span>
+                                    <span class="status-badge status-${currentStatus.replace('_', '-')}">
+                                        ${statusNames[currentStatus] || currentStatus}
+                                    </span>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm" onclick="toggleMovementHistory('${file.fileNumber}')">
+                                <i class="fas fa-history me-1"></i>
+                                التاريخ
+                            </button>
+                        </div>
+                        
+                        <div class="movement-timeline d-none" id="timeline-${file.fileNumber}">
+                            ${file.movements.map(movement => {
+                                const timestamp = movement.timestamp ? 
+                                    (movement.timestamp.toDate ? movement.timestamp.toDate() : new Date(movement.timestamp)) :
+                                    new Date();
+                                
+                                return `
+                                <div class="timeline-item">
+                                    <div class="timeline-marker ${movement.action || 'transfer'}"></div>
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">
+                                                ${movement.action === 'transfer' ? 'نقل الملف' : 'استلام الملف'}
+                                                ${movement.fromDepartment ? `من ${departmentNames[movement.fromDepartment]}` : ''}
+                                                ${movement.toDepartment ? `إلى ${departmentNames[movement.toDepartment]}` : ''}
+                                            </h6>
+                                            <p class="text-muted mb-1">${movement.notes || 'لا توجد ملاحظات'}</p>
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                ${timestamp.toLocaleString('ar-SA')}
+                                            </small>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <div class="user-avatar">
+                                                ${movement.userDisplayName ? movement.userDisplayName.charAt(0) : 'ع'}
+                                            </div>
+                                            <div class="me-2">
+                                                <div class="fw-bold small">${movement.userDisplayName || 'مستخدم غير معروف'}</div>
+                                                <div class="text-muted" style="font-size: 0.75rem">${movement.userEmail || ''}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;}).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleMovementHistory(fileNumber) {
+            const timeline = document.getElementById(`timeline-${fileNumber}`);
+            const button = event.target.closest('button');
+            
+            if (timeline.classList.contains('d-none')) {
+                timeline.classList.remove('d-none');
+                button.innerHTML = '<i class="fas fa-eye-slash me-1"></i>إخفاء';
+            } else {
+                timeline.classList.add('d-none');
+                button.innerHTML = '<i class="fas fa-history me-1"></i>التاريخ';
+            }
+        }
+
+        function searchFileMovements() {
+            const fileSearch = document.getElementById('searchFile').value.trim();
+            const department = document.getElementById('departmentFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            
+            const filters = {};
+            if (fileSearch) filters.fileNumber = fileSearch;
+            if (department) filters.department = department;
+            if (status) filters.status = status;
+            
+            // Log search activity
+            if (window.activityLogger && (fileSearch || department || status)) {
+                window.activityLogger.logFileSearch(
+                    fileSearch || 'All files',
+                    0, // Results count will be updated after loading
+                    'file_tracking_filter'
+                );
+            }
+            
+            loadFileMovements(filters);
+        }
+
+        async function transferFile() {
+            const fileNumber = document.getElementById('transferFileNumber').value.trim();
+            const fileName = document.getElementById('transferFileName').value.trim();
+            const fromDept = document.getElementById('transferFromDept').value;
+            const toDept = document.getElementById('transferToDept').value;
+            const notes = document.getElementById('transferNotes').value.trim();
+
+            if (!fileNumber || !fileName || !fromDept || !toDept) {
+                alert('يرجى ملء جميع الحقول المطلوبة');
+                return;
+            }
+
+            if (fromDept === toDept) {
+                alert('لا يمكن نقل الملف لنفس القسم');
+                return;
+            }
+
+            const submitBtn = document.querySelector('#transferFileModal .btn-primary');
+            const originalContent = submitBtn.innerHTML;
+            
+            try {
+                // Show loading
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري النقل...';
+
+                // Create movement record
+                await authSystem.db.collection('file_movements').add({
+                    fileNumber: fileNumber,
+                    fileName: fileName,
+                    fromDepartment: fromDept,
+                    toDepartment: toDept,
+                    action: 'transfer',
+                    status: 'in_transit',
+                    notes: notes,
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    userDisplayName: currentUser.displayName,
+                    timestamp: authSystem.db.FieldValue.serverTimestamp()
+                });
+
+                // Update file status
+                await updateFileStatus(fileNumber, 'in_transit', toDept);
+
+                // Close modal and refresh
+                bootstrap.Modal.getInstance(document.getElementById('transferFileModal')).hide();
+                document.getElementById('transferFileForm').reset();
+                loadFileMovements();
+                
+                alert('تم نقل الملف بنجاح');
+
+            } catch (error) {
+                console.error('خطأ في نقل الملف:', error);
+                alert('حدث خطأ في نقل الملف: ' + error.message);
+            } finally {
+                // Restore button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+            }
+        }
+
+        async function receiveFile() {
+            const fileNumber = document.getElementById('receiveFileNumber').value.trim();
+            const notes = document.getElementById('receiveNotes').value.trim();
+
+            if (!fileNumber) {
+                alert('يرجى إدخال رقم الملف');
+                return;
+            }
+
+            const submitBtn = document.querySelector('#receiveFileModal .btn-success');
+            const originalContent = submitBtn.innerHTML;
+
+            try {
+                // Show loading
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الاستلام...';
+
+                // Check if file is in transit - using simpler query to avoid index issues
+                const movementsQuery = await authSystem.db.collection('file_movements')
+                    .where('fileNumber', '==', fileNumber)
+                    .orderBy('timestamp', 'desc')
+                    .limit(10)
+                    .get();
+
+                if (movementsQuery.empty) {
+                    alert('لا يوجد ملف بهذا الرقم');
+                    return;
+                }
+
+                // Find the latest movement that is in transit
+                let latestMovement = null;
+                for (const doc of movementsQuery.docs) {
+                    const movement = doc.data();
+                    if (movement.status === 'in_transit') {
+                        latestMovement = movement;
+                        break;
+                    }
+                }
+
+                if (!latestMovement) {
+                    alert('لا يوجد ملف في حالة انتقال بهذا الرقم');
+                    return;
+                }
+
+                // Create receive record
+                await authSystem.db.collection('file_movements').add({
+                    fileNumber: fileNumber,
+                    fileName: latestMovement.fileName,
+                    fromDepartment: latestMovement.fromDepartment,
+                    toDepartment: latestMovement.toDepartment,
+                    action: 'receive',
+                    status: 'received',
+                    notes: notes,
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    userDisplayName: currentUser.displayName,
+                    timestamp: authSystem.db.FieldValue.serverTimestamp()
+                });
+
+                // Update file status
+                await updateFileStatus(fileNumber, 'received', latestMovement.toDepartment);
+
+                // Close modal and refresh
+                bootstrap.Modal.getInstance(document.getElementById('receiveFileModal')).hide();
+                document.getElementById('receiveFileForm').reset();
+                loadFileMovements();
+                
+                alert('تم استلام الملف بنجاح');
+
+            } catch (error) {
+                console.error('خطأ في استلام الملف:', error);
+                alert('حدث خطأ في استلام الملف: ' + error.message);
+            } finally {
+                // Restore button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+            }
+        }
+
+        async function updateFileStatus(fileNumber, status, currentDepartment) {
+            try {
+                // Update in documents collection if exists
+                const documentsQuery = await authSystem.db.collection('documents')
+                    .where('fileNumber', '==', fileNumber)
+                    .limit(1)
+                    .get();
+
+                if (!documentsQuery.empty) {
+                    const docRef = documentsQuery.docs[0].ref;
+                    await docRef.update({
+                        currentStatus: status,
+                        currentDepartment: currentDepartment,
+                        lastUpdated: authSystem.db.FieldValue.serverTimestamp()
+                    });
+                }
+            } catch (error) {
+                console.error('خطأ في تحديث حالة الملف:', error);
+            }
+        }
+
+        // ===== SCANNER FUNCTIONS =====
+
+        function initializeScannerControls() {
+            // Transfer scanner controls
+            document.getElementById('startTransferScan').addEventListener('click', () => startTransferScanner());
+            document.getElementById('stopTransferScan').addEventListener('click', () => stopTransferScanner());
+            document.getElementById('switchTransferCamera').addEventListener('click', () => switchTransferCamera());
+
+            // Receive scanner controls
+            document.getElementById('startReceiveScan').addEventListener('click', () => startReceiveScanner());
+            document.getElementById('stopReceiveScan').addEventListener('click', () => stopReceiveScanner());
+            document.getElementById('switchReceiveCamera').addEventListener('click', () => switchReceiveCamera());
+
+            // Get available cameras
+            Html5Qrcode.getCameras().then(devices => {
+                availableCameras = devices;
+                console.log('Available cameras:', devices.length);
+            }).catch(err => {
+                console.warn('No cameras found:', err);
+            });
+        }
+
+        async function startTransferScanner() {
+            try {
+                const cameraId = availableCameras.length > transferCameraIndex ? 
+                    availableCameras[transferCameraIndex].id : 
+                    { facingMode: "environment" };
+
+                transferScanner = new Html5Qrcode("transferScannerVideo");
+                
+                await transferScanner.start(
+                    cameraId,
+                    {
+                        fps: 10,
+                        qrbox: { width: 200, height: 200 }
+                    },
+                    (decodedText, decodedResult) => {
+                        onTransferScanSuccess(decodedText);
+                    },
+                    (errorMessage) => {
+                        // Scan errors can be ignored
+                    }
+                );
+
+                document.getElementById('startTransferScan').disabled = true;
+                document.getElementById('stopTransferScan').disabled = false;
+
+            } catch (err) {
+                console.error('خطأ في بدء الماسح:', err);
+                alert('خطأ في تشغيل الكاميرا. تأكد من السماح للموقع بالوصول للكاميرا.');
+            }
+        }
+
+        async function stopTransferScanner() {
+            if (transferScanner) {
+                try {
+                    await transferScanner.stop();
+                    transferScanner = null;
+                } catch (err) {
+                    console.error('خطأ في إيقاف الماسح:', err);
+                }
+            }
+            
+            document.getElementById('startTransferScan').disabled = false;
+            document.getElementById('stopTransferScan').disabled = true;
+        }
+
+        async function switchTransferCamera() {
+            if (availableCameras.length <= 1) return;
+            
+            await stopTransferScanner();
+            transferCameraIndex = (transferCameraIndex + 1) % availableCameras.length;
+            await startTransferScanner();
+        }
+
+        async function onTransferScanSuccess(decodedText) {
+            await stopTransferScanner();
+            
+            // Parse QR code data
+            currentScanData = parseQRCode(decodedText);
+            
+            // Log QR scan activity
+            if (window.activityLogger) {
+                window.activityLogger.logQRScan(decodedText, !!currentScanData, 'transfer');
+            }
+            
+            if (!currentScanData) {
+                alert('رمز QR غير صالح. تأكد من استخدام رمز خاص بالنظام.');
+                return;
+            }
+
+            // Show scanned result
+            document.getElementById('transferScannedResult').classList.remove('d-none');
+            document.getElementById('transferFormSection').classList.remove('d-none');
+            document.getElementById('confirmTransferBtn').classList.remove('d-none');
+
+            // Display file info
+            const transferFileInfo = await getFileInfo(currentScanData.fileNumber);
+            displayTransferFileInfo(transferFileInfo);
+        }
+
+        async function startReceiveScanner() {
+            try {
+                const cameraId = availableCameras.length > receiveCameraIndex ? 
+                    availableCameras[receiveCameraIndex].id : 
+                    { facingMode: "environment" };
+
+                receiveScanner = new Html5Qrcode("receiveScannerVideo");
+                
+                await receiveScanner.start(
+                    cameraId,
+                    {
+                        fps: 10,
+                        qrbox: { width: 200, height: 200 }
+                    },
+                    (decodedText, decodedResult) => {
+                        onReceiveScanSuccess(decodedText);
+                    },
+                    (errorMessage) => {
+                        // Scan errors can be ignored
+                    }
+                );
+
+                document.getElementById('startReceiveScan').disabled = true;
+                document.getElementById('stopReceiveScan').disabled = false;
+
+            } catch (err) {
+                console.error('خطأ في بدء الماسح:', err);
+                alert('خطأ في تشغيل الكاميرا. تأكد من السماح للموقع بالوصول للكاميرا.');
+            }
+        }
+
+        async function stopReceiveScanner() {
+            if (receiveScanner) {
+                try {
+                    await receiveScanner.stop();
+                    receiveScanner = null;
+                } catch (err) {
+                    console.error('خطأ في إيقاف الماسح:', err);
+                }
+            }
+            
+            document.getElementById('startReceiveScan').disabled = false;
+            document.getElementById('stopReceiveScan').disabled = true;
+        }
+
+        async function switchReceiveCamera() {
+            if (availableCameras.length <= 1) return;
+            
+            await stopReceiveScanner();
+            receiveCameraIndex = (receiveCameraIndex + 1) % availableCameras.length;
+            await startReceiveScanner();
+        }
+
+        async function onReceiveScanSuccess(decodedText) {
+            await stopReceiveScanner();
+            
+            // Parse QR code data
+            currentScanData = parseQRCode(decodedText);
+            
+            // Log QR scan activity
+            if (window.activityLogger) {
+                window.activityLogger.logQRScan(decodedText, !!currentScanData, 'receive');
+            }
+            
+            if (!currentScanData) {
+                alert('رمز QR غير صالح. تأكد من استخدام رمز خاص بالنظام.');
+                return;
+            }
+
+            // Check if file is in transit
+            const isInTransit = await checkFileInTransit(currentScanData.fileNumber);
+            
+            if (!isInTransit) {
+                alert('هذا الملف ليس في حالة انتقال. لا يمكن استلامه.');
+                return;
+            }
+
+            // Show scanned result
+            document.getElementById('receiveScannedResult').classList.remove('d-none');
+            document.getElementById('receiveFormSection').classList.remove('d-none');
+            document.getElementById('confirmReceiveBtn').classList.remove('d-none');
+
+            // Display file info
+            const receiveFileInfo = await getFileInfo(currentScanData.fileNumber);
+            displayReceiveFileInfo(receiveFileInfo);
+        }
+
+        function parseQRCode(qrText) {
+            try {
+                // Try to parse as JSON first
+                const data = JSON.parse(qrText);
+                if (data.fileNumber && data.type === 'archive_file') {
+                    return data;
+                }
+            } catch (e) {
+                // If not JSON, treat as plain file number
+                if (qrText.trim()) {
+                    return {
+                        fileNumber: qrText.trim(),
+                        type: 'archive_file'
+                    };
+                }
+            }
+            return null;
+        }
+
+        async function getFileInfo(fileNumber) {
+            try {
+                // Log file view activity
+                if (window.activityLogger) {
+                    window.activityLogger.logFileView(fileNumber, 'Unknown File');
+                }
+
+                // First check documents collection
+                const docQuery = await authSystem.db.collection('documents')
+                    .where('fileNumber', '==', fileNumber)
+                    .limit(1)
+                    .get();
+
+                if (!docQuery.empty) {
+                    const fileData = docQuery.docs[0].data();
+                    
+                    // Update activity log with actual file name
+                    if (window.activityLogger) {
+                        window.activityLogger.logFileView(fileNumber, fileData.fileName || fileData.title);
+                    }
+                    
+                    return fileData;
+                }
+
+                // If not found, check file_movements for file info
+                const movementQuery = await authSystem.db.collection('file_movements')
+                    .where('fileNumber', '==', fileNumber)
+                    .orderBy('timestamp', 'desc')
+                    .limit(1)
+                    .get();
+
+                if (!movementQuery.empty) {
+                    const movement = movementQuery.docs[0].data();
+                    return {
+                        fileNumber: movement.fileNumber,
+                        fileName: movement.fileName,
+                        currentDepartment: movement.toDepartment,
+                        currentStatus: movement.status
+                    };
+                }
+
+                return {
+                    fileNumber: fileNumber,
+                    fileName: 'ملف غير معروف',
+                    currentDepartment: 'غير محدد',
+                    currentStatus: 'غير معروف'
+                };
+
+            } catch (error) {
+                console.error('خطأ في جلب بيانات الملف:', error);
+                return null;
+            }
+        }
+
+        async function checkFileInTransit(fileNumber) {
+            try {
+                const query = await authSystem.db.collection('file_movements')
+                    .where('fileNumber', '==', fileNumber)
+                    .orderBy('timestamp', 'desc')
+                    .limit(5)
+                    .get();
+
+                for (const doc of query.docs) {
+                    const movement = doc.data();
+                    if (movement.status === 'in_transit') {
+                        return true;
+                    }
+                }
+                return false;
+            } catch (error) {
+                console.error('خطأ في التحقق من حالة الملف:', error);
+                return false;
+            }
+        }
+
+        function displayTransferFileInfo(fileInfo) {
+            const container = document.getElementById('transferFileInfo');
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>رقم الملف:</strong> ${fileInfo.fileNumber}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>اسم الملف:</strong> ${fileInfo.fileName || 'غير محدد'}
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <strong>القسم الحالي:</strong> ${departmentNames[fileInfo.currentDepartment] || fileInfo.currentDepartment}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>الحالة:</strong> 
+                        <span class="badge bg-info">${statusNames[fileInfo.currentStatus] || fileInfo.currentStatus}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayReceiveFileInfo(fileInfo) {
+            const container = document.getElementById('receiveFileInfo');
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>رقم الملف:</strong> ${fileInfo.fileNumber}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>اسم الملف:</strong> ${fileInfo.fileName || 'غير محدد'}
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <strong>في الطريق من:</strong> ${departmentNames[fileInfo.fromDepartment] || fileInfo.fromDepartment}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>الحالة:</strong> 
+                        <span class="badge bg-warning">في الطريق</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function confirmScannedTransfer() {
+            if (!currentScanData) {
+                alert('لم يتم مسح أي ملف');
+                return;
+            }
+
+            const toDept = document.getElementById('scanTransferToDept').value;
+            const priority = document.getElementById('transferPriority').value;
+            const notes = document.getElementById('scanTransferNotes').value;
+
+            if (!toDept) {
+                alert('يرجى اختيار القسم المستقبل');
+                return;
+            }
+
+            const submitBtn = document.getElementById('confirmTransferBtn');
+            const originalContent = submitBtn.innerHTML;
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري النقل...';
+
+                const fileInfo = await getFileInfo(currentScanData.fileNumber);
+                
+                await authSystem.db.collection('file_movements').add({
+                    fileNumber: currentScanData.fileNumber,
+                    fileName: fileInfo.fileName,
+                    fromDepartment: fileInfo.currentDepartment,
+                    toDepartment: toDept,
+                    action: 'transfer',
+                    status: 'in_transit',
+                    priority: priority,
+                    notes: notes,
+                    scanMethod: 'qr_scanner',
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    userDisplayName: currentUser.displayName,
+                    timestamp: authSystem.db.FieldValue.serverTimestamp()
+                });
+
+                await updateFileStatus(currentScanData.fileNumber, 'in_transit', toDept);
+
+                // Log file movement activity
+                if (window.activityLogger) {
+                    window.activityLogger.logFileMove(
+                        currentScanData.fileNumber,
+                        fileInfo.currentDepartment,
+                        toDept,
+                        priority
+                    );
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('scanTransferModal')).hide();
+                resetTransferModal();
+                loadFileMovements();
+                
+                alert('تم نقل الملف بنجاح عبر الماسح الضوئي!');
+
+            } catch (error) {
+                console.error('خطأ في نقل الملف:', error);
+                alert('حدث خطأ في نقل الملف: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+            }
+        }
+
+        async function confirmScannedReceive() {
+            if (!currentScanData) {
+                alert('لم يتم مسح أي ملف');
+                return;
+            }
+
+            const condition = document.getElementById('receiveCondition').value;
+            const notes = document.getElementById('scanReceiveNotes').value;
+
+            const submitBtn = document.getElementById('confirmReceiveBtn');
+            const originalContent = submitBtn.innerHTML;
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الاستلام...';
+
+                // Get latest movement info
+                const movementsQuery = await authSystem.db.collection('file_movements')
+                    .where('fileNumber', '==', currentScanData.fileNumber)
+                    .orderBy('timestamp', 'desc')
+                    .limit(10)
+                    .get();
+
+                let latestMovement = null;
+                for (const doc of movementsQuery.docs) {
+                    const movement = doc.data();
+                    if (movement.status === 'in_transit') {
+                        latestMovement = movement;
+                        break;
+                    }
+                }
+
+                if (!latestMovement) {
+                    alert('لا يوجد ملف في حالة انتقال بهذا الرقم');
+                    return;
+                }
+
+                await authSystem.db.collection('file_movements').add({
+                    fileNumber: currentScanData.fileNumber,
+                    fileName: latestMovement.fileName,
+                    fromDepartment: latestMovement.fromDepartment,
+                    toDepartment: latestMovement.toDepartment,
+                    action: 'receive',
+                    status: 'received',
+                    condition: condition,
+                    notes: notes,
+                    scanMethod: 'qr_scanner',
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email,
+                    userDisplayName: currentUser.displayName,
+                    timestamp: authSystem.db.FieldValue.serverTimestamp()
+                });
+
+                await updateFileStatus(currentScanData.fileNumber, 'received', latestMovement.toDepartment);
+
+                // Log file receive activity
+                if (window.activityLogger) {
+                    window.activityLogger.logFileMove(
+                        currentScanData.fileNumber,
+                        latestMovement.fromDepartment,
+                        latestMovement.toDepartment,
+                        'received'
+                    );
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('scanReceiveModal')).hide();
+                resetReceiveModal();
+                loadFileMovements();
+                
+                alert('تم استلام الملف بنجاح عبر الماسح الضوئي!');
+
+            } catch (error) {
+                console.error('خطأ في استلام الملف:', error);
+                alert('حدث خطأ في استلام الملف: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+            }
+        }
+        function resetTransferModal() {
+            stopTransferScanner();
+            document.getElementById('transferScannedResult').classList.add('d-none');
+            document.getElementById('transferFormSection').classList.add('d-none');
+            document.getElementById('confirmTransferBtn').classList.add('d-none');
+            document.getElementById('transferScanForm').reset();
+            currentScanData = null;
+        }
+
+        function resetReceiveModal() {
+            stopReceiveScanner();
+            document.getElementById('receiveScannedResult').classList.add('d-none');
+            document.getElementById('receiveFormSection').classList.add('d-none');
+            document.getElementById('confirmReceiveBtn').classList.add('d-none');
+            document.getElementById('receiveScanForm').reset();
+            currentScanData = null;
+        }
+
+        function processManualEntry() {
+            const fileCode = document.getElementById('manualFileCode').value.trim();
+            const operation = document.getElementById('manualOperation').value;
+
+            if (!fileCode) {
+                alert('يرجى إدخال رقم الملف');
+                return;
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('manualEntryModal')).hide();
+
+            if (operation === 'transfer') {
+                currentScanData = { fileNumber: fileCode, type: 'archive_file' };
+                bootstrap.Modal.getInstance(document.getElementById('scanTransferModal')).show();
+                onTransferScanSuccess(fileCode);
+            } else {
+                currentScanData = { fileNumber: fileCode, type: 'archive_file' };
+                bootstrap.Modal.getInstance(document.getElementById('scanReceiveModal')).show();
+                onReceiveScanSuccess(fileCode);
+            }
+        }
+
+        // Clean up scanners when modals are closed
+        document.addEventListener('hidden.bs.modal', function (event) {
+            if (event.target.id === 'scanTransferModal') {
+                resetTransferModal();
+            } else if (event.target.id === 'scanReceiveModal') {
+                resetReceiveModal();
+            }
+        });
+    </script>
+</body>
+</html>

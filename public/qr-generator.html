@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء رموز QR للملفات - نظام الأرشيف</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <!-- Sidebar CSS -->
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    
+    <style>
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-right: 250px; /* Leave space for sidebar */
+            transition: padding-right 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        .qr-display {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            border: 2px dashed #17a2b8;
+            margin: 1rem 0;
+        }
+
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 0.75rem;
+        }
+
+        .btn {
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #17a2b8 0%, #667eea 100%);
+            border: none;
+        }
+
+        .page-title {
+            background: linear-gradient(135deg, #17a2b8 0%, #667eea 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .sample-files {
+            background: rgba(23, 162, 184, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .qr-bulk-item {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            border: 2px solid #e9ecef;
+            text-align: center;
+        }
+
+        .qr-bulk-item.success {
+            border-color: #198754;
+        }
+
+        .qr-bulk-item.error {
+            border-color: #dc3545;
+        }
+
+        .progress-bar-full {
+            width: 100% !important;
+        }
+
+        .nav-tabs .nav-link {
+            color: #667eea;
+            border: none;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, #17a2b8 0%, #667eea 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .bulk-actions {
+            position: sticky;
+            top: 1rem;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>نظام الأرشيف</h3>
+            <button class="btn-close-sidebar" id="closeSidebar" title="إغلاق القائمة">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <ul class="sidebar-nav" id="sidebarNav">
+            <!-- Navigation items will be loaded by sidebar.js -->
+        </ul>
+    </nav>
+
+    <!-- Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Mobile menu button -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" title="فتح القائمة">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="container">
+        <h1 class="page-title">إنشاء رموز QR للملفات</h1>
+
+        <div class="card">
+            <h3 class="mb-3">
+                <i class="fas fa-qrcode me-2"></i>
+                مولد رموز QR
+            </h3>
+            
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs mb-3" id="qrTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="single-tab" data-bs-toggle="tab" data-bs-target="#single-qr" type="button" role="tab">
+                        <i class="fas fa-file me-2"></i>ملف واحد
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk-qr" type="button" role="tab">
+                        <i class="fas fa-files me-2"></i>عدة ملفات
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="qrTabContent">
+                <!-- Single QR Tab -->
+                <div class="tab-pane fade show active" id="single-qr" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">رقم الملف</label>
+                                <input type="text" class="form-control" id="fileNumber" placeholder="مثال: FILE001">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">اسم الملف</label>
+                                <input type="text" class="form-control" id="fileName" placeholder="مثال: وثيقة قانونية">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">القسم الحالي</label>
+                                <select class="form-control" id="currentDepartment" title="اختر القسم الحالي للملف">
+                                    <option value="archive">الأرشيف</option>
+                                    <option value="legal">الشؤون القانونية</option>
+                                    <option value="governance">الحوكمة والامتثال</option>
+                                    <option value="collection">إدارة التحصيل</option>
+                                    <option value="securitization">إدارة التوريق</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">حجم رمز QR</label>
+                                <select class="form-control" id="qrSize" title="اختر حجم رمز QR">
+                                    <option value="200">صغير (200x200)</option>
+                                    <option value="300" selected>متوسط (300x300)</option>
+                                    <option value="400">كبير (400x400)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" onclick="generateSingleQR()">
+                            <i class="fas fa-qrcode me-2"></i>
+                            إنشاء رمز QR
+                        </button>
+                    </div>
+
+                    <div class="qr-display" id="qrDisplay">
+                        <i class="fas fa-qrcode fa-4x text-muted mb-3"></i>
+                        <p class="text-muted">قم بملء البيانات أعلاه ثم اضغط "إنشاء رمز QR"</p>
+                    </div>
+                </div>
+
+                <!-- Bulk QR Tab -->
+                <div class="tab-pane fade" id="bulk-qr" role="tabpanel">
+                    <div class="mb-3">
+                        <label class="form-label">قائمة الملفات</label>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="loadBulkSample()">
+                                <i class="fas fa-file-import me-1"></i>
+                                تحميل مثال
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="clearBulkList()">
+                                <i class="fas fa-eraser me-1"></i>
+                                مسح القائمة
+                            </button>
+                        </div>
+                        <textarea class="form-control" id="bulkFileList" rows="8" placeholder="أدخل بيانات الملفات، كل ملف في سطر منفصل بالتنسيق التالي:&#10;رقم_الملف|اسم_الملف|القسم&#10;&#10;مثال:&#10;FILE001|وثيقة قانونية - العقد رقم 1|legal&#10;FILE002|تقرير الحوكمة الشهري|governance&#10;FILE003|ملف التحصيل - العميل أ|collection"></textarea>
+                        <small class="form-text text-muted">
+                            تنسيق كل سطر: رقم_الملف|اسم_الملف|القسم (اختياري)
+                        </small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">القسم الافتراضي</label>
+                                <select class="form-control" id="bulkDefaultDepartment" title="اختر القسم الافتراضي للملفات">
+                                    <option value="archive">الأرشيف</option>
+                                    <option value="legal">الشؤون القانونية</option>
+                                    <option value="governance">الحوكمة والامتثال</option>
+                                    <option value="collection">إدارة التحصيل</option>
+                                    <option value="securitization">إدارة التوريق</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">حجم رموز QR</label>
+                                <select class="form-control" id="bulkQrSize" title="اختر حجم رموز QR للإنتاج المجمع">
+                                    <option value="200">صغير (200x200)</option>
+                                    <option value="300" selected>متوسط (300x300)</option>
+                                    <option value="400">كبير (400x400)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-primary" onclick="generateBulkQR()">
+                            <i class="fas fa-layer-group me-2"></i>
+                            إنشاء جميع الرموز
+                        </button>
+                        <button class="btn btn-success hidden" onclick="downloadAllQR()" id="downloadAllBtn">
+                            <i class="fas fa-download me-2"></i>
+                            تحميل جميع الرموز
+                        </button>
+                        <button class="btn btn-info hidden" onclick="printAllQR()" id="printAllBtn">
+                            <i class="fas fa-print me-2"></i>
+                            طباعة الكل
+                        </button>
+                    </div>
+
+                    <div class="progress mb-3 hidden" id="bulkProgress">
+                        <div class="progress-bar" role="progressbar" id="progressBar">0%</div>
+                    </div>
+
+                    <div id="bulkQrDisplay" class="row g-3">
+                        <!-- Bulk QR codes will be displayed here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Single QR Action Buttons (moved here for better layout) -->
+            <div class="d-flex gap-2 mb-3 hidden" id="singleQrActions">
+                <button class="btn btn-success" onclick="downloadQR()" id="downloadBtn">
+                    <i class="fas fa-download me-2"></i>
+                    تحميل الرمز
+                </button>
+                <button class="btn btn-info" onclick="printQR()" id="printBtn">
+                    <i class="fas fa-print me-2"></i>
+                    طباعة
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4 class="mb-3">
+                <i class="fas fa-file-alt me-2"></i>
+                ملفات تجريبية سريعة
+            </h4>
+            <div class="sample-files">
+                <p class="mb-2">انقر على أي من الملفات التجريبية لإنشاء رمز QR فوراً (سيتم التبديل لتبويب الملف الواحد):</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadSampleFile('FILE001', 'وثيقة قانونية - العقد رقم 1', 'legal')">FILE001</button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadSampleFile('FILE002', 'تقرير الحوكمة الشهري', 'governance')">FILE002</button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadSampleFile('FILE003', 'ملف التحصيل - العميل أ', 'collection')">FILE003</button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadSampleFile('FILE004', 'وثائق التوريق - المشروع ب', 'securitization')">FILE004</button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="loadSampleFile('FILE005', 'عقد الشراكة الاستراتيجية', 'archive')">FILE005</button>
+                </div>
+                <hr class="my-3">
+                <p class="mb-2">أو جرب إنتاج عدة ملفات معاً:</p>
+                <button class="btn btn-outline-success btn-sm" onclick="switchToBulkWithSample()">
+                    <i class="fas fa-layer-group me-1"></i>
+                    تجربة الإنتاج المجمع
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4 class="mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                تعليمات الاستخدام
+            </h4>
+            <ul class="list-unstyled">
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    أدخل رقم الملف واسمه في النموذج أعلاه
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    اختر القسم الحالي الذي يحتوي على الملف
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    اضغط "إنشاء رمز QR" للحصول على الرمز
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    اطبع الرمز وألصقه على الملف الفعلي
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-check text-success me-2"></i>
+                    استخدم صفحة تتبع الملفات لمسح الرمز عند النقل أو الاستلام
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS for alert functionality -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- QR Code Library - Multiple reliable sources -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <!-- JSZip for bulk download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Alternative QR library -->
+    <script>
+        // Inline QR fallback using Google Charts API
+        window.GoogleQR = {
+            generate: function(text, size) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = size;
+                canvas.height = size;
+                
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0, size, size);
+                };
+                img.onerror = function() {
+                    // If Google Charts fails, create a simple pattern
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, size, size);
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(10, 10, size-20, 20);
+                    ctx.fillRect(10, 10, 20, size-20);
+                    ctx.fillRect(size-30, 10, 20, size-20);
+                    ctx.fillRect(10, size-30, size-20, 20);
+                    
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('QR DATA', size/2, size/2);
+                    ctx.fillText(text.substring(0, 20), size/2, size/2 + 20);
+                };
+                
+                const encodedText = encodeURIComponent(text);
+                img.src = `https://chart.googleapis.com/chart?chs=${size}x${size}&cht=qr&chl=${encodedText}`;
+                
+                return canvas;
+            }
+        };
+    </script>
+    
+    <script>
+        // QR Code library loading with multiple fallbacks
+        let qrLibraryLoaded = false;
+        let qrLoadAttempts = 0;
+        const maxAttempts = 3;
+        
+        const qrCDNs = [
+            'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js',
+            'https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js',
+            'https://unpkg.com/qrious@4.0.2/dist/qrious.min.js'
+        ];
+
+        function loadQRLibrary() {
+            if (qrLoadAttempts >= maxAttempts) {
+                console.error('Failed to load QR library from all CDNs, using fallback');
+                enableFallbackMode();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = qrCDNs[qrLoadAttempts];
+            
+            script.onload = function() {
+                console.log(`QRCode library loaded from CDN ${qrLoadAttempts + 1}`);
+                qrLibraryLoaded = true;
+                hideLibraryWarning();
+                // Test the library immediately after loading
+                setTimeout(testQRLibrary, 100);
+            };
+            
+            script.onerror = function() {
+                console.error(`Failed to load from CDN ${qrLoadAttempts + 1}: ${qrCDNs[qrLoadAttempts]}`);
+                qrLoadAttempts++;
+                setTimeout(loadQRLibrary, 500); // Try next CDN after 0.5 second
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        function testQRLibrary() {
+            if (typeof QRious !== 'undefined') {
+                console.log('QRious library is working properly');
+                qrLibraryLoaded = true;
+                hideLibraryWarning();
+            } else if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+                console.log('QRCode library is working properly');
+                qrLibraryLoaded = true;
+                hideLibraryWarning();
+            } else {
+                console.error('QR library loaded but not functional');
+                qrLibraryLoaded = false;
+                qrLoadAttempts++;
+                if (qrLoadAttempts < maxAttempts) {
+                    setTimeout(loadQRLibrary, 500);
+                } else {
+                    enableFallbackMode();
+                }
+            }
+        }
+
+        function enableFallbackMode() {
+            console.log('Enabling fallback QR generation mode');
+            // Show warning but allow the app to continue with text-based QR data
+            showLibraryWarning();
+        }
+
+        function showLibraryWarning() {
+            const warningElement = document.getElementById('qr-library-warning');
+            if (warningElement) {
+                warningElement.style.display = 'block';
+            } else {
+                document.querySelector('.container').insertAdjacentHTML('afterbegin', `
+                    <div id="qr-library-warning" class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        لا يمكن تحميل مكتبات QR الخارجية - سيتم عرض بيانات الملف للاستخدام اليدوي
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+            }
+        }
+
+        function hideLibraryWarning() {
+            const warningElement = document.getElementById('qr-library-warning');
+            if (warningElement) {
+                warningElement.style.display = 'none';
+            }
+        }
+
+        // Start loading QR library immediately
+        if (typeof QRious === 'undefined' && typeof QRCode === 'undefined') {
+            loadQRLibrary();
+        } else {
+            qrLibraryLoaded = true;
+            console.log('QR library already available');
+        }
+
+        // Add a manual retry button for users
+        function addRetryButton() {
+            const container = document.querySelector('.container');
+            const retryButton = document.createElement('div');
+            retryButton.className = 'alert alert-info text-center';
+            retryButton.innerHTML = `
+                <p>هل تواجه مشكلة في عرض رموز QR؟</p>
+                <button class="btn btn-primary btn-sm" onclick="retryQRLibrary()">
+                    <i class="fas fa-refresh me-2"></i>
+                    إعادة تحميل مكتبة QR
+                </button>
+            `;
+            retryButton.id = 'retry-section';
+            container.appendChild(retryButton);
+        }
+
+        function retryQRLibrary() {
+            qrLoadAttempts = 0;
+            qrLibraryLoaded = false;
+            hideLibraryWarning();
+            const retrySection = document.getElementById('retry-section');
+            if (retrySection) retrySection.remove();
+            loadQRLibrary();
+        }
+
+        function generateQR() {
+            // This is now an alias for generateSingleQR for backward compatibility
+            generateSingleQR();
+        }
+
+        function generateSingleQR() {
+            const fileNumber = document.getElementById('fileNumber').value.trim();
+            const fileName = document.getElementById('fileName').value.trim();
+            const department = document.getElementById('currentDepartment').value;
+            const size = parseInt(document.getElementById('qrSize').value);
+
+            if (!fileNumber) {
+                alert('يرجى إدخال رقم الملف');
+                return;
+            }
+
+            // Create QR data
+            const qrData = JSON.stringify({
+                fileNumber: fileNumber,
+                fileName: fileName || 'ملف غير محدد',
+                department: department,
+                type: 'archive_file',
+                created: new Date().toISOString()
+            });
+
+            // Generate QR code
+            const qrDisplay = document.getElementById('qrDisplay');
+            qrDisplay.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><p>جاري إنشاء الرمز...</p></div>';
+
+            generateSingleQRCode(fileNumber, fileName, department, size, qrDisplay, function(success, canvas) {
+                if (success && canvas) {
+                    // Show action buttons
+                    document.getElementById('singleQrActions').classList.remove('hidden');
+                    // Store canvas for download
+                    window.currentCanvas = canvas;
+                    window.currentFileInfo = { fileNumber, fileName, department };
+                } else {
+                    document.getElementById('singleQrActions').classList.add('hidden');
+                }
+            });
+        }
+
+        function generateBulkQR() {
+            const bulkText = document.getElementById('bulkFileList').value.trim();
+            const defaultDepartment = document.getElementById('bulkDefaultDepartment').value;
+            const size = parseInt(document.getElementById('bulkQrSize').value);
+
+            if (!bulkText) {
+                alert('يرجى إدخال قائمة الملفات');
+                return;
+            }
+
+            // Parse bulk input
+            const lines = bulkText.split('\n').filter(line => line.trim());
+            const files = [];
+
+            for (let line of lines) {
+                const parts = line.trim().split('|');
+                if (parts.length >= 1) {
+                    files.push({
+                        fileNumber: parts[0].trim(),
+                        fileName: parts[1] ? parts[1].trim() : 'ملف غير محدد',
+                        department: parts[2] ? parts[2].trim() : defaultDepartment
+                    });
+                }
+            }
+
+            if (files.length === 0) {
+                alert('لم يتم العثور على ملفات صالحة في القائمة');
+                return;
+            }
+
+            // Start bulk generation
+            const bulkDisplay = document.getElementById('bulkQrDisplay');
+            const progressBar = document.getElementById('bulkProgress');
+            const progressBarFill = document.getElementById('progressBar');
+            
+            bulkDisplay.innerHTML = '';
+            progressBar.classList.remove('hidden');
+            progressBarFill.style.width = '0%';
+            progressBarFill.textContent = '0%';
+
+            // Store generated QR codes for batch operations
+            window.bulkQRCodes = [];
+            let completed = 0;
+
+            files.forEach((file, index) => {
+                // Create container for this QR code
+                const qrContainer = document.createElement('div');
+                qrContainer.className = 'col-md-4';
+                qrContainer.innerHTML = `
+                    <div class="qr-bulk-item" id="bulk-item-${index}">
+                        <h6>${file.fileName}</h6>
+                        <p class="small text-muted">${file.fileNumber} - ${getDepartmentName(file.department)}</p>
+                        <div class="qr-content">
+                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                            <p class="small">جاري الإنشاء...</p>
+                        </div>
+                    </div>
+                `;
+                bulkDisplay.appendChild(qrContainer);
+
+                // Generate QR with delay to prevent overwhelming the browser
+                setTimeout(() => {
+                    const qrContentDiv = qrContainer.querySelector('.qr-content');
+                    generateSingleQRCode(file.fileNumber, file.fileName, file.department, size, qrContentDiv, function(success, canvas) {
+                        completed++;
+                        const progress = Math.round((completed / files.length) * 100);
+                        progressBarFill.style.width = progress + '%';
+                        progressBarFill.textContent = progress + '%';
+
+                        const bulkItem = document.getElementById(`bulk-item-${index}`);
+                        if (success && canvas) {
+                            bulkItem.classList.add('success');
+                            window.bulkQRCodes.push({
+                                fileNumber: file.fileNumber,
+                                fileName: file.fileName,
+                                department: file.department,
+                                canvas: canvas
+                            });
+                        } else {
+                            bulkItem.classList.add('error');
+                        }
+
+                        // If all completed, show download/print buttons
+                        if (completed === files.length) {
+                            document.getElementById('downloadAllBtn').classList.remove('hidden');
+                            document.getElementById('printAllBtn').classList.remove('hidden');
+                            setTimeout(() => {
+                                progressBar.classList.add('hidden');
+                            }, 1000);
+                        }
+                    });
+                }, index * 200); // 200ms delay between each QR generation
+            });
+        }
+
+        function generateSingleQRCode(fileNumber, fileName, department, size, displayElement, callback) {
+            // Use a shorter QR data format for better compatibility
+            const shortQrData = `${fileNumber}|${department}|${fileName || 'ملف غير محدد'}`;
+
+            // Try QRious library first (simpler and more reliable)
+            if (typeof QRious !== 'undefined') {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const qr = new QRious({
+                        element: canvas,
+                        value: shortQrData,
+                        size: size,
+                        level: 'M',
+                        background: '#ffffff',
+                        foreground: '#000000'
+                    });
+
+                    // Display QR code
+                    displayElement.innerHTML = '';
+                    displayElement.appendChild(canvas);
+                    
+                    // Add file info below QR if it's single mode
+                    if (displayElement.id === 'qrDisplay') {
+                        const fileInfo = document.createElement('div');
+                        fileInfo.className = 'mt-3';
+                        fileInfo.innerHTML = `
+                            <h5>${fileName || 'ملف غير محدد'}</h5>
+                            <p class="mb-1"><strong>رقم الملف:</strong> ${fileNumber}</p>
+                            <p class="mb-1"><strong>القسم:</strong> ${getDepartmentName(department)}</p>
+                            <div class="alert alert-success mt-2">
+                                <small><i class="fas fa-check-circle me-1"></i>
+                                تم إنشاء رمز QR بنجاح!</small>
+                            </div>
+                        `;
+                        displayElement.appendChild(fileInfo);
+                    }
+
+                    console.log('QR generated successfully with QRious');
+                    callback(true, canvas);
+                    return;
+                } catch (error) {
+                    console.error('QRious generation error:', error);
+                }
+            }
+
+            // Fallback to QRCode library if available
+            if (qrLibraryLoaded && typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+                try {
+                    QRCode.toCanvas(shortQrData, {
+                        width: size,
+                        height: size,
+                        margin: 2,
+                        color: {
+                            dark: '#000000',
+                            light: '#FFFFFF'
+                        },
+                        errorCorrectionLevel: 'M'
+                    }, function (error, canvas) {
+                        if (error) {
+                            console.error('QRCode generation error:', error);
+                            showFallbackQRInElement(displayElement, fileNumber, fileName, department);
+                            callback(false, null);
+                            return;
+                        }
+
+                        // Display QR code
+                        displayElement.innerHTML = '';
+                        displayElement.appendChild(canvas);
+                        
+                        // Add file info below QR if it's single mode
+                        if (displayElement.id === 'qrDisplay') {
+                            const fileInfo = document.createElement('div');
+                            fileInfo.className = 'mt-3';
+                            fileInfo.innerHTML = `
+                                <h5>${fileName || 'ملف غير محدد'}</h5>
+                                <p class="mb-1"><strong>رقم الملف:</strong> ${fileNumber}</p>
+                                <p class="mb-1"><strong>القسم:</strong> ${getDepartmentName(department)}</p>
+                                <div class="alert alert-success mt-2">
+                                    <small><i class="fas fa-check-circle me-1"></i>
+                                    تم إنشاء رمز QR بنجاح!</small>
+                                </div>
+                            `;
+                            displayElement.appendChild(fileInfo);
+                        }
+                        
+                        console.log('QR generated successfully with QRCode');
+                        callback(true, canvas);
+                    });
+                    return;
+                } catch (error) {
+                    console.error('QRCode library error:', error);
+                }
+            }
+
+            // Fallback to Google Charts QR API
+            if (typeof GoogleQR !== 'undefined') {
+                try {
+                    const canvas = GoogleQR.generate(shortQrData, size);
+                    
+                    // Wait a moment for image to load
+                    setTimeout(() => {
+                        // Display QR code
+                        displayElement.innerHTML = '';
+                        displayElement.appendChild(canvas);
+                        
+                        // Add file info below QR if it's single mode
+                        if (displayElement.id === 'qrDisplay') {
+                            const fileInfo = document.createElement('div');
+                            fileInfo.className = 'mt-3';
+                            fileInfo.innerHTML = `
+                                <h5>${fileName || 'ملف غير محدد'}</h5>
+                                <p class="mb-1"><strong>رقم الملف:</strong> ${fileNumber}</p>
+                                <p class="mb-1"><strong>القسم:</strong> ${getDepartmentName(department)}</p>
+                                <div class="alert alert-info mt-2">
+                                    <small><i class="fas fa-info-circle me-1"></i>
+                                    تم إنشاء رمز QR باستخدام Google Charts</small>
+                                </div>
+                            `;
+                            displayElement.appendChild(fileInfo);
+                        }
+                        
+                        console.log('QR generated successfully with Google Charts');
+                        callback(true, canvas);
+                    }, 1000);
+                    return;
+                } catch (error) {
+                    console.error('Google Charts QR generation error:', error);
+                }
+            }
+
+            // If no QR library works, show fallback
+            console.log('No QR generators available, using text fallback');
+            showFallbackQRInElement(displayElement, fileNumber, fileName, department);
+            callback(false, null);
+        }
+
+        function showFallbackQRInElement(element, fileNumber, fileName, department) {
+            if (element.id === 'qrDisplay') {
+                // Full fallback for single QR
+                showFallbackQR('', fileNumber, fileName, department);
+            } else {
+                // Simple fallback for bulk QR
+                element.innerHTML = `
+                    <div class="alert alert-warning">
+                        <small><i class="fas fa-exclamation-triangle me-1"></i>
+                        فشل في إنشاء QR</small>
+                    </div>
+                    <div class="text-center">
+                        <code class="small">${fileNumber}</code>
+                    </div>
+                `;
+            }
+        }
+
+        function showFallbackQR(qrData, fileNumber, fileName, department) {
+            const qrDisplay = document.getElementById('qrDisplay');
+            qrDisplay.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    وضع النص البديل: بيانات الملف للاستخدام اليدوي
+                </div>
+                <div class="text-center p-3 bg-light rounded">
+                    <h6>بيانات الملف:</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <div class="bg-white p-3 border rounded">
+                                <strong>رقم الملف:</strong><br>
+                                <code class="fs-5">${fileNumber}</code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-white p-3 border rounded">
+                                <strong>القسم:</strong><br>
+                                <span class="fs-6">${getDepartmentName(department)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-3 border rounded mb-3">
+                        <strong>اسم الملف:</strong><br>
+                        <span class="fs-6">${fileName || 'ملف غير محدد'}</span>
+                    </div>
+                    <div class="alert alert-warning mb-0">
+                        <small><i class="fas fa-mobile-alt me-1"></i>
+                        يمكن استخدام رقم الملف أعلاه في خيار "الإدخال اليدوي" بصفحة تتبع الملفات</small>
+                    </div>
+                </div>
+            `;
+            
+            // Show print button for text version
+            document.getElementById('printBtn').classList.remove('hidden');
+            // Hide download button since there's no QR image
+            document.getElementById('downloadBtn').classList.add('hidden');
+            
+            // Store data for printing
+            window.currentFileInfo = { fileNumber, fileName, department };
+            window.currentCanvas = null; // No canvas in fallback mode
+        }
+
+        // Test QRCode library on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Give some time for the library to load
+            setTimeout(function() {
+                let hasQRCapability = false;
+                
+                if (typeof QRious !== 'undefined') {
+                    console.log('QRious library available and functional');
+                    hasQRCapability = true;
+                    hideLibraryWarning();
+                } else if (qrLibraryLoaded && typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+                    console.log('QRCode library available and functional');
+                    hasQRCapability = true;
+                    hideLibraryWarning();
+                } else {
+                    console.warn('No QR library loaded or functional');
+                    showLibraryWarning();
+                    addRetryButton();
+                }
+            }, 2000);
+        });
+
+        function loadSampleFile(fileNumber, fileName, department) {
+            // Switch to single tab first
+            const singleTab = new bootstrap.Tab(document.getElementById('single-tab'));
+            singleTab.show();
+            
+            // Then fill the data
+            setTimeout(() => {
+                document.getElementById('fileNumber').value = fileNumber;
+                document.getElementById('fileName').value = fileName;
+                document.getElementById('currentDepartment').value = department;
+                generateSingleQR();
+            }, 100);
+        }
+
+        function switchToBulkWithSample() {
+            // Switch to bulk tab
+            const bulkTab = new bootstrap.Tab(document.getElementById('bulk-tab'));
+            bulkTab.show();
+            
+            // Load sample data
+            setTimeout(() => {
+                loadBulkSample();
+            }, 100);
+        }
+
+        function loadBulkSample() {
+            const sampleData = `FILE001|وثيقة قانونية - العقد رقم 1|legal
+FILE002|تقرير الحوكمة الشهري|governance
+FILE003|ملف التحصيل - العميل أ|collection
+FILE004|وثائق التوريق - المشروع ب|securitization
+FILE005|عقد الشراكة الاستراتيجية|archive
+FILE006|تقرير المراجعة الداخلية|governance
+FILE007|ملف الشكاوى والمقترحات|legal
+FILE008|خطة الطوارئ والأزمات|archive`;
+            
+            document.getElementById('bulkFileList').value = sampleData;
+        }
+
+        function clearBulkList() {
+            document.getElementById('bulkFileList').value = '';
+            document.getElementById('bulkQrDisplay').innerHTML = '';
+            document.getElementById('bulkProgress').classList.add('hidden');
+            document.getElementById('downloadAllBtn').classList.add('hidden');
+            document.getElementById('printAllBtn').classList.add('hidden');
+            window.bulkQRCodes = [];
+        }
+
+        function downloadAllQR() {
+            if (!window.bulkQRCodes || window.bulkQRCodes.length === 0) {
+                alert('لا توجد رموز QR للتحميل');
+                return;
+            }
+
+            // Create a ZIP file using JSZip (we'll load it dynamically)
+            if (typeof JSZip === 'undefined') {
+                // Fallback: download individual files
+                window.bulkQRCodes.forEach((qrData, index) => {
+                    setTimeout(() => {
+                        const link = document.createElement('a');
+                        link.download = `QR_${qrData.fileNumber}.png`;
+                        link.href = qrData.canvas.toDataURL();
+                        link.click();
+                    }, index * 200);
+                });
+                return;
+            }
+
+            // Create ZIP file
+            const zip = new JSZip();
+            window.bulkQRCodes.forEach(qrData => {
+                const dataUrl = qrData.canvas.toDataURL();
+                const base64Data = dataUrl.split(',')[1];
+                zip.file(`QR_${qrData.fileNumber}.png`, base64Data, {base64: true});
+            });
+
+            zip.generateAsync({type: 'blob'}).then(function(content) {
+                const link = document.createElement('a');
+                link.download = `QR_Codes_${new Date().toISOString().split('T')[0]}.zip`;
+                link.href = URL.createObjectURL(content);
+                link.click();
+            });
+        }
+
+        function printAllQR() {
+            if (!window.bulkQRCodes || window.bulkQRCodes.length === 0) {
+                alert('لا توجد رموز QR للطباعة');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            let content = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>طباعة رموز QR - ${new Date().toLocaleDateString('ar-SA')}</title>
+                    <style>
+                        body { 
+                            font-family: 'Cairo', Arial, sans-serif; 
+                            margin: 20px;
+                            direction: rtl;
+                        }
+                        .qr-grid {
+                            display: grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 20px;
+                            page-break-inside: avoid;
+                        }
+                        .qr-item {
+                            border: 2px solid #000;
+                            padding: 15px;
+                            text-align: center;
+                            page-break-inside: avoid;
+                            margin-bottom: 20px;
+                        }
+                        .qr-item img {
+                            max-width: 200px;
+                            height: auto;
+                        }
+                        h1 {
+                            text-align: center;
+                            margin-bottom: 30px;
+                        }
+                        h3 {
+                            margin: 10px 0 5px 0;
+                        }
+                        p {
+                            margin: 3px 0;
+                            font-size: 14px;
+                        }
+                        @media print {
+                            .qr-item {
+                                break-inside: avoid;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>نظام الأرشيف - رموز QR</h1>
+                    <div class="qr-grid">
+            `;
+
+            window.bulkQRCodes.forEach(qrData => {
+                content += `
+                    <div class="qr-item">
+                        <img src="${qrData.canvas.toDataURL()}" alt="QR Code">
+                        <h3>${qrData.fileName}</h3>
+                        <p><strong>رقم الملف:</strong> ${qrData.fileNumber}</p>
+                        <p><strong>القسم:</strong> ${getDepartmentName(qrData.department)}</p>
+                        <p><strong>تاريخ الإنشاء:</strong> ${new Date().toLocaleDateString('ar-SA')}</p>
+                    </div>
+                `;
+            });
+
+            content += `
+                    </div>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(content);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function downloadQR() {
+            if (!window.currentCanvas) {
+                alert('لم يتم إنشاء رمز QR بعد');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.download = `QR_${window.currentFileInfo.fileNumber}.png`;
+            link.href = window.currentCanvas.toDataURL();
+            link.click();
+        }
+
+        function printQR() {
+            const fileInfo = window.currentFileInfo;
+            if (!fileInfo) {
+                alert('لم يتم إنشاء بيانات الملف بعد');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            
+            let content;
+            if (window.currentCanvas) {
+                // Print QR code version
+                content = `
+                    <div class="qr-container">
+                        <h2>نظام الأرشيف</h2>
+                        <img src="${window.currentCanvas.toDataURL()}" alt="QR Code">
+                        <div class="file-info">
+                            <h3>${fileInfo.fileName || 'ملف غير محدد'}</h3>
+                            <p><strong>رقم الملف:</strong> ${fileInfo.fileNumber}</p>
+                            <p><strong>القسم:</strong> ${getDepartmentName(fileInfo.department)}</p>
+                            <p><strong>تاريخ الإنشاء:</strong> ${new Date().toLocaleDateString('ar-SA')}</p>
+                        </div>
+                    </div>`;
+            } else {
+                // Print text version
+                content = `
+                    <div class="qr-container">
+                        <h2>نظام الأرشيف</h2>
+                        <div class="text-info">
+                            <h3>${fileInfo.fileName || 'ملف غير محدد'}</h3>
+                            <div class="file-number">
+                                <p><strong>رقم الملف:</strong></p>
+                                <div class="number-box">${fileInfo.fileNumber}</div>
+                            </div>
+                            <p><strong>القسم:</strong> ${getDepartmentName(fileInfo.department)}</p>
+                            <p><strong>تاريخ الإنشاء:</strong> ${new Date().toLocaleDateString('ar-SA')}</p>
+                            <div class="note">
+                                <p><small>يمكن استخدام رقم الملف في خيار "الإدخال اليدوي" بصفحة تتبع الملفات</small></p>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>طباعة ملف - ${fileInfo.fileNumber}</title>
+                    <style>
+                        body { 
+                            font-family: 'Cairo', Arial, sans-serif; 
+                            text-align: center; 
+                            margin: 20px;
+                            direction: rtl;
+                        }
+                        .qr-container {
+                            border: 2px solid #000;
+                            padding: 20px;
+                            margin: 20px auto;
+                            width: fit-content;
+                            min-width: 300px;
+                        }
+                        .file-info, .text-info {
+                            margin-top: 15px;
+                        }
+                        .number-box {
+                            border: 2px solid #000;
+                            padding: 10px;
+                            margin: 10px 0;
+                            font-size: 24px;
+                            font-weight: bold;
+                            background: #f0f0f0;
+                        }
+                        .note {
+                            margin-top: 15px;
+                            padding: 10px;
+                            background: #fff3cd;
+                            border: 1px solid #ffeaa7;
+                            border-radius: 5px;
+                        }
+                        h2 { margin-bottom: 10px; }
+                        p { margin: 5px 0; }
+                    </style>
+                </head>
+                <body>
+                    ${content}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function getDepartmentName(department) {
+            const names = {
+                archive: 'الأرشيف',
+                legal: 'الشؤون القانونية',
+                governance: 'الحوكمة والامتثال',
+                collection: 'إدارة التحصيل',
+                securitization: 'إدارة التوريق'
+            };
+            return names[department] || department;
+        }
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Firebase -->
+    <script src="assets/js/firebase-init.js"></script>
+    <!-- Authentication -->
+    <script src="assets/js/auth.js"></script>
+    <!-- Roles Management -->
+    <script src="assets/js/roles.js"></script>
+    <!-- Sidebar -->
+    <script src="assets/js/sidebar.js"></script>
+</body>
+</html>

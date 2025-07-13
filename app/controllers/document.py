@@ -1,24 +1,31 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, send_file, jsonify, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, send_from_directory, jsonify, send_file
 from flask_login import login_required, current_user
-from app import db
-from app.models.document import Document
-from app.models.user import User, UserDocumentPermission
-from app.utils.file_handler import allowed_file, get_file_info, generate_unique_filename, organize_files, create_thumbnail
-from app.utils.barcode_handler import generate_barcode
-import os
 from werkzeug.utils import secure_filename
+from app.models.document import Document
+from app.models.user import User
+from app.models.permission import UserDocumentPermission
+from app import db, limiter
+from app.utils.file_handler import (
+    allowed_file, generate_barcode, get_file_info, 
+    generate_unique_filename, create_thumbnail
+)
+import os
+from datetime import datetime
+import json
 import time
+import hashlib
 
-bp = Blueprint('document', __name__, url_prefix='/documents')
+bp = Blueprint('document', __name__)
 
 @bp.route('/')
 @login_required
 def index():
+    """Display list of documents."""
     page = request.args.get('page', 1, type=int)
     per_page = 12
     
     # Build query based on filters
-    if current_user.is_admin or current_user.is_archive_manager:
+    if current_user.is_admin or current_user.is_archive_officer:
         # Admin and archive managers can see all documents
         query = Document.query
     elif current_user.is_documentation_user:
@@ -60,48 +67,15 @@ def index():
     # Paginate results
     documents = query.paginate(page=page, per_page=per_page)
     
-    return render_template('document/index.html', documents=documents)
-
-@bp.route('/permissions/<int:doc_id>', methods=['GET', 'POST'])
-@login_required
-def manage_permissions(doc_id):
-    # Only admin can manage permissions
-    if not current_user.is_admin:
-        flash('ليس لديك صلاحية لإدارة صلاحيات المستندات', 'error')
-        return redirect(url_for('document.index'))
+    # Initialize selected_documents_count for the template
+    selected_documents_count = 0
     
-    document = Document.query.get_or_404(doc_id)
-    documentation_users = User.query.filter_by(role='documentation').all()
-    
-    if request.method == 'POST':
-        # Remove all existing permissions
-        UserDocumentPermission.query.filter_by(document_id=doc_id).delete()
-        
-        # Add new permissions
-        allowed_user_ids = request.form.getlist('allowed_users[]')
-        for user_id in allowed_user_ids:
-            permission = UserDocumentPermission(
-                user_id=user_id,
-                document_id=doc_id,
-                created_by_id=current_user.id
-            )
-            db.session.add(permission)
-        
-        db.session.commit()
-        flash('تم تحديث صلاحيات المستند بنجاح', 'success')
-        return redirect(url_for('document.view', id=doc_id))
-    
-    return render_template('document/permissions.html',
-                          document=document,
-                          documentation_users=documentation_users)
+    return render_template('document/index.html', documents=documents, selected_documents_count=selected_documents_count)
 
 @bp.route('/upload', methods=['GET', 'POST'])
 @login_required
+@limiter.limit("20 per hour", error_message="تم تجاوز الحد المسموح به من عمليات الرفع. يرجى المحاولة بعد ساعة.")
 def upload():
-    # Only admin and archive managers can upload documents
-    if not (current_user.is_admin or current_user.is_archive_manager):
-        flash('ليس لديك صلاحية لرفع المستندات', 'error')
-        return redirect(url_for('document.index'))
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('لم يتم اختيار ملف', 'error')
@@ -114,38 +88,38 @@ def upload():
             
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            unique_filename = generate_unique_filename(filename)
+            file_hash = hashlib.md5(file.read()).hexdigest()
+            file.seek(0)  # Reset file pointer after reading
             
-            # Save file
+            unique_filename = generate_unique_filename(filename)
             file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
             file.save(file_path)
             
-            # Get file info
-            file_type, file_size, file_hash = get_file_info(file_path)
-            
             # Generate barcode
             barcode_data = f"{file_hash[:8]}_{int(time.time())}"
-            barcode_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'barcodes', f"{barcode_data}.png")
-            generate_barcode(barcode_data, barcode_path)
+            barcode_path = generate_barcode(barcode_data)
             
-            # Create thumbnail if image
-            thumbnail_path = None
-            if file_type.startswith('image/'):
-                thumbnail_path = create_thumbnail(file_path)
+            # Create thumbnail
+            thumbnail_path = create_thumbnail(file_path)
+            
+            # Get file info
+            file_type, file_size = get_file_info(file_path)
             
             # Create document record
             document = Document(
                 title=request.form.get('title', filename),
                 description=request.form.get('description', ''),
                 filename=unique_filename,
+                original_filename=filename,
                 file_path=file_path,
                 file_type=file_type,
                 file_size=file_size,
-                file_hash=file_hash,
                 barcode=barcode_data,
+                barcode_path=barcode_path,
                 thumbnail_path=thumbnail_path,
-                tags=request.form.getlist('tags[]'),
-                uploaded_by_id=current_user.id
+                uploaded_by=current_user,
+                upload_date=datetime.utcnow(),
+                tags=request.form.get('tags', '')
             )
             
             db.session.add(document)
@@ -171,8 +145,9 @@ def download(id):
     document = Document.query.get_or_404(id)
     return send_file(document.file_path, as_attachment=True)
 
-@bp.route('/<int:id>/edit', methods=['GET', 'POST'])
+@bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
+@limiter.limit("30 per minute")
 def edit(id):
     document = Document.query.get_or_404(id)
     
@@ -192,8 +167,9 @@ def edit(id):
     
     return render_template('document/edit.html', document=document)
 
-@bp.route('/<int:id>/delete', methods=['POST'])
+@bp.route('/delete/<int:id>', methods=['POST'])
 @login_required
+@limiter.limit("10 per minute", error_message="تم تجاوز الحد المسموح به من عمليات الحذف. يرجى المحاولة بعد دقيقة.")
 def delete(id):
     document = Document.query.get_or_404(id)
     
@@ -220,8 +196,43 @@ def delete(id):
         flash('حدث خطأ أثناء حذف المستند', 'error')
         return redirect(url_for('document.view', id=id))
 
-@bp.route('/tags')
+@bp.route('/permissions/<int:id>', methods=['GET', 'POST'])
 @login_required
+@limiter.limit("20 per minute")
+def permissions(id):
+    # Only admin can manage permissions
+    if not current_user.is_admin:
+        flash('ليس لديك صلاحية لإدارة صلاحيات المستندات', 'error')
+        return redirect(url_for('document.index'))
+    
+    document = Document.query.get_or_404(id)
+    documentation_users = User.query.filter_by(role='documentation').all()
+    
+    if request.method == 'POST':
+        # Remove all existing permissions
+        UserDocumentPermission.query.filter_by(document_id=id).delete()
+        
+        # Add new permissions
+        allowed_user_ids = request.form.getlist('allowed_users[]')
+        for user_id in allowed_user_ids:
+            permission = UserDocumentPermission(
+                user_id=user_id,
+                document_id=id,
+                created_by_id=current_user.id
+            )
+            db.session.add(permission)
+        
+        db.session.commit()
+        flash('تم تحديث صلاحيات المستند بنجاح', 'success')
+        return redirect(url_for('document.view', id=id))
+    
+    return render_template('document/permissions.html',
+                          document=document,
+                          documentation_users=documentation_users)
+
+@bp.route('/get_tags')
+@login_required
+@limiter.limit("60 per minute")
 def get_tags():
     """Get list of all unique tags for autocomplete."""
     tags = set()
@@ -229,3 +240,28 @@ def get_tags():
     for doc in documents:
         tags.update(doc.tag_list)
     return jsonify(list(tags))
+
+@bp.route('/search')
+@login_required
+@limiter.limit("30 per minute")
+def search():
+    """Search for documents by barcode."""
+    barcode = request.args.get('barcode')
+    
+    if not barcode:
+        return jsonify({'error': 'No barcode provided'}), 400
+        
+    document = Document.query.filter_by(barcode=barcode).first()
+    
+    if not document:
+        return jsonify({'error': 'Document not found'}), 404
+        
+    # Check if user has access to this document
+    if not document.user_can_access(current_user):
+        return jsonify({'error': 'Access denied'}), 403
+        
+    return jsonify({
+        'success': True,
+        'document_id': document.id,
+        'title': document.title
+    })

@@ -1,0 +1,229 @@
+/* إضافات CSS لضمان تطبيق الألوان الجديدة على جميع العناصر */
+
+/* تحديث عناصر Bootstrap بالألوان الجديدة */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--ocean-deep) 100%) !important;
+    border-color: var(--primary) !important;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--ocean-deep) 0%, var(--primary-dark) 100%) !important;
+    border-color: var(--ocean-deep) !important;
+}
+
+.btn-outline-primary {
+    color: var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+
+/* تحديث العناصر التفاعلية */
+.nav-link.active {
+    color: var(--primary) !important;
+    border-bottom-color: var(--primary) !important;
+}
+
+.navbar-brand {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--ocean-deep) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* تحديث الألوان في الجداول */
+.table-primary {
+    background-color: var(--ocean-light) !important;
+}
+
+.table-primary th {
+    background-color: var(--primary) !important;
+    color: white !important;
+}
+
+/* تحديث التنبيهات */
+.alert-primary {
+    background-color: var(--ocean-light) !important;
+    border-color: var(--primary) !important;
+    color: var(--text-primary) !important;
+}
+
+.alert-info {
+    background-color: var(--wave-foam) !important;
+    border-color: var(--accent) !important;
+    color: var(--text-primary) !important;
+}
+
+/* تحديث شارات الحالة */
+.badge-primary {
+    background-color: var(--primary) !important;
+}
+
+.badge-info {
+    background-color: var(--accent) !important;
+}
+
+.badge-secondary {
+    background-color: var(--ocean-medium) !important;
+}
+
+/* تحديث شريط التقدم */
+.progress-bar {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%) !important;
+}
+
+/* تحديث الروابط */
+a {
+    color: var(--primary);
+}
+
+a:hover {
+    color: var(--ocean-deep);
+}
+
+/* تحديث الحدود والفواصل */
+.border-primary {
+    border-color: var(--primary) !important;
+}
+
+hr {
+    border-color: var(--border);
+}
+
+/* تحديث أيقونات الحالة */
+.text-primary {
+    color: var(--primary) !important;
+}
+
+.text-info {
+    color: var(--accent) !important;
+}
+
+.bg-primary {
+    background-color: var(--primary) !important;
+}
+
+.bg-info {
+    background-color: var(--accent) !important;
+}
+
+/* تحديث النوافذ المنبثقة */
+.modal-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--ocean-medium) 100%);
+    color: white;
+}
+
+.modal-content {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+}
+
+/* تحديث القوائم المنسدلة */
+.dropdown-item:active {
+    background-color: var(--primary);
+}
+
+.dropdown-item:hover {
+    background-color: var(--ocean-light);
+}
+
+/* تحديث النماذج */
+.form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.form-select:focus,
+.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.25rem rgba(0, 180, 216, 0.25);
+}
+
+/* تحديث التبويبات */
+.nav-tabs .nav-link.active {
+    color: var(--primary);
+    border-color: var(--border) var(--border) var(--primary);
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--primary);
+}
+
+/* تحديث البطاقات */
+.card-header {
+    background-color: var(--wave-foam);
+    border-bottom: 1px solid var(--border);
+}
+
+.card {
+    border: 1px solid var(--border);
+}
+
+/* تحديث أشرطة التنقل */
+.pagination .page-link {
+    color: var(--primary);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* تحديث مؤشرات التحميل */
+.spinner-border {
+    color: var(--primary);
+}
+
+.spinner-grow {
+    color: var(--primary);
+}
+
+/* تحديث النص المختار */
+::selection {
+    background-color: var(--ocean-light);
+    color: var(--text-primary);
+}
+
+::-moz-selection {
+    background-color: var(--ocean-light);
+    color: var(--text-primary);
+}
+
+/* تحديث scrollbar لمتصفحات webkit */
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--ocean-medium) 100%);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--wave-foam);
+    border-radius: 10px;
+}
+
+/* تأثيرات تفاعلية إضافية */
+.btn, .card, .modal-content {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.card:hover {
+    box-shadow: 0 10px 30px rgba(0, 180, 216, 0.15);
+}
+
+/* تحديث للطباعة */
+@media print {
+    * {
+        color: black !important;
+        background: white !important;
+    }
+    
+    .btn, .badge {
+        border: 1px solid black !important;
+    }
+}

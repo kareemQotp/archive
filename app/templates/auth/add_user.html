@@ -13,19 +13,23 @@
                 {% with messages = get_flashed_messages() %}
                     {% if messages %}
                         {% for message in messages %}
-                            <div class="alert alert-danger">{{ message }}</div>
+                            <div class="alert alert-danger" role="alert">{{ message }}</div>
                         {% endfor %}
                     {% endif %}
                 {% endwith %}
                 
-                <form method="POST" action="{{ url_for('auth.add_user') }}">
+                <form method="POST" action="{{ url_for('auth.add_user') }}" id="addUserForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="username" class="form-label">اسم المستخدم*</label>
-                        <input type="text" class="form-control" id="username" name="username" required autofocus>
+                        <input type="text" class="form-control" id="username" name="username" 
+                               required autofocus aria-required="true">
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">كلمة المرور*</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                        <input type="password" class="form-control" id="password" name="password" 
+                               required aria-required="true">
+                        <div class="form-text">يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل</div>
                     </div>
                     <div class="mb-3">
                         <label for="email" class="form-label">البريد الإلكتروني</label>
@@ -36,20 +40,38 @@
                         <input type="text" class="form-control" id="full_name" name="full_name">
                     </div>
                     <div class="mb-3">
-                        <label for="role" class="form-label">الدور</label>
-                        <select class="form-select" id="role" name="role">
-                            <option value="archive_officer">Archive Officer</option>
-                            <option value="documentation">Offload</option>
-                            <option value="admin">Admin </option>
+                        <label for="role" class="form-label">الدور*</label>
+                        <select class="form-select" id="role" name="role" required aria-required="true">
+                            <option value="" selected disabled>اختر الدور</option>
+                            <option value="user">مستخدم عادي</option>
+                            <option value="archive_officer">مسؤول أرشيف</option>
+                            <option value="documentation">موظف توثيق</option>
+                            <option value="admin">مدير النظام</option>
                         </select>
                     </div>
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">إضافة المستخدم</button>
-                        <a href="{{ url_for('auth.manage_users') }}" class="btn btn-secondary">رجوع</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus" aria-hidden="true"></i> إضافة المستخدم
+                        </button>
+                        <a href="{{ url_for('auth.manage_users') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i> رجوع
+                        </a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('addUserForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    if (password.length < 8) {
+        e.preventDefault();
+        alert('يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل');
+    }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الدعوات - نظام الأرشيف</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- تطبيق الألوان الجديدة -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    
+    <style>
+        .main-content {
+            margin-right: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--ocean-light) 0%, var(--wave-foam) 100%);
+        }
+
+        .page-header {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 180, 216, 0.1);
+            border-left: 4px solid var(--primary);
+        }
+
+        .invite-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border-right: 4px solid var(--primary);
+        }
+
+        .invite-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 180, 216, 0.15);
+        }
+
+        .invite-status {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-used {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-expired {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .copy-link-btn {
+            transition: all 0.3s ease;
+        }
+
+        .copy-link-btn:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-right: 0;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Include Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <!-- Sidebar content will be loaded here -->
+    </div>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h2 mb-1">
+                        <i class="fas fa-envelope text-primary me-3"></i>
+                        إدارة دعوات الانضمام
+                    </h1>
+                    <p class="text-muted mb-0">إرسال وإدارة دعوات الموظفين الجدد</p>
+                </div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newInviteModal">
+                    <i class="fas fa-plus me-2"></i>
+                    دعوة جديدة
+                </button>
+            </div>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Invitations List -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>
+                            الدعوات المرسلة
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="loadingSpinner" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">جاري التحميل...</span>
+                            </div>
+                        </div>
+                        <div id="invitationsList">
+                            <!-- Invitations will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Invite Modal -->
+    <div class="modal fade" id="newInviteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>
+                        إرسال دعوة جديدة
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="inviteForm">
+                        <div class="mb-3">
+                            <label for="inviteEmail" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="inviteEmail" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="inviteDepartment" class="form-label">الإدارة</label>
+                            <select class="form-select" id="inviteDepartment" required>
+                                <option value="">اختر الإدارة</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="suggestedRole" class="form-label">الدور المقترح (اختياري)</label>
+                            <select class="form-select" id="suggestedRole">
+                                <option value="">سيحدد لاحقاً</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="inviteMessage" class="form-label">رسالة الدعوة (اختياري)</label>
+                            <textarea class="form-control" id="inviteMessage" rows="3" placeholder="رسالة ترحيبية للموظف الجديد"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="expiryDays" class="form-label">صلاحية الدعوة (بالأيام)</label>
+                            <select class="form-select" id="expiryDays">
+                                <option value="7">7 أيام</option>
+                                <option value="14" selected>14 يوم</option>
+                                <option value="30">30 يوم</option>
+                            </select>
+                        </div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="autoApprove">
+                            <label class="form-check-label" for="autoApprove">
+                                موافقة تلقائية عند التسجيل
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="createInvitation()">
+                        <i class="fas fa-paper-plane me-2"></i>
+                        إرسال الدعوة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBn9zLcodNLKWlUPfqsnEGoA1z7QZw_Ezk",
+            authDomain: "archive-tech.firebaseapp.com",
+            projectId: "archive-tech",
+            storageBucket: "archive-tech.firebasestorage.app",
+            messagingSenderId: "911076711034",
+            appId: "1:911076711034:web:7f190eed397becfe6779c3",
+            measurementId: "G-1PQMDXZ714"
+        };
+
+        // Firebase initialization will be handled by firebase-init.js
+        // Variables will be available globally
+        
+        let currentUser = null;
+        let userDepartment = null;
+        let userRole = null;
+        let departments = [];
+
+        // Initialize page when Firebase is ready
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Wait for unified auth system
+                await unifiedAuth.waitForAuth();
+                
+                if (!unifiedAuth.currentUser) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const userData = await unifiedAuth.getCurrentUserData();
+                if (!userData) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                currentUser = userData;
+                userDepartment = currentUser.department;
+                userRole = currentUser.role;
+
+                // Check admin permissions (department admins or system admin)
+                if (!userRole.includes('admin') && userRole !== 'admin') {
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // Load data
+                await loadDepartments();
+                await loadInvitations();
+            } catch (error) {
+                console.error('خطأ في التحقق من المستخدم:', error);
+                window.location.href = 'login.html';
+            }
+        });
+
+        // تحميل الإدارات
+        async function loadDepartments() {
+            try {
+                const snapshot = await db.collection('departments').orderBy('name').get();
+                departments = [];
+                
+                const departmentSelect = document.getElementById('inviteDepartment');
+                departmentSelect.innerHTML = '<option value="">اختر الإدارة</option>';
+
+                snapshot.forEach(doc => {
+                    const dept = { id: doc.id, ...doc.data() };
+                    departments.push(dept);
+
+                    // مدراء الإدارات يرون إدارتهم فقط
+                    if (userRole === 'admin' || dept.id === userDepartment) {
+                        const option = document.createElement('option');
+                        option.value = dept.id;
+                        option.textContent = dept.name;
+                        departmentSelect.appendChild(option);
+                    }
+                });
+
+                console.log('✅ تم تحميل الإدارات');
+            } catch (error) {
+                console.error('❌ خطأ في تحميل الإدارات:', error);
+            }
+        }
+
+        // تحميل الدعوات
+        async function loadInvitations() {
+            try {
+                let query = db.collection('invitations').orderBy('createdAt', 'desc');
+                
+                // مدراء الإدارات يرون دعوات إدارتهم فقط
+                if (userRole !== 'admin') {
+                    query = query.where('department', '==', userDepartment);
+                }
+
+                const snapshot = await query.get();
+                const invitationsList = document.getElementById('invitationsList');
+                const loadingSpinner = document.getElementById('loadingSpinner');
+
+                loadingSpinner.style.display = 'none';
+                invitationsList.innerHTML = '';
+
+                if (snapshot.empty) {
+                    invitationsList.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-envelope text-muted mb-3" style="font-size: 3rem;"></i>
+                            <p class="text-muted">لا توجد دعوات مرسلة</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const invite = { id: doc.id, ...doc.data() };
+                    const inviteCard = createInviteCard(invite);
+                    invitationsList.appendChild(inviteCard);
+                });
+
+            } catch (error) {
+                console.error('❌ خطأ في تحميل الدعوات:', error);
+                showAlert('خطأ في تحميل الدعوات', 'danger');
+            }
+        }
+
+        // إنشاء كارد الدعوة
+        function createInviteCard(invite) {
+            const div = document.createElement('div');
+            div.className = 'invite-card';
+
+            const now = new Date();
+            const expiryDate = invite.expiresAt.toDate();
+            const isExpired = expiryDate < now;
+            const isUsed = invite.status === 'used';
+
+            let statusClass = 'status-active';
+            let statusText = 'نشطة';
+            
+            if (isUsed) {
+                statusClass = 'status-used';
+                statusText = 'مستخدمة';
+            } else if (isExpired) {
+                statusClass = 'status-expired';
+                statusText = 'منتهية الصلاحية';
+            }
+
+            const department = departments.find(d => d.id === invite.department);
+            const createdDate = invite.createdAt.toDate().toLocaleDateString('ar-SA');
+            const expiryDateStr = expiryDate.toLocaleDateString('ar-SA');
+
+            const inviteUrl = `${window.location.origin}/register.html?invite=${invite.code}`;
+
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="mb-1">${invite.email}</h6>
+                        <small class="text-muted">${department?.name || invite.department}</small>
+                    </div>
+                    <span class="invite-status ${statusClass}">${statusText}</span>
+                </div>
+                
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <small class="text-muted">تاريخ الإرسال:</small>
+                        <div>${createdDate}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">تنتهي في:</small>
+                        <div>${expiryDateStr}</div>
+                    </div>
+                </div>
+
+                ${invite.message ? `
+                    <div class="mb-3">
+                        <small class="text-muted">الرسالة:</small>
+                        <div class="bg-light p-2 rounded">${invite.message}</div>
+                    </div>
+                ` : ''}
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm copy-link-btn" onclick="copyInviteLink('${inviteUrl}')">
+                        <i class="fas fa-copy me-1"></i>
+                        نسخ الرابط
+                    </button>
+                    
+                    ${!isUsed && !isExpired ? `
+                        <button class="btn btn-outline-warning btn-sm" onclick="extendInvite('${invite.id}')">
+                            <i class="fas fa-clock me-1"></i>
+                            تمديد
+                        </button>
+                    ` : ''}
+                    
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteInvite('${invite.id}')">
+                        <i class="fas fa-trash me-1"></i>
+                        حذف
+                    </button>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // إنشاء دعوة جديدة
+        async function createInvitation() {
+            const email = document.getElementById('inviteEmail').value;
+            const department = document.getElementById('inviteDepartment').value;
+            const suggestedRole = document.getElementById('suggestedRole').value;
+            const message = document.getElementById('inviteMessage').value;
+            const expiryDays = parseInt(document.getElementById('expiryDays').value);
+            const autoApprove = document.getElementById('autoApprove').checked;
+
+            if (!email || !department) {
+                showAlert('يرجى إدخال البريد الإلكتروني واختيار الإدارة', 'danger');
+                return;
+            }
+
+            try {
+                // إنشاء كود دعوة فريد
+                const inviteCode = generateInviteCode();
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + expiryDays);
+
+                const inviteData = {
+                    code: inviteCode,
+                    email: email,
+                    department: department,
+                    suggestedRole: suggestedRole || null,
+                    message: message || null,
+                    autoApprove: autoApprove,
+                    status: 'active',
+                    invitedBy: auth.currentUser.email,
+                    invitedByUid: auth.currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    expiresAt: firebase.firestore.Timestamp.fromDate(expiryDate),
+                    usedBy: null,
+                    usedAt: null
+                };
+
+                await db.collection('invitations').add(inviteData);
+
+                showAlert('تم إرسال الدعوة بنجاح!', 'success');
+                
+                // إغلاق النافذة وإعادة تحميل الدعوات
+                const modal = bootstrap.Modal.getInstance(document.getElementById('newInviteModal'));
+                modal.hide();
+                document.getElementById('inviteForm').reset();
+                await loadInvitations();
+
+            } catch (error) {
+                console.error('❌ خطأ في إرسال الدعوة:', error);
+                showAlert('خطأ في إرسال الدعوة', 'danger');
+            }
+        }
+
+        // إنشاء كود دعوة فريد
+        function generateInviteCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let result = '';
+            for (let i = 0; i < 12; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // نسخ رابط الدعوة
+        async function copyInviteLink(url) {
+            try {
+                await navigator.clipboard.writeText(url);
+                showAlert('تم نسخ رابط الدعوة!', 'success');
+            } catch (error) {
+                console.error('خطأ في نسخ الرابط:', error);
+                showAlert('خطأ في نسخ الرابط', 'danger');
+            }
+        }
+
+        // تمديد الدعوة
+        async function extendInvite(inviteId) {
+            try {
+                const newExpiryDate = new Date();
+                newExpiryDate.setDate(newExpiryDate.getDate() + 14);
+
+                await db.collection('invitations').doc(inviteId).update({
+                    expiresAt: firebase.firestore.Timestamp.fromDate(newExpiryDate)
+                });
+
+                showAlert('تم تمديد صلاحية الدعوة لـ 14 يوم إضافي', 'success');
+                await loadInvitations();
+            } catch (error) {
+                console.error('خطأ في تمديد الدعوة:', error);
+                showAlert('خطأ في تمديد الدعوة', 'danger');
+            }
+        }
+
+        // حذف الدعوة
+        async function deleteInvite(inviteId) {
+            if (!confirm('هل أنت متأكد من حذف هذه الدعوة؟')) return;
+
+            try {
+                await db.collection('invitations').doc(inviteId).delete();
+                showAlert('تم حذف الدعوة', 'info');
+                await loadInvitations();
+            } catch (error) {
+                console.error('خطأ في حذف الدعوة:', error);
+                showAlert('خطأ في حذف الدعوة', 'danger');
+            }
+        }
+
+        // Show alert function
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.getElementById('alertContainer').appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

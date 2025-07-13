@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار نظام المصادقة الموحد</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    <style>
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .test-success { background: #d4edda; color: #155724; }
+        .test-error { background: #f8d7da; color: #721c24; }
+        .test-info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-vial me-2"></i>
+                            اختبار نظام المصادقة الموحد
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        
+                        <!-- User Status -->
+                        <div class="test-section">
+                            <h5><i class="fas fa-user me-2"></i>حالة المستخدم</h5>
+                            <div id="userStatus" class="test-result test-info">
+                                جاري فحص حالة المستخدم...
+                            </div>
+                            <div id="userInfo"></div>
+                        </div>
+
+                        <!-- Permission Tests -->
+                        <div class="test-section">
+                            <h5><i class="fas fa-shield-alt me-2"></i>اختبار الصلاحيات</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <button class="btn btn-primary mb-2" data-permission="files.view">
+                                        <span class="btn-text">عرض الملفات</span>
+                                    </button>
+                                    <button class="btn btn-success mb-2" data-permission="files.create">
+                                        <span class="btn-text">إنشاء ملف</span>
+                                    </button>
+                                    <button class="btn btn-warning mb-2" data-permission="files.edit">
+                                        <span class="btn-text">تعديل ملف</span>
+                                    </button>
+                                    <button class="btn btn-danger mb-2" data-permission="files.delete">
+                                        <span class="btn-text">حذف ملف</span>
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button class="btn btn-info mb-2" data-permission="users.view">
+                                        <span class="btn-text">عرض المستخدمين</span>
+                                    </button>
+                                    <button class="btn btn-secondary mb-2" data-permission="system.admin">
+                                        <span class="btn-text">إدارة النظام</span>
+                                    </button>
+                                    <button class="btn btn-dark mb-2" data-permission="scanner.access">
+                                        <span class="btn-text">الماسح الضوئي</span>
+                                    </button>
+                                    <button class="btn btn-outline-primary mb-2" data-permission="reports.view">
+                                        <span class="btn-text">التقارير</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="permissionResults"></div>
+                        </div>
+
+                        <!-- Role-based Content -->
+                        <div class="test-section">
+                            <h5><i class="fas fa-users-cog me-2"></i>المحتوى المبني على الأدوار</h5>
+                            
+                            <div data-role="admin" class="alert alert-danger">
+                                <i class="fas fa-crown me-2"></i>
+                                هذا المحتوى يظهر فقط لمديري النظام
+                            </div>
+                            
+                            <div data-role="manager,admin" class="alert alert-warning">
+                                <i class="fas fa-user-tie me-2"></i>
+                                هذا المحتوى يظهر للمديرين ومديري النظام
+                            </div>
+                            
+                            <div data-role="employee,manager,admin" class="alert alert-info">
+                                <i class="fas fa-briefcase me-2"></i>
+                                هذا المحتوى يظهر للموظفين والمديرين ومديري النظام
+                            </div>
+                            
+                            <div data-role="any" class="alert alert-success">
+                                <i class="fas fa-globe me-2"></i>
+                                هذا المحتوى يظهر لجميع المستخدمين
+                            </div>
+                        </div>
+
+                        <!-- User Information Display -->
+                        <div class="test-section">
+                            <h5><i class="fas fa-id-card me-2"></i>عرض معلومات المستخدم</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="user-info-card">
+                                        <div class="d-flex align-items-center">
+                                            <img data-user-avatar src="" alt="صورة المستخدم" class="user-avatar me-3">
+                                            <div>
+                                                <div class="user-name" data-user-name>لم يتم تحميل الاسم</div>
+                                                <div class="user-role role-badge" data-user-role>لم يتم تحميل الدور</div>
+                                                <div class="user-department" data-user-department>لم يتم تحميل القسم</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">تفاصيل إضافية</h6>
+                                            <p><strong>البريد الإلكتروني:</strong> <span data-user-email>لم يتم تحميل البريد</span></p>
+                                            <p><strong>معرف المستخدم:</strong> <span id="userId">لم يتم تحميل المعرف</span></p>
+                                            <p><strong>حالة الجلسة:</strong> <span id="sessionStatus">فحص الجلسة...</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Authentication Actions -->
+                        <div class="test-section">
+                            <h5><i class="fas fa-sign-in-alt me-2"></i>إجراءات المصادقة</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="card-title mb-0">تسجيل الدخول</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <form id="loginForm">
+                                                <div class="mb-3">
+                                                    <label for="loginEmail" class="form-label">البريد الإلكتروني</label>
+                                                    <input type="email" class="form-control" id="loginEmail" placeholder="أدخل البريد الإلكتروني" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="loginPassword" class="form-label">كلمة المرور</label>
+                                                    <input type="password" class="form-control" id="loginPassword" placeholder="أدخل كلمة المرور" required>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-sign-in-alt me-2"></i>تسجيل الدخول
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="card-title mb-0">إجراءات أخرى</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <button class="btn btn-danger mb-2 d-block w-100" onclick="testSignOut()">
+                                                <i class="fas fa-sign-out-alt me-2"></i>تسجيل الخروج
+                                            </button>
+                                            <button class="btn btn-warning mb-2 d-block w-100" onclick="testPasswordReset()">
+                                                <i class="fas fa-key me-2"></i>إعادة تعيين كلمة المرور
+                                            </button>
+                                            <button class="btn btn-info mb-2 d-block w-100" onclick="testSessionCheck()">
+                                                <i class="fas fa-clock me-2"></i>فحص الجلسة
+                                            </button>
+                                            <button class="btn btn-secondary d-block w-100" onclick="runAllTests()">
+                                                <i class="fas fa-vial me-2"></i>تشغيل جميع الاختبارات
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Test Results -->
+                        <div class="test-section">
+                            <h5><i class="fas fa-clipboard-check me-2"></i>نتائج الاختبارات</h5>
+                            <div id="testResults"></div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/ui-permission-controller.js"></script>
+
+    <script>
+        let testResults = [];
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTests();
+        });
+
+        function initializeTests() {
+            // Wait for auth system to initialize
+            setTimeout(() => {
+                updateUserStatus();
+                updatePermissionTests();
+                setupLoginForm();
+                
+                // Listen for auth state changes
+                unifiedAuth.onAuthStateChange((state, user) => {
+                    updateUserStatus();
+                    updatePermissionTests();
+                    logTest(`Auth state changed: ${state}`, state === 'login' ? 'success' : 'info');
+                });
+
+            }, 1000);
+        }
+
+        function updateUserStatus() {
+            const userStatusEl = document.getElementById('userStatus');
+            const userInfoEl = document.getElementById('userInfo');
+            const sessionStatusEl = document.getElementById('sessionStatus');
+            const userIdEl = document.getElementById('userId');
+
+            if (unifiedAuth.isAuthenticated) {
+                userStatusEl.className = 'test-result test-success';
+                userStatusEl.textContent = `مسجل دخول: ${unifiedAuth.user.email}`;
+                
+                userInfoEl.innerHTML = `
+                    <div class="mt-3">
+                        <strong>الدور:</strong> ${unifiedAuth.userRole}<br>
+                        <strong>القسم:</strong> ${unifiedAuth.userDepartment}<br>
+                        <strong>الصلاحيات:</strong> ${unifiedAuth.userPermissions.join(', ')}
+                    </div>
+                `;
+
+                sessionStatusEl.textContent = unifiedAuth.isSessionValid() ? 'صالحة' : 'منتهية الصلاحية';
+                sessionStatusEl.className = unifiedAuth.isSessionValid() ? 'text-success' : 'text-danger';
+                
+                userIdEl.textContent = unifiedAuth.user.uid;
+            } else {
+                userStatusEl.className = 'test-result test-error';
+                userStatusEl.textContent = 'غير مسجل دخول';
+                userInfoEl.innerHTML = '';
+                sessionStatusEl.textContent = 'لا توجد جلسة';
+                sessionStatusEl.className = 'text-muted';
+                userIdEl.textContent = 'لا يوجد';
+            }
+        }
+
+        function updatePermissionTests() {
+            const buttons = document.querySelectorAll('[data-permission]');
+            const resultsEl = document.getElementById('permissionResults');
+            let results = [];
+
+            buttons.forEach(button => {
+                const permission = button.dataset.permission;
+                const hasPermission = unifiedAuth.hasPermission(permission);
+                
+                if (hasPermission) {
+                    button.classList.remove('permission-denied');
+                    button.disabled = false;
+                    results.push(`✅ ${permission}: مسموح`);
+                } else {
+                    button.classList.add('permission-denied');
+                    button.disabled = true;
+                    results.push(`❌ ${permission}: غير مسموح`);
+                }
+            });
+
+            resultsEl.innerHTML = results.length > 0 ? 
+                `<div class="test-result test-info">${results.join('<br>')}</div>` : 
+                '<div class="test-result test-info">لم يتم فحص الصلاحيات بعد</div>';
+        }
+
+        function setupLoginForm() {
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                
+                try {
+                    const result = await unifiedAuth.signIn(email, password);
+                    logTest(`تسجيل دخول ناجح: ${result.message}`, 'success');
+                } catch (error) {
+                    logTest(`فشل تسجيل الدخول: ${error.message}`, 'error');
+                }
+            });
+        }
+
+        async function testSignOut() {
+            try {
+                const result = await unifiedAuth.signOut();
+                logTest(`تسجيل خروج ناجح: ${result.message}`, 'success');
+            } catch (error) {
+                logTest(`فشل تسجيل الخروج: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPasswordReset() {
+            const email = prompt('أدخل البريد الإلكتروني لإعادة تعيين كلمة المرور:');
+            if (!email) return;
+
+            try {
+                const result = await unifiedAuth.resetPassword(email);
+                logTest(`إعادة تعيين كلمة المرور: ${result.message}`, 'success');
+            } catch (error) {
+                logTest(`فشل إعادة تعيين كلمة المرور: ${error.message}`, 'error');
+            }
+        }
+
+        function testSessionCheck() {
+            const isValid = unifiedAuth.isSessionValid();
+            const message = isValid ? 'الجلسة صالحة' : 'الجلسة منتهية الصلاحية';
+            logTest(`فحص الجلسة: ${message}`, isValid ? 'success' : 'error');
+        }
+
+        function runAllTests() {
+            logTest('بدء تشغيل جميع الاختبارات...', 'info');
+            
+            // Test 1: Check initialization
+            const initTest = unifiedAuth.isInitialized;
+            logTest(`اختبار التهيئة: ${initTest ? 'نجح' : 'فشل'}`, initTest ? 'success' : 'error');
+            
+            // Test 2: Check authentication
+            const authTest = unifiedAuth.isAuthenticated;
+            logTest(`اختبار المصادقة: ${authTest ? 'مسجل دخول' : 'غير مسجل دخول'}`, authTest ? 'success' : 'info');
+            
+            // Test 3: Check permissions
+            const permissionTest = unifiedAuth.userPermissions.length > 0;
+            logTest(`اختبار الصلاحيات: ${permissionTest ? 'تم تحميل الصلاحيات' : 'لم يتم تحميل الصلاحيات'}`, permissionTest ? 'success' : 'error');
+            
+            // Test 4: Check session
+            const sessionTest = unifiedAuth.isSessionValid();
+            logTest(`اختبار الجلسة: ${sessionTest ? 'صالحة' : 'غير صالحة'}`, sessionTest ? 'success' : 'error');
+            
+            logTest('انتهاء تشغيل جميع الاختبارات', 'info');
+        }
+
+        function logTest(message, type) {
+            const resultsEl = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString('ar-EG');
+            
+            testResults.push({
+                message: message,
+                type: type,
+                timestamp: timestamp
+            });
+            
+            const resultHtml = testResults.map(result => 
+                `<div class="test-result test-${result.type}">
+                    [${result.timestamp}] ${result.message}
+                </div>`
+            ).join('');
+            
+            resultsEl.innerHTML = resultHtml;
+            resultsEl.scrollTop = resultsEl.scrollHeight;
+        }
+    </script>
+</body>
+</html>

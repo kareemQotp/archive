@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مسح الباركود - نظام الأرشيف</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/scanner.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    <style>
+        #videoElement { 
+            width: 100%; 
+            max-height: 400px; 
+            object-fit: cover;
+            border-radius: 16px; 
+        }
+        .test-btn-hidden {
+            display: none;
+        }
+        .video-container {
+            position: relative;
+            background: #f8f9fa;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .barcode-scanner-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 2px dashed #28a745;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-archive me-2"></i>
+                    نظام الأرشيف
+                </a>
+            </div>
+            <div class="navbar-nav ms-auto">
+                <button class="btn btn-outline-danger btn-sm" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    خروج
+                </button>
+            </div>
+        </div>
+    </nav>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card p-4 shadow-lg">
+                    <h3 class="mb-4 text-center">
+                        <i class="fas fa-qrcode me-2"></i>
+                        مسح الباركود والـ QR Code
+                    </h3>
+                    
+                    <!-- Status Alert -->
+                    <div id="scanStatus" class="alert alert-info scanner-status">
+                        <i class="fas fa-info-circle"></i> جاهز للمسح
+                    </div>
+                    
+                    <!-- Control Buttons -->
+                    <div class="text-center scanner-controls">
+                        <button id="startScanBtn" class="btn btn-success btn-lg me-2">
+                            <i class="fas fa-play"></i> بدء المسح
+                        </button>
+                        <button id="stopScanBtn" class="btn btn-danger btn-lg" disabled>
+                            <i class="fas fa-stop"></i> إيقاف المسح
+                        </button>
+                        <button id="testScannerBtn" class="btn btn-info btn-lg ms-2">
+                            <i class="fas fa-vial"></i> اختبار الماسح
+                        </button>
+                    </div>
+                    
+                    <!-- Video Element -->
+                    <div class="video-container mb-4">
+                        <video id="videoElement" autoplay muted class="w-100 rounded"></video>
+                        <div class="barcode-scanner-overlay"></div>
+                    </div>
+                    
+                    <!-- Barcode Result -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card scanner-result-card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-barcode"></i> نتيجة المسح
+                                    </h6>
+                                    <p class="card-text mb-1">
+                                        <strong>الرمز:</strong> 
+                                        <span id="barcodeResult" class="text-primary">لم يتم المسح بعد</span>
+                                    </p>
+                                    <p class="card-text">
+                                        <strong>النوع:</strong> 
+                                        <span id="barcodeFormat" class="text-secondary">-</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card scanner-result-card instructions-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-info"></i> إرشادات الاستخدام
+                                    </h6>
+                                    <ul class="small mb-0">
+                                        <li>تأكد من توفر إضاءة جيدة</li>
+                                        <li>وجه الكاميرا نحو الباركود مباشرة</li>
+                                        <li>اتركه ثابتاً لثانيتين للحصول على أفضل نتيجة</li>
+                                        <li>يدعم النظام QR Code و Barcode التقليدي</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Document Information -->
+                    <div id="documentInfo"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <script src="assets/js/sidebar.js"></script>
+    
+    <!-- ZXing Library for Barcode Scanning -->
+    <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    
+    <!-- Enhanced Barcode Scanner -->
+    <script src="assets/js/barcode-scanner.js"></script>
+    
+    <script>
+        // Initialize unified auth system
+        let permissionController;
+        let barcodeScanner;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        // Initialize permission controller if available
+                        if (window.UIPermissionController) {
+                            permissionController = new UIPermissionController(unifiedAuth);
+                        }
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Set up auth state listener
+            unifiedAuth.onAuthStateChanged((user) => {
+                handleAuthStateChange(user);
+            });
+
+            // Initialize barcode scanner system
+            initializeBarcodeScanner();
+        });
+
+        async function handleAuthStateChange(user) {
+            if (!user) {
+                window.location.href = 'login.html?message=session-expired';
+                return;
+            }
+
+            // Allow access for all authenticated users
+            console.log('✅ Scanner access granted for authenticated user');
+
+            // Update permission-based UI
+            if (permissionController) {
+                permissionController.updateUI();
+            }
+            
+            // Update sidebar with proper role
+            if (window.sidebarManager) {
+                const userRole = unifiedAuth.getCurrentUserRole();
+                window.sidebarManager.updateSidebarNav(true, userRole);
+            }
+        }
+
+        // Enhanced logout function
+        async function logout() {
+            try {
+                // Stop scanner if running
+                if (barcodeScanner) {
+                    barcodeScanner.stopScanning();
+                }
+                
+                await unifiedAuth.signOut();
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('خطأ في تسجيل الخروج:', error);
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Initialize enhanced barcode scanner
+        function initializeBarcodeScanner() {
+            // Set up logout button
+            document.getElementById('logoutBtn').onclick = logout;
+            
+            // Initialize barcode scanner with enhanced features
+            if (window.BarcodeScanner) {
+                barcodeScanner = new BarcodeScanner({
+                    videoElement: document.getElementById('videoElement'),
+                    onScanSuccess: handleScanSuccess,
+                    onScanError: handleScanError,
+                    authSystem: unifiedAuth
+                });
+            }
+        }
+        
+        // Handle successful barcode scan
+        async function handleScanSuccess(result) {
+            try {
+                // Log scan event
+                authSystem.logUserActivity('barcode-scan', {
+                    scannedCode: result.text,
+                    format: result.format
+                });
+                
+                // Search for document with scanned barcode
+                await searchDocumentByBarcode(result.text);
+            } catch (error) {
+                console.error('خطأ في معالجة نتيجة المسح:', error);
+                authSystem.logError('scan-processing-error', error, { scannedCode: result.text });
+            }
+        }
+        
+        // Handle scan error
+        function handleScanError(error) {
+            console.error('خطأ في المسح:', error);
+            authSystem.logError('barcode-scan-error', error);
+        }
+        
+        // Search for document by barcode
+        async function searchDocumentByBarcode(barcode) {
+            try {
+                if (!authSystem.hasPermission('document-search')) {
+                    throw new Error('ليس لديك صلاحية للبحث في الوثائق');
+                }
+                
+                const querySnapshot = await authSystem.db.collection('documents')
+                    .where('qrCode', '==', barcode)
+                    .where('isActive', '==', true)
+                    .get();
+                
+                if (!querySnapshot.empty) {
+                    const doc = querySnapshot.docs[0];
+                    const data = doc.data();
+                    
+                    // Display document details
+                    displayDocumentDetails(data);
+                    
+                    // Log successful search
+                    authSystem.logUserActivity('document-found-by-barcode', {
+                        documentId: doc.id,
+                        barcode: barcode
+                    });
+                } else {
+                    // No document found
+                    showNoDocumentFound(barcode);
+                }
+            } catch (error) {
+                console.error('خطأ في البحث عن الوثيقة:', error);
+                authSystem.logError('document-search-error', error, { barcode });
+                showSearchError(error.message);
+            }
+        }
+        
+        // Display document details
+        function displayDocumentDetails(data) {
+            // Implementation for displaying found document
+            console.log('تم العثور على الوثيقة:', data);
+        }
+        
+        // Show no document found message
+        function showNoDocumentFound(barcode) {
+            console.log('لم يتم العثور على وثيقة بالباركود:', barcode);
+        }
+        
+        // Show search error
+        function showSearchError(message) {
+            console.error('خطأ في البحث:', message);
+        }
+    </script>
+</body>
+</html>

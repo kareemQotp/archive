@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار الإصلاحات - نظام الأرشيف</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Cairo', sans-serif; padding: 2rem; }
+        .test-result { margin: 1rem 0; padding: 1rem; border-radius: 8px; }
+        .test-success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .test-error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .test-loading { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">
+            <i class="fas fa-bug me-2"></i>
+            اختبار إصلاح الأخطاء
+        </h1>
+        
+        <div id="testResults"></div>
+        
+        <button class="btn btn-primary" onclick="runTests()">
+            <i class="fas fa-play me-2"></i>
+            تشغيل الاختبارات
+        </button>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <!-- Include all our fixed scripts -->
+    <script src="assets/js/notifications.js"></script>
+    <script src="assets/js/advanced-alerts.js"></script>
+    <script src="assets/js/smart-notifications.js"></script>
+    <script src="assets/js/activity-logger.js"></script>
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/notification-integration.js"></script>
+
+    <script>
+        const testResults = document.getElementById('testResults');
+        
+        function addTestResult(name, status, message = '') {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result test-${status}`;
+            
+            const icon = status === 'success' ? 'check-circle' : 
+                        status === 'error' ? 'times-circle' : 'clock';
+            
+            resultDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${icon} me-2"></i>
+                    <strong>${name}</strong>
+                    ${message ? `<span class="ms-2">- ${message}</span>` : ''}
+                </div>
+            `;
+            
+            testResults.appendChild(resultDiv);
+        }
+        
+        async function runTests() {
+            testResults.innerHTML = '';
+            
+            // Test 1: NotificationManager
+            try {
+                addTestResult('NotificationManager', 'loading', 'جاري الاختبار...');
+                
+                if (window.NotificationManager && window.notify) {
+                    window.notify.success('اختبار', 'تم إنشاء نظام الإشعارات بنجاح');
+                    addTestResult('NotificationManager', 'success', 'تم إنشاء النظام بنجاح');
+                } else {
+                    throw new Error('النظام غير متوفر');
+                }
+            } catch (error) {
+                addTestResult('NotificationManager', 'error', error.message);
+            }
+            
+            // Test 2: AdvancedAlertSystem
+            try {
+                if (window.AdvancedAlertSystem && window.advancedAlertSystem) {
+                    addTestResult('AdvancedAlertSystem', 'success', 'تم تهيئة نظام التنبيهات المتقدم');
+                } else {
+                    throw new Error('نظام التنبيهات المتقدم غير متوفر');
+                }
+            } catch (error) {
+                addTestResult('AdvancedAlertSystem', 'error', error.message);
+            }
+            
+            // Test 3: SmartNotificationManager
+            try {
+                if (window.smartNotificationManager || window.SmartNotificationManager) {
+                    addTestResult('SmartNotificationManager', 'success', 'تم تهيئة نظام الإشعارات الذكية');
+                } else {
+                    addTestResult('SmartNotificationManager', 'error', 'نظام الإشعارات الذكية غير متوفر');
+                }
+            } catch (error) {
+                addTestResult('SmartNotificationManager', 'error', error.message);
+            }
+            
+            // Test 4: UnifiedAuth
+            try {
+                if (window.unifiedAuth && window.unifiedAuth.isInitialized) {
+                    if (typeof window.unifiedAuth.onAuthStateChanged === 'function') {
+                        addTestResult('UnifiedAuth', 'success', 'نظام المصادقة الموحد يعمل بشكل صحيح');
+                    } else {
+                        throw new Error('دالة onAuthStateChanged مفقودة');
+                    }
+                } else {
+                    addTestResult('UnifiedAuth', 'loading', 'جاري التهيئة...');
+                    setTimeout(() => {
+                        if (window.unifiedAuth && window.unifiedAuth.isInitialized) {
+                            addTestResult('UnifiedAuth (تأخر)', 'success', 'تم التهيئة بعد التأخير');
+                        } else {
+                            addTestResult('UnifiedAuth (تأخر)', 'error', 'فشل في التهيئة');
+                        }
+                    }, 2000);
+                }
+            } catch (error) {
+                addTestResult('UnifiedAuth', 'error', error.message);
+            }
+            
+            // Test 5: ActivityLogger
+            try {
+                if (window.ActivityLogger && window.activityLogger) {
+                    // Test logging
+                    window.activityLogger.logCustomActivity('test', 'run_test', { timestamp: Date.now() });
+                    addTestResult('ActivityLogger', 'success', 'نظام تسجيل الأنشطة يعمل');
+                } else {
+                    throw new Error('نظام تسجيل الأنشطة غير متوفر');
+                }
+            } catch (error) {
+                addTestResult('ActivityLogger', 'error', error.message);
+            }
+            
+            // Test 6: UI Permission Controller
+            try {
+                if (window.UIPermissionController) {
+                    addTestResult('UIPermissionController', 'success', 'مساعد التحكم في الواجهة متوفر');
+                } else {
+                    throw new Error('مساعد التحكم في الواجهة غير متوفر');
+                }
+            } catch (error) {
+                addTestResult('UIPermissionController', 'error', error.message);
+            }
+            
+            // Test 7: Service Worker
+            try {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                        .then(() => {
+                            addTestResult('Service Worker', 'success', 'تم تسجيل Service Worker بنجاح');
+                        })
+                        .catch(error => {
+                            addTestResult('Service Worker', 'error', error.message);
+                        });
+                } else {
+                    addTestResult('Service Worker', 'error', 'المتصفح لا يدعم Service Workers');
+                }
+            } catch (error) {
+                addTestResult('Service Worker', 'error', error.message);
+            }
+            
+            addTestResult('الاختبارات', 'success', 'تم الانتهاء من جميع الاختبارات');
+        }
+        
+        // Run tests automatically after a short delay
+        setTimeout(runTests, 1000);
+    </script>
+</body>
+</html>

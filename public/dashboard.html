@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - نظام الأرشيف</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    <style>
+        .dashboard-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 2rem auto;
+        }
+        .stat-box {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--ocean-deep) 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 2rem 1rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .stat-box .fa {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .stat-title {
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+        .dashboard-actions .btn {
+            min-width: 140px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-archive me-2"></i>
+                    نظام الأرشيف
+                </a>
+            </div>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo"></span>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    خروج
+                </button>
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="dashboard-card">
+            <h1 class="mb-4 text-center">لوحة التحكم</h1>
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="stat-box">
+                        <i class="fa fa-file-alt"></i>
+                        <div class="h3 mb-0" id="statDocuments">0</div>
+                        <div class="stat-title">عدد الوثائق</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-box">
+                        <i class="fa fa-users"></i>
+                        <div class="h3 mb-0" id="statUsers">0</div>
+                        <div class="stat-title">عدد المستخدمين</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-box">
+                        <i class="fa fa-cloud-upload-alt"></i>
+                        <div class="h3 mb-0" id="statStorage">0 MB</div>
+                        <div class="stat-title">المساحة المستخدمة</div>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-actions d-flex justify-content-center gap-2 mb-3">
+                <a href="upload.html" class="btn btn-primary">
+                    <i class="fas fa-upload me-1"></i> رفع وثيقة
+                </a>
+                <a href="profile.html" class="btn btn-outline-secondary">
+                    <i class="fas fa-user me-1"></i> الملف الشخصي
+                </a>
+                <a href="search.html" class="btn btn-outline-secondary">
+                    <i class="fas fa-search me-1"></i> البحث
+                </a>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    
+    <script>
+        // Initialize unified auth system
+        let authSystem;
+        let permissionController;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        authSystem = unifiedAuth;
+                        // Initialize permission controller
+                        permissionController = new UIPermissionController(authSystem);
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Set up auth state listener with unified auth
+            authSystem.onAuthStateChanged(async (user) => {
+                handleAuthStateChange(user);
+            });
+        });
+
+        async function handleAuthStateChange(user) {
+            if (!user) {
+                // Redirect to login with enhanced message
+                window.location.href = 'login.html?message=session-expired';
+                return;
+            }
+
+            // Update user info display with enhanced styling
+            const displayName = user.displayName || user.email.split('@')[0];
+            document.getElementById('userInfo').innerHTML = `<i class="fas fa-user me-1"></i> ${displayName}`;
+            
+            // Update sidebar with permission-based navigation
+            if (window.sidebarManager) {
+                window.sidebarManager.updateSidebarNav(true);
+            }
+
+            // Update permission-based UI
+            if (permissionController) {
+                permissionController.updateUI();
+            }
+            
+            // Load dashboard statistics with enhanced error handling
+            await loadDashboardStats();
+        }
+
+        async function loadDashboardStats() {
+            try {
+                // إحصائيات الوثائق
+                try {
+                    const docsSnap = await authSystem.db.collection('documents').get();
+                    document.getElementById('statDocuments').textContent = docsSnap.size;
+                } catch (error) {
+                    console.warn('لا يمكن الوصول لإحصائيات الوثائق:', error);
+                    authSystem.logError('dashboard-docs-stats-error', error);
+                    document.getElementById('statDocuments').textContent = '0';
+                }
+
+                // إحصائيات المستخدمين - admin only
+                try {
+                    if (authSystem.hasPermission('user-management')) {
+                        const usersSnap = await authSystem.db.collection('users').get();
+                        document.getElementById('statUsers').textContent = usersSnap.size;
+                    } else {
+                        document.getElementById('statUsers').textContent = 'غير مصرح';
+                    }
+                } catch (error) {
+                    console.warn('لا يمكن الوصول لإحصائيات المستخدمين:', error);
+                    authSystem.logError('dashboard-users-stats-error', error);
+                    document.getElementById('statUsers').textContent = '0';
+                }
+
+                // المساحة المستخدمة (تقدير)
+                try {
+                    let totalSize = 0;
+                    const docsSnap = await authSystem.db.collection('documents').get();
+                    docsSnap.forEach(doc => {
+                        const data = doc.data();
+                        if (data.fileSize) totalSize += data.fileSize;
+                    });
+                    document.getElementById('statStorage').textContent = (totalSize/1024/1024).toFixed(2) + ' MB';
+                } catch (error) {
+                    console.warn('لا يمكن حساب المساحة المستخدمة:', error);
+                    authSystem.logError('dashboard-storage-stats-error', error);
+                    document.getElementById('statStorage').textContent = '0 MB';
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل إحصائيات لوحة التحكم:', error);
+            }
+        }
+
+        async function logout() {
+            try {
+                await authSystem.signOut();
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('خطأ في تسجيل الخروج:', error);
+                alert('حدث خطأ أثناء تسجيل الخروج');
+            }
+        }
+    </script>
+</body>
+</html>

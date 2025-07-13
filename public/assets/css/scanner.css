@@ -1,0 +1,198 @@
+/* Barcode Scanner Styles */
+.video-container {
+    position: relative;
+    background: #f8f9fa;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#videoElement { 
+    width: 100%; 
+    max-height: 400px; 
+    object-fit: cover;
+    border-radius: 16px;
+    display: block;
+}
+
+.barcode-scanner-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border: 3px dashed #28a745;
+    border-radius: 12px;
+    pointer-events: none;
+    opacity: 0.8;
+    animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.4;
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+}
+
+.test-btn-hidden {
+    display: none;
+}
+
+/* Scanner Controls */
+.scanner-controls {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.scanner-controls .btn {
+    min-width: 120px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.scanner-controls .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Status Alerts */
+.scanner-status {
+    border-radius: 12px;
+    border: none;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+.scanner-status .fas {
+    margin-left: 8px;
+}
+
+/* Result Cards */
+.scanner-result-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.scanner-result-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.scanner-result-card .card-title {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.scanner-result-card .card-text {
+    margin-bottom: 8px;
+}
+
+/* Document Info Display */
+.document-info-card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.document-info-card .card-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    padding: 20px;
+}
+
+.document-info-card .card-body {
+    padding: 25px;
+}
+
+.document-info-card .btn {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 10px 20px;
+    transition: all 0.3s ease;
+}
+
+.document-info-card .btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Instructions Card */
+.instructions-card {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border: none;
+    border-radius: 12px;
+}
+
+.instructions-card .card-title {
+    color: #1976d2;
+    font-weight: 600;
+}
+
+.instructions-card ul {
+    color: #424242;
+    line-height: 1.6;
+}
+
+.instructions-card li {
+    margin-bottom: 5px;
+}
+
+/* Camera Permission Request */
+.camera-permission-request {
+    text-align: center;
+    padding: 40px 20px;
+    background: #f8f9fa;
+    border-radius: 16px;
+    margin: 20px 0;
+}
+
+.camera-permission-request .fas {
+    font-size: 3rem;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .barcode-scanner-overlay {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .scanner-controls .btn {
+        min-width: 100px;
+        margin-bottom: 10px;
+    }
+    
+    #videoElement {
+        max-height: 300px;
+    }
+}
+
+@media (max-width: 576px) {
+    .barcode-scanner-overlay {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .scanner-controls {
+        padding: 15px;
+    }
+    
+    .document-info-card .card-body {
+        padding: 20px;
+    }
+}

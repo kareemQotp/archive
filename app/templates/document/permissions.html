@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}إدارة صلاحيات المستند - {{ document.title }}{% endblock %}
+{% block title %}إدارة الصلاحيات - {{ document.title }}{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -11,8 +11,6 @@
                     <h3 class="mb-0">إدارة صلاحيات المستند</h3>
                 </div>
                 <div class="card-body">
-                    <h5 class="card-title mb-4">{{ document.title }}</h5>
-                    
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
@@ -21,15 +19,24 @@
                         {% endif %}
                     {% endwith %}
                     
-                    <form method="POST">
-                        <div class="mb-3">
-                            <label class="form-label">المستخدمون المصرح لهم بالوصول</label>
+                    <form method="POST" id="permissionsForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-4">
+                            <h4>معلومات المستند</h4>
+                            <p><strong>العنوان:</strong> {{ document.title }}</p>
+                            <p><strong>رقم الباركود:</strong> {{ document.barcode }}</p>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h4>المستخدمون المصرح لهم</h4>
                             <div class="list-group">
                                 {% for user in documentation_users %}
-                                <label class="list-group-item">
+                                <label class="list-group-item" for="user_{{ user.id }}">
                                     <input class="form-check-input me-1" type="checkbox" 
+                                           id="user_{{ user.id }}"
                                            name="allowed_users[]" value="{{ user.id }}"
-                                           {% if user in document.allowed_users %}checked{% endif %}>
+                                           {% if user in document.allowed_users %}checked{% endif %}
+                                           aria-label="Allow access for {{ user.full_name or user.username }}">
                                     {{ user.full_name or user.username }}
                                 </label>
                                 {% else %}
@@ -40,10 +47,10 @@
                         
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> حفظ الصلاحيات
+                                <i class="fas fa-save" aria-hidden="true"></i> حفظ الصلاحيات
                             </button>
                             <a href="{{ url_for('document.view', id=document.id) }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times"></i> إلغاء
+                                <i class="fas fa-times" aria-hidden="true"></i> إلغاء
                             </a>
                         </div>
                     </form>

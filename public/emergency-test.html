@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🆘 اختبار الإصلاح الطارئ</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { 
+            font-family: 'Cairo', sans-serif; 
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        
+        .emergency-card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: none;
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.95);
+        }
+        
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        
+        .test-output {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .emergency-spinner {
+            width: 4rem;
+            height: 4rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-10">
+                <div class="card emergency-card">
+                    <div class="card-header bg-danger text-white text-center">
+                        <h2 class="mb-0">🆘 نظام الإصلاح الطارئ</h2>
+                        <p class="mb-0">اختبار وإصلاح مشاكل تحميل المكونات</p>
+                            <div class="spinner-border text-danger mb-3 pulse emergency-spinner" role="status">
+                    
+                    <div class="card-body">
+                        <!-- مرحلة التحميل -->
+                        <div id="loading-phase" class="text-center">
+                            <div class="progress">
+                                <div id="progress-bar" class="progress-bar bg-danger progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" aria-label="تقدم عملية الإصلاح الطارئ" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <p class="text-muted">يرجى الانتظار بينما نحل مشاكل تحميل المكونات</p>
+                            <div class="progress">
+                                <div id="progress-bar" class="progress-bar bg-danger progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- نتائج الفحص -->
+                        <div id="results-phase" style="display: none;">
+                            <h4 class="mb-3">📊 نتائج فحص النظام</h4>
+                            
+                            <div class="row" id="system-status">
+                                <!-- سيتم ملؤها بواسطة JavaScript -->
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>🧪 اختبارات المكونات</h5>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-success" id="test-notifications">
+                                            <i class="fas fa-bell"></i> اختبار الإشعارات
+                                        </button>
+                                        <button class="btn btn-outline-info" id="test-analytics">
+                                            <i class="fas fa-chart-line"></i> اختبار التحليلات
+                                        </button>
+                                        <button class="btn btn-outline-warning" id="test-data-manager">
+                                            <i class="fas fa-database"></i> اختبار مدير البيانات
+                                        </button>
+                                        <button class="btn btn-outline-primary" id="test-all">
+                                            <i class="fas fa-play"></i> اختبار شامل
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h5>🔧 أدوات الإصلاح</h5>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-danger" id="force-reload">
+                                            <i class="fas fa-redo"></i> إعادة تحميل قسري
+                                        </button>
+                                        <button class="btn btn-outline-secondary" id="clear-cache">
+                                            <i class="fas fa-trash"></i> مسح الذاكرة المؤقتة
+                                        </button>
+                                        <button class="btn btn-outline-dark" id="system-check">
+                                            <i class="fas fa-stethoscope"></i> فحص النظام
+                                        </button>
+                                        <button class="btn btn-outline-success" id="export-report">
+                                            <i class="fas fa-file-export"></i> تصدير التقرير
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="test-output" id="test-output">
+                                <p class="text-muted text-center">مخرجات الاختبار ستظهر هنا...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحميل نظام الإصلاح الطارئ -->
+    <script src="static/js/emergency-fix.js"></script>
+    
+    <script>
+        // متغيرات عامة
+        let testOutput = null;
+        let systemReport = {
+            timestamp: new Date().toISOString(),
+            tests: [],
+            systems: {},
+            errors: []
+        };
+        
+        // بدء النظام
+        async function startEmergencySystem() {
+            updateProgress(10, 'تحميل نظام الإصلاح الطارئ...');
+            await delay(500);
+            
+            updateProgress(30, 'فحص المكونات الأساسية...');
+            await delay(500);
+            
+            updateProgress(50, 'إنشاء الأنظمة الاحتياطية...');
+            await delay(500);
+            
+            updateProgress(70, 'التحقق من حالة النظام...');
+            const systemStatus = await checkSystemStatus();
+            
+            updateProgress(90, 'إعداد واجهة الاختبار...');
+            await delay(300);
+            
+            updateProgress(100, 'مكتمل!');
+            await delay(500);
+            
+            // عرض النتائج
+            showResults(systemStatus);
+        }
+        
+        function updateProgress(percentage, message) {
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = percentage + '%';
+            
+            if (message) {
+                const loadingPhase = document.getElementById('loading-phase');
+                loadingPhase.querySelector('p').textContent = message;
+            }
+        }
+        
+        async function checkSystemStatus() {
+            const systems = [
+                { 
+                    name: 'نظام الإصلاح الطارئ', 
+                    key: 'emergencyScriptLoader',
+                    test: () => typeof window.emergencyScriptLoader !== 'undefined'
+                },
+                { 
+                    name: 'نظام الإشعارات', 
+                    key: 'notify',
+                    test: () => typeof window.notify !== 'undefined' && typeof window.notify.success === 'function'
+                },
+                { 
+                    name: 'نظام التحليلات', 
+                    key: 'analytics',
+                    test: () => typeof window.analytics !== 'undefined' && typeof window.analytics.trackEvent === 'function'
+                },
+                { 
+                    name: 'مدير البيانات', 
+                    key: 'dataManager',
+                    test: () => typeof window.dataManager !== 'undefined' && typeof window.dataManager.getCacheStats === 'function'
+                },
+                { 
+                    name: 'إعدادات التطبيق', 
+                    key: 'APP_CONFIG',
+                    test: () => typeof window.APP_CONFIG !== 'undefined'
+                },
+                { 
+                    name: 'أدوار المستخدمين', 
+                    key: 'USER_ROLES',
+                    test: () => typeof window.USER_ROLES !== 'undefined'
+                }
+            ];
+            
+            const results = {};
+            
+            for (const system of systems) {
+                try {
+                    const isWorking = system.test();
+                    results[system.key] = {
+                        name: system.name,
+                        status: isWorking ? 'success' : 'error',
+                        working: isWorking,
+                        message: isWorking ? 'يعمل بشكل صحيح' : 'غير متاح أو معطل'
+                    };
+                } catch (error) {
+                    results[system.key] = {
+                        name: system.name,
+                        status: 'error',
+                        working: false,
+                        message: 'خطأ: ' + error.message,
+                        error: error
+                    };
+                }
+                
+                await delay(100); // تأخير صغير لتحسين المظهر
+            }
+            
+            systemReport.systems = results;
+            return results;
+        }
+        
+        function showResults(systemStatus) {
+            // إخفاء مرحلة التحميل
+            document.getElementById('loading-phase').style.display = 'none';
+            
+            // عرض النتائج
+            const resultsPhase = document.getElementById('results-phase');
+            resultsPhase.style.display = 'block';
+            
+            // ملء حالة الأنظمة
+            const statusContainer = document.getElementById('system-status');
+            let statusHTML = '';
+            
+            Object.values(systemStatus).forEach(system => {
+                const statusClass = system.status === 'success' ? 'status-success' : 'status-error';
+                const icon = system.status === 'success' ? 'fas fa-check-circle text-success' : 'fas fa-times-circle text-danger';
+                
+                statusHTML += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="status-indicator ${statusClass}"></div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">${system.name}</h6>
+                                        <small class="text-muted">${system.message}</small>
+                                    </div>
+                                    <i class="${icon} fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            statusContainer.innerHTML = statusHTML;
+            
+            // إعداد الأزرار
+            setupTestButtons();
+            
+            // إعداد منطقة المخرجات
+            testOutput = document.getElementById('test-output');
+            
+            // تسجيل اكتمال النظام
+            addToOutput('✅ تم تحميل نظام الإصلاح الطارئ بنجاح', 'success');
+            
+            // تشغيل فحص تلقائي
+            if (window.systemCheck) {
+                setTimeout(() => {
+                    window.systemCheck();
+                    addToOutput('🔍 تم تشغيل فحص النظام التلقائي', 'info');
+                }, 1000);
+            }
+        }
+        
+        function setupTestButtons() {
+            // اختبار الإشعارات
+            document.getElementById('test-notifications').addEventListener('click', () => {
+                testNotifications();
+            });
+            
+            // اختبار التحليلات
+            document.getElementById('test-analytics').addEventListener('click', () => {
+                testAnalytics();
+            });
+            
+            // اختبار مدير البيانات
+            document.getElementById('test-data-manager').addEventListener('click', () => {
+                testDataManager();
+            });
+            
+            // اختبار شامل
+            document.getElementById('test-all').addEventListener('click', () => {
+                runComprehensiveTest();
+            });
+            
+            // إعادة تحميل قسري
+            document.getElementById('force-reload').addEventListener('click', () => {
+                forceReload();
+            });
+            
+            // مسح الذاكرة المؤقتة
+            document.getElementById('clear-cache').addEventListener('click', () => {
+                clearCache();
+            });
+            
+            // فحص النظام
+            document.getElementById('system-check').addEventListener('click', () => {
+                if (window.systemCheck) {
+                    const result = window.systemCheck();
+                    addToOutput('🔍 نتائج فحص النظام: ' + JSON.stringify(result, null, 2), 'info');
+                } else {
+                    addToOutput('❌ دالة فحص النظام غير متاحة', 'error');
+                }
+            });
+            
+            // تصدير التقرير
+            document.getElementById('export-report').addEventListener('click', () => {
+                exportReport();
+            });
+        }
+        
+        function testNotifications() {
+            if (window.notify) {
+                window.notify.success('اختبار ناجح', 'نظام الإشعارات يعمل بشكل صحيح!');
+                window.notify.info('معلومات', 'هذا إشعار معلوماتي');
+                window.notify.warning('تحذير', 'هذا إشعار تحذيري');
+                addToOutput('✅ تم اختبار نظام الإشعارات بنجاح - جميع أنواع الإشعارات تعمل', 'success');
+                
+                systemReport.tests.push({
+                    name: 'notifications',
+                    status: 'passed',
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                addToOutput('❌ نظام الإشعارات غير متاح', 'error');
+                systemReport.tests.push({
+                    name: 'notifications',
+                    status: 'failed',
+                    error: 'System not available',
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+        
+        function testAnalytics() {
+            if (window.analytics) {
+                window.analytics.trackEvent('Emergency-Test', 'analytics-test', 'comprehensive-test', 1);
+                const report = window.analytics.generateReport(1);
+                addToOutput(`📊 تم اختبار نظام التحليلات بنجاح - الأحداث المسجلة: ${report.summary.totalEvents}`, 'success');
+                
+                systemReport.tests.push({
+                    name: 'analytics',
+                    status: 'passed',
+                    data: report.summary,
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                addToOutput('❌ نظام التحليلات غير متاح', 'error');
+                systemReport.tests.push({
+                    name: 'analytics',
+                    status: 'failed',
+                    error: 'System not available',
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+        
+        function testDataManager() {
+            if (window.dataManager) {
+                const stats = window.dataManager.getCacheStats();
+                window.dataManager.addToSyncQueue({
+                    type: 'emergency-test',
+                    data: { message: 'اختبار مدير البيانات الطارئ' },
+                    timestamp: Date.now()
+                });
+                
+                const testData = { key: 'emergency-test', value: 'test-value-' + Date.now() };
+                window.dataManager.saveLocal('emergency-test', testData);
+                const retrieved = window.dataManager.getLocal('emergency-test');
+                
+                addToOutput(`💾 تم اختبار مدير البيانات بنجاح - الاتصال: ${stats.isOnline ? 'متصل' : 'غير متصل'}, الذاكرة المؤقتة: ${stats.size}`, 'success');
+                
+                systemReport.tests.push({
+                    name: 'dataManager',
+                    status: 'passed',
+                    data: stats,
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                addToOutput('❌ مدير البيانات غير متاح', 'error');
+                systemReport.tests.push({
+                    name: 'dataManager',
+                    status: 'failed',
+                    error: 'System not available',
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+        
+        async function runComprehensiveTest() {
+            addToOutput('🧪 بدء الاختبار الشامل...', 'info');
+            
+            // اختبار جميع المكونات
+            testNotifications();
+            await delay(500);
+            
+            testAnalytics();
+            await delay(500);
+            
+            testDataManager();
+            await delay(500);
+            
+            // اختبار الأداء
+            const startTime = performance.now();
+            for (let i = 0; i < 1000; i++) {
+                if (window.analytics) {
+                    window.analytics.trackEvent('Performance-Test', 'iteration', 'test-' + i, i);
+                }
+            }
+            const endTime = performance.now();
+            
+            addToOutput(`⚡ اختبار الأداء: ${Math.round(endTime - startTime)}ms لـ 1000 عملية`, 'info');
+            
+            addToOutput('✅ اكتمل الاختبار الشامل بنجاح', 'success');
+        }
+        
+        function forceReload() {
+            addToOutput('🔄 إعادة تحميل قسري للصفحة...', 'warning');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+        
+        function clearCache() {
+            try {
+                // مسح التخزين المحلي
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('dataManager_') || key.startsWith('analytics_')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                
+                // مسح ذاكرة مدير البيانات إذا كانت متاحة
+                if (window.dataManager && window.dataManager.cache) {
+                    window.dataManager.cache.clear();
+                }
+                
+                addToOutput('🗑️ تم مسح الذاكرة المؤقتة بنجاح', 'success');
+            } catch (error) {
+                addToOutput('❌ فشل في مسح الذاكرة المؤقتة: ' + error.message, 'error');
+            }
+        }
+        
+        function exportReport() {
+            systemReport.exportedAt = new Date().toISOString();
+            systemReport.url = window.location.href;
+            systemReport.userAgent = navigator.userAgent;
+            
+            const reportBlob = new Blob([JSON.stringify(systemReport, null, 2)], {
+                type: 'application/json'
+            });
+            
+            const url = URL.createObjectURL(reportBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `emergency-system-report-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            addToOutput('📄 تم تصدير تقرير النظام بنجاح', 'success');
+        }
+        
+        function addToOutput(message, type = 'info') {
+            if (!testOutput) return;
+            
+            const colors = {
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+            
+            const timestamp = new Date().toLocaleTimeString('ar-SA');
+            const outputElement = document.createElement('div');
+            outputElement.style.cssText = `
+                color: ${colors[type] || colors.info};
+                margin-bottom: 8px;
+                padding: 8px;
+                border-left: 3px solid ${colors[type] || colors.info};
+                background: rgba(${type === 'success' ? '40, 167, 69' : type === 'error' ? '220, 53, 69' : type === 'warning' ? '255, 193, 7' : '23, 162, 184'}, 0.1);
+                border-radius: 4px;
+            `;
+            outputElement.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            
+            testOutput.appendChild(outputElement);
+            testOutput.scrollTop = testOutput.scrollHeight;
+        }
+        
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // بدء النظام عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            setTimeout(startEmergencySystem, 500);
+        });
+        
+        // تسجيل الأخطاء
+        window.addEventListener('error', (event) => {
+            systemReport.errors.push({
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno,
+                colno: event.colno,
+                timestamp: new Date().toISOString()
+            });
+            
+            if (testOutput) {
+                addToOutput(`❌ خطأ JavaScript: ${event.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

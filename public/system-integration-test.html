@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار التكامل الشامل - نظام الأرشيف</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- System Scripts -->
+    <script src="assets/js/script-loader.js"></script>
+    <script src="assets/js/app-config.js"></script>
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/notifications.js"></script>
+    <script src="assets/js/data-manager.js"></script>
+    <script src="assets/js/analytics.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    <script src="../assets/js/performance-tester.js"></script>
+    <script src="../assets/js/final-integration-test.js"></script>
+    <script src="../assets/js/auto-test-reporter.js"></script>
+    <!-- تطبيق الألوان الجديدة -->
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <style>
+        /* System integration test specific styles */
+
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            min-height: 100vh;
+        }
+
+        .main-container {
+            margin-right: 300px;
+            padding: 2rem;
+            transition: margin-right 0.3s ease;
+        }
+
+        body.sidebar-closed .main-container {
+            margin-right: 0;
+        }
+
+        .test-header {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .test-section {
+            margin-bottom: 2rem;
+        }
+
+        .test-result {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .test-result.success {
+            background: rgba(56, 161, 105, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(56, 161, 105, 0.2);
+        }
+
+        .test-result.error {
+            background: rgba(229, 62, 62, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(229, 62, 62, 0.2);
+        }
+
+        .test-result.warning {
+            background: rgba(214, 158, 46, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(214, 158, 46, 0.2);
+        }
+
+        .test-result.info {
+            background: rgba(49, 130, 206, 0.1);
+            color: var(--info);
+            border: 1px solid rgba(49, 130, 206, 0.2);
+        }
+
+        .test-progress {
+            margin-bottom: 1rem;
+        }
+
+        .test-details {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .test-details pre {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+        }
+
+        .run-tests-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, #f093fb 100%);
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .run-tests-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .run-tests-btn:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        .test-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .summary-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                margin-right: 0;
+                padding: 1rem;
+            }
+
+            .test-summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="test-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-2" style="background: linear-gradient(135deg, var(--primary) 0%, #f093fb 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800;">
+                        اختبار التكامل الشامل
+                    </h1>
+                    <p class="text-muted mb-0">فحص شامل لجميع مكونات النظام والتأكد من عملها بشكل صحيح</p>
+                </div>
+                <button class="run-tests-btn" id="runTestsBtn">
+                    <i class="fas fa-play me-2"></i>
+                    تشغيل الاختبارات
+                </button>
+                <button class="btn btn-outline-primary ms-2" id="runFinalTestBtn">
+                    <i class="fas fa-cogs me-2"></i>
+                    اختبار شامل متقدم
+                </button>
+                <button class="btn btn-outline-success ms-2" id="performanceTestBtn">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    اختبار الأداء
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Summary -->
+        <div class="test-summary" id="testSummary" style="display: none;">
+            <div class="summary-card">
+                <div class="summary-number text-success" id="passedCount">0</div>
+                <div class="summary-label">اختبارات ناجحة</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number text-danger" id="failedCount">0</div>
+                <div class="summary-label">اختبارات فاشلة</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number text-warning" id="warningCount">0</div>
+                <div class="summary-label">تحذيرات</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number text-info" id="totalCount">0</div>
+                <div class="summary-label">إجمالي الاختبارات</div>
+            </div>
+        </div>
+
+        <!-- Test Progress -->
+        <div class="test-progress" id="testProgress" style="display: none;">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar"></div>
+            </div>
+            <small class="text-muted mt-2 d-block" id="progressText">جاري التحضير للاختبارات...</small>
+        </div>
+
+        <!-- Test Sections -->
+        <div id="testContainer">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBn9zLcodNLKWlUPfqsnEGoA1z7QZw_Ezk",
+            authDomain: "archive-tech.firebaseapp.com",
+            projectId: "archive-tech",
+            storageBucket: "archive-tech.firebasestorage.app",
+            messagingSenderId: "911076711034",
+            appId: "1:911076711034:web:7f190eed397becfe6779c3",
+            measurementId: "G-1PQMDXZ714"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        // Wait for all scripts to load using the enhanced script loader
+        async function waitForScripts() {
+            try {
+                console.log('🔄 بدء التحقق من تحميل النصوص...');
+                
+                // Use the enhanced script loader
+                const verification = await window.ensureScriptsLoaded();
+                
+                console.log('📋 نتائج التحقق:', verification);
+                
+                return {
+                    appConfig: typeof window.APP_CONFIG !== 'undefined',
+                    userRoles: typeof window.USER_ROLES !== 'undefined',
+                    notifications: typeof window.notify !== 'undefined',
+                    dataManager: typeof window.dataManager !== 'undefined',
+                    analytics: typeof window.analytics !== 'undefined',
+                    performanceTester: typeof window.performanceTester !== 'undefined',
+                    finalIntegrationTest: typeof window.finalIntegrationTest !== 'undefined',
+                    scriptLoader: typeof window.scriptLoader !== 'undefined'
+                };
+                
+            } catch (error) {
+                console.error('خطأ في تحميل النصوص:', error);
+                
+                // Return fallback status
+                return {
+                    appConfig: typeof window.APP_CONFIG !== 'undefined',
+                    userRoles: typeof window.USER_ROLES !== 'undefined', 
+                    notifications: typeof window.notify !== 'undefined',
+                    dataManager: typeof window.dataManager !== 'undefined',
+                    analytics: typeof window.analytics !== 'undefined',
+                    performanceTester: typeof window.performanceTester !== 'undefined',
+                    finalIntegrationTest: typeof window.finalIntegrationTest !== 'undefined',
+                    scriptLoader: true,
+                    error: error.message
+                };
+            }
+        }
+
+        // Test Management Class
+        class IntegrationTester {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.currentTest = 0;
+                this.isRunning = false;
+                this.setupTests();
+            }
+
+            setupTests() {
+                this.tests = [
+                    // Core System Tests
+                    {
+                        category: 'النظام الأساسي',
+                        name: 'تحميل التكوين العام',
+                        test: () => this.testAppConfig()
+                    },
+                    {
+                        category: 'النظام الأساسي',
+                        name: 'تحميل نظام الأدوار',
+                        test: () => this.testRolesSystem()
+                    },
+
+                    // Firebase Tests
+                    {
+                        category: 'Firebase',
+                        name: 'اتصال Firebase',
+                        test: () => this.testFirebaseConnection()
+                    },
+                    {
+                        category: 'Firebase',
+                        name: 'Firebase Auth',
+                        test: () => this.testFirebaseAuth()
+                    },
+                    {
+                        category: 'Firebase',
+                        name: 'Firestore Database',
+                        test: () => this.testFirestore()
+                    },
+                    {
+                        category: 'Firebase',
+                        name: 'Firebase Storage',
+                        test: () => this.testFirebaseStorage()
+                    },
+
+                    // UI Components Tests
+                    {
+                        category: 'واجهة المستخدم',
+                        name: 'نظام الإشعارات',
+                        test: () => this.testNotificationSystem()
+                    },
+                    {
+                        category: 'واجهة المستخدم',
+                        name: 'القائمة الجانبية',
+                        test: () => this.testSidebarSystem()
+                    },
+
+                    // Data Management Tests
+                    {
+                        category: 'إدارة البيانات',
+                        name: 'مدير البيانات',
+                        test: () => this.testDataManager()
+                    },
+                    {
+                        category: 'إدارة البيانات',
+                        name: 'التخزين المحلي',
+                        test: () => this.testLocalStorage()
+                    },
+
+                    // Analytics Tests
+                    {
+                        category: 'التحليلات',
+                        name: 'نظام التحليلات',
+                        test: () => this.testAnalyticsSystem()
+                    },
+                    {
+                        category: 'التحليلات',
+                        name: 'تتبع الأحداث',
+                        test: () => this.testEventTracking()
+                    },
+
+                    // Integration Tests
+                    {
+                        category: 'التكامل',
+                        name: 'تكامل الأدوار والصلاحيات',
+                        test: () => this.testRolePermissionIntegration()
+                    },
+                    {
+                        category: 'التكامل',
+                        name: 'تكامل البيانات والإشعارات',
+                        test: () => this.testDataNotificationIntegration()
+                    },
+
+                    // Performance Tests
+                    {
+                        category: 'الأداء',
+                        name: 'أداء التحميل',
+                        test: () => this.testLoadPerformance()
+                    },
+                    {
+                        category: 'الأداء',
+                        name: 'استهلاك الذاكرة',
+                        test: () => this.testMemoryUsage()
+                    }
+                ];
+            }
+
+            async runAllTests() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                this.results = [];
+                this.currentTest = 0;
+
+                // Show progress and summary
+                document.getElementById('testProgress').style.display = 'block';
+                document.getElementById('testSummary').style.display = 'grid';
+                document.getElementById('runTestsBtn').disabled = true;
+                document.getElementById('runTestsBtn').innerHTML = '<span class="loading-spinner me-2"></span>جاري التشغيل...';
+
+                // Clear previous results
+                document.getElementById('testContainer').innerHTML = '';
+
+                const categories = [...new Set(this.tests.map(t => t.category))];
+                const categoryContainers = {};
+
+                // Create category sections
+                categories.forEach(category => {
+                    const section = this.createCategorySection(category);
+                    document.getElementById('testContainer').appendChild(section);
+                    categoryContainers[category] = section.querySelector('.category-tests');
+                });
+
+                // Run tests
+                for (let i = 0; i < this.tests.length; i++) {
+                    const test = this.tests[i];
+                    this.currentTest = i + 1;
+                    
+                    this.updateProgress();
+                    
+                    const testCard = this.createTestCard(test);
+                    categoryContainers[test.category].appendChild(testCard);
+
+                    try {
+                        const result = await test.test();
+                        this.results.push({ ...test, result, success: true });
+                        this.updateTestCard(testCard, result, 'success');
+                    } catch (error) {
+                        this.results.push({ ...test, result: error.message, success: false });
+                        this.updateTestCard(testCard, error.message, 'error');
+                    }
+
+                    // Small delay for better UX
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+
+                this.updateSummary();
+                this.isRunning = false;
+                document.getElementById('runTestsBtn').disabled = false;
+                document.getElementById('runTestsBtn').innerHTML = '<i class="fas fa-redo me-2"></i>إعادة تشغيل الاختبارات';
+            }
+
+            createCategorySection(category) {
+                const section = document.createElement('div');
+                section.className = 'test-section';
+                section.innerHTML = `
+                    <h3 class="mb-3">
+                        <i class="fas fa-folder-open me-2 text-primary"></i>
+                        ${category}
+                    </h3>
+                    <div class="category-tests"></div>
+                `;
+                return section;
+            }
+
+            createTestCard(test) {
+                const card = document.createElement('div');
+                card.className = 'test-card';
+                card.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">${test.name}</h5>
+                        <div class="test-status">
+                            <span class="loading-spinner"></span>
+                        </div>
+                    </div>
+                    <div class="test-result-container"></div>
+                `;
+                return card;
+            }
+
+            updateTestCard(card, result, status) {
+                const statusContainer = card.querySelector('.test-status');
+                const resultContainer = card.querySelector('.test-result-container');
+
+                const icons = {
+                    success: 'fas fa-check-circle',
+                    error: 'fas fa-times-circle',
+                    warning: 'fas fa-exclamation-triangle',
+                    info: 'fas fa-info-circle'
+                };
+
+                statusContainer.innerHTML = `<i class="${icons[status]} text-${status === 'success' ? 'success' : status === 'error' ? 'danger' : status}"></i>`;
+
+                if (result) {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = `test-result ${status}`;
+                    resultDiv.innerHTML = `
+                        <i class="${icons[status]}"></i>
+                        <span>${typeof result === 'string' ? result : JSON.stringify(result, null, 2)}</span>
+                    `;
+                    resultContainer.appendChild(resultDiv);
+
+                    if (typeof result === 'object' && result.details) {
+                        const detailsDiv = document.createElement('div');
+                        detailsDiv.className = 'test-details';
+                        detailsDiv.innerHTML = `<pre>${JSON.stringify(result.details, null, 2)}</pre>`;
+                        resultContainer.appendChild(detailsDiv);
+                    }
+                }
+            }
+
+            updateProgress() {
+                const percentage = (this.currentTest / this.tests.length) * 100;
+                document.getElementById('progressBar').style.width = `${percentage}%`;
+                document.getElementById('progressText').textContent = `اختبار ${this.currentTest} من ${this.tests.length}: ${this.tests[this.currentTest - 1]?.name || 'مكتمل'}`;
+            }
+
+            updateSummary() {
+                const passed = this.results.filter(r => r.success).length;
+                const failed = this.results.filter(r => !r.success).length;
+                const warnings = this.results.filter(r => r.result && typeof r.result === 'object' && r.result.warning).length;
+
+                document.getElementById('passedCount').textContent = passed;
+                document.getElementById('failedCount').textContent = failed;
+                document.getElementById('warningCount').textContent = warnings;
+                document.getElementById('totalCount').textContent = this.results.length;
+
+                // Hide progress bar
+                document.getElementById('testProgress').style.display = 'none';
+
+                // Show completion notification
+                if (failed === 0) {
+                    notify.success('اكتملت الاختبارات', `تم اجتياز جميع الاختبارات (${passed}/${this.results.length})`);
+                } else {
+                    notify.warning('اكتملت الاختبارات', `${passed} ناجح، ${failed} فاشل من ${this.results.length} اختبار`);
+                }
+            }
+
+            // Individual Test Methods
+            async testAppConfig() {
+                if (!window.APP_CONFIG) {
+                    throw new Error('APP_CONFIG غير محمل');
+                }
+
+                const checks = {
+                    firebase: !!APP_CONFIG.firebase,
+                    system: !!APP_CONFIG.system,
+                    departments: !!APP_CONFIG.departments,
+                    utils: !!window.AppUtils
+                };
+
+                if (!Object.values(checks).every(check => check)) {
+                    throw new Error('بعض إعدادات APP_CONFIG مفقودة');
+                }
+
+                return {
+                    message: 'تم تحميل جميع الإعدادات بنجاح',
+                    details: checks
+                };
+            }
+
+            async testRolesSystem() {
+                if (!window.USER_ROLES) {
+                    throw new Error('نظام الأدوار غير محمل');
+                }
+
+                const roleCount = Object.keys(USER_ROLES).length;
+                if (roleCount === 0) {
+                    throw new Error('لا توجد أدوار محددة');
+                }
+
+                // Test role functions
+                const testRole = 'admin';
+                const roleInfo = getRoleInfo(testRole);
+                const hasTestPermission = hasPermission(testRole, 'view_all_documents');
+
+                if (!roleInfo || !hasTestPermission) {
+                    throw new Error('وظائف الأدوار لا تعمل بشكل صحيح');
+                }
+
+                return {
+                    message: `تم تحميل ${roleCount} أدوار بنجاح`,
+                    details: { roleCount, testRole: roleInfo.name }
+                };
+            }
+
+            async testFirebaseConnection() {
+                if (!firebase.apps.length) {
+                    throw new Error('Firebase غير مهيأ');
+                }
+
+                const app = firebase.app();
+                if (!app) {
+                    throw new Error('تطبيق Firebase غير متاح');
+                }
+
+                return {
+                    message: 'Firebase متصل بنجاح',
+                    details: { appName: app.name, projectId: app.options.projectId }
+                };
+            }
+
+            async testFirebaseAuth() {
+                if (!firebase.auth) {
+                    throw new Error('Firebase Auth غير متاح');
+                }
+
+                const auth = firebase.auth();
+                const currentUser = auth.currentUser;
+
+                return {
+                    message: 'Firebase Auth يعمل بشكل صحيح',
+                    details: { 
+                        authenticated: !!currentUser,
+                        userId: currentUser?.uid || 'غير مسجل',
+                        email: currentUser?.email || 'غير متاح'
+                    }
+                };
+            }
+
+            async testFirestore() {
+                if (!firebase.firestore) {
+                    throw new Error('Firestore غير متاح');
+                }
+
+                const db = firebase.firestore();
+                
+                try {
+                    // Test read operation
+                    await db.collection('_test').limit(1).get();
+                    
+                    return {
+                        message: 'Firestore متصل ويعمل بشكل صحيح',
+                        details: { status: 'متصل' }
+                    };
+                } catch (error) {
+                    if (error.code === 'permission-denied') {
+                        return {
+                            message: 'Firestore متصل (صلاحيات مقيدة)',
+                            details: { status: 'متصل مع قيود', warning: true }
+                        };
+                    }
+                    throw new Error(`خطأ في Firestore: ${error.message}`);
+                }
+            }
+
+            async testFirebaseStorage() {
+                if (!firebase.storage) {
+                    throw new Error('Firebase Storage غير متاح');
+                }
+
+                const storage = firebase.storage();
+                const ref = storage.ref();
+
+                return {
+                    message: 'Firebase Storage متاح',
+                    details: { 
+                        bucket: storage.app.options.storageBucket,
+                        status: 'متصل'
+                    }
+                };
+            }
+
+            async testNotificationSystem() {
+                if (!window.notify) {
+                    throw new Error('نظام الإشعارات غير محمل');
+                }
+
+                // Test notification
+                const testNotification = notify.info('اختبار', 'هذا اختبار للإشعارات', { duration: 1000 });
+                
+                if (!testNotification) {
+                    throw new Error('فشل في إنشاء إشعار اختبار');
+                }
+
+                return {
+                    message: 'نظام الإشعارات يعمل بشكل صحيح',
+                    details: { 
+                        notificationCreated: !!testNotification,
+                        managerLoaded: !!window.NotificationManager
+                    }
+                };
+            }
+
+            async testSidebarSystem() {
+                if (!window.sidebarManager) {
+                    throw new Error('مدير القائمة الجانبية غير محمل');
+                }
+
+                const sidebar = document.getElementById('sidebar');
+                if (!sidebar) {
+                    throw new Error('عنصر القائمة الجانبية غير موجود');
+                }
+
+                return {
+                    message: 'نظام القائمة الجانبية يعمل بشكل صحيح',
+                    details: { 
+                        managerLoaded: true,
+                        sidebarExists: !!sidebar
+                    }
+                };
+            }
+
+            async testDataManager() {
+                if (!window.dataManager) {
+                    throw new Error('مدير البيانات غير محمل');
+                }
+
+                const stats = dataManager.getCacheStats();
+                
+                return {
+                    message: 'مدير البيانات يعمل بشكل صحيح',
+                    details: {
+                        isOnline: stats.isOnline,
+                        cacheSize: stats.size,
+                        syncQueueSize: stats.syncQueueSize
+                    }
+                };
+            }
+
+            async testLocalStorage() {
+                try {
+                    const testKey = '_integration_test';
+                    const testValue = { test: true, timestamp: Date.now() };
+                    
+                    // Test write
+                    AppUtils.saveToStorage(testKey, testValue);
+                    
+                    // Test read
+                    const retrieved = AppUtils.getFromStorage(testKey);
+                    
+                    // Test delete
+                    AppUtils.removeFromStorage(testKey);
+                    
+                    if (!retrieved || retrieved.test !== true) {
+                        throw new Error('فشل في قراءة البيانات من التخزين المحلي');
+                    }
+
+                    return {
+                        message: 'التخزين المحلي يعمل بشكل صحيح',
+                        details: { writeTest: true, readTest: true, deleteTest: true }
+                    };
+                } catch (error) {
+                    throw new Error(`خطأ في التخزين المحلي: ${error.message}`);
+                }
+            }
+
+            async testAnalyticsSystem() {
+                if (!window.analytics) {
+                    throw new Error('نظام التحليلات غير محمل');
+                }
+
+                // Test event tracking
+                analytics.trackEvent('Test', 'integration_test', 'system_check');
+                
+                // Generate test report
+                const report = analytics.generateReport(1);
+                
+                return {
+                    message: 'نظام التحليلات يعمل بشكل صحيح',
+                    details: {
+                        eventsTracked: report.summary.totalEvents,
+                        sessionTracking: !!analytics.currentSession
+                    }
+                };
+            }
+
+            async testEventTracking() {
+                const initialEventCount = analytics.events.length;
+                
+                // Track test event
+                analytics.trackEvent('Integration', 'test_event', 'system_test');
+                
+                const newEventCount = analytics.events.length;
+                
+                if (newEventCount <= initialEventCount) {
+                    throw new Error('فشل في تتبع الأحداث');
+                }
+
+                return {
+                    message: 'تتبع الأحداث يعمل بشكل صحيح',
+                    details: {
+                        initialCount: initialEventCount,
+                        newCount: newEventCount,
+                        eventAdded: newEventCount > initialEventCount
+                    }
+                };
+            }
+
+            async testRolePermissionIntegration() {
+                const testRole = 'admin';
+                const testPermission = 'view_all_documents';
+                
+                // Test role info retrieval
+                const roleInfo = getRoleInfo(testRole);
+                if (!roleInfo) {
+                    throw new Error('فشل في جلب معلومات الدور');
+                }
+
+                // Test permission check
+                const hasPermissionResult = hasPermission(testRole, testPermission);
+                if (!hasPermissionResult) {
+                    throw new Error('فشل في التحقق من الصلاحيات');
+                }
+
+                // Test sidebar integration
+                if (window.sidebarManager) {
+                    // This would normally update the sidebar based on role
+                    window.sidebarManager.updateSidebarNav(true, testRole);
+                }
+
+                return {
+                    message: 'تكامل الأدوار والصلاحيات يعمل بشكل صحيح',
+                    details: {
+                        roleInfoLoaded: !!roleInfo,
+                        permissionCheck: hasPermissionResult,
+                        sidebarIntegration: !!window.sidebarManager
+                    }
+                };
+            }
+
+            async testDataNotificationIntegration() {
+                // Test data save with notification
+                const testData = { id: 'test', name: 'Integration Test', timestamp: Date.now() };
+                
+                try {
+                    if (dataManager.isOnline) {
+                        // This would normally trigger a notification
+                        dataManager.addToSyncQueue({
+                            type: 'save',
+                            collection: 'test',
+                            data: testData,
+                            timestamp: Date.now()
+                        });
+                    }
+
+                    // Test notification for data operation
+                    notify.success('اختبار التكامل', 'تم حفظ البيانات بنجاح');
+
+                    return {
+                        message: 'تكامل البيانات والإشعارات يعمل بشكل صحيح',
+                        details: {
+                            dataManagerWorking: !!dataManager,
+                            notificationWorking: !!notify,
+                            integrationTest: true
+                        }
+                    };
+                } catch (error) {
+                    throw new Error(`خطأ في تكامل البيانات والإشعارات: ${error.message}`);
+                }
+            }
+
+            async testLoadPerformance() {
+                const timing = performance.timing;
+                const loadTime = timing.loadEventEnd - timing.navigationStart;
+                const domReady = timing.domContentLoadedEventEnd - timing.navigationStart;
+
+                const benchmarks = {
+                    loadTime: loadTime < 3000, // أقل من 3 ثواني
+                    domReady: domReady < 2000   // أقل من ثانيتين
+                };
+
+                if (!benchmarks.loadTime || !benchmarks.domReady) {
+                    return {
+                        message: 'الأداء أبطأ من المطلوب',
+                        details: {
+                            loadTime: `${loadTime}ms`,
+                            domReady: `${domReady}ms`,
+                            benchmarks,
+                            warning: true
+                        }
+                    };
+                }
+
+                return {
+                    message: 'أداء التحميل ممتاز',
+                    details: {
+                        loadTime: `${loadTime}ms`,
+                        domReady: `${domReady}ms`,
+                        benchmarks
+                    }
+                };
+            }
+
+            async testMemoryUsage() {
+                if (!performance.memory) {
+                    return {
+                        message: 'معلومات الذاكرة غير متاحة في هذا المتصفح',
+                        details: { available: false, warning: true }
+                    };
+                }
+
+                const memory = performance.memory;
+                const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
+                const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
+                const limitMB = Math.round(memory.jsHeapSizeLimit / 1024 / 1024);
+
+                const usage = (usedMB / limitMB) * 100;
+                const isOptimal = usage < 50; // أقل من 50%
+
+                return {
+                    message: isOptimal ? 'استهلاك الذاكرة مُحسَّن' : 'استهلاك ذاكرة مرتفع',
+                    details: {
+                        usedMB,
+                        totalMB,
+                        limitMB,
+                        usagePercentage: `${usage.toFixed(1)}%`,
+                        isOptimal,
+                        warning: !isOptimal
+                    }
+                };
+            }
+        }
+
+        // Initialize the tester after scripts are loaded
+        let integrationTester;
+        
+        // Wait for scripts to load and then initialize
+        waitForScripts().then((loadedScripts) => {
+            console.log('📋 حالة تحميل النصوص:', loadedScripts);
+            
+            // Initialize the tester
+            integrationTester = new IntegrationTester();
+            
+            // Show loading status
+            if (window.notify) {
+                const loadedCount = Object.values(loadedScripts).filter(Boolean).length;
+                const totalCount = Object.keys(loadedScripts).length;
+                
+                if (loadedCount === totalCount) {
+                    notify.success('تم التحميل', `تم تحميل جميع المكونات (${loadedCount}/${totalCount})`);
+                } else {
+                    notify.warning('تحميل جزئي', `تم تحميل ${loadedCount}/${totalCount} مكونات`);
+                }
+            }
+        }).catch(error => {
+            console.error('خطأ في تحميل النصوص:', error);
+            if (window.notify) {
+                notify.error('خطأ في التحميل', 'فشل في تحميل بعض المكونات');
+            }
+        });
+
+        // Set up event listeners
+        document.getElementById('runTestsBtn').addEventListener('click', () => {
+            if (integrationTester) {
+                integrationTester.runAllTests();
+            } else {
+                console.error('نظام الاختبار غير مهيأ بعد');
+                if (window.notify) {
+                    notify.error('خطأ', 'نظام الاختبار غير مهيأ بعد');
+                }
+            }
+        });
+
+        document.getElementById('runFinalTestBtn').addEventListener('click', async () => {
+            if (!window.finalIntegrationTest) {
+                notify.error('خطأ', 'نظام الاختبار الشامل غير محمل');
+                return;
+            }
+            
+            document.getElementById('runFinalTestBtn').disabled = true;
+            document.getElementById('runFinalTestBtn').innerHTML = '<span class="loading-spinner me-2"></span>جاري التشغيل...';
+            
+            try {
+                const results = await window.finalIntegrationTest.runAllTests();
+                notify.success('اكتمل الاختبار الشامل', `${results.passed}/${results.total} اختبار نجح`);
+            } catch (error) {
+                notify.error('خطأ في الاختبار', error.message);
+            } finally {
+                document.getElementById('runFinalTestBtn').disabled = false;
+                document.getElementById('runFinalTestBtn').innerHTML = '<i class="fas fa-cogs me-2"></i>اختبار شامل متقدم';
+            }
+        });
+
+        document.getElementById('performanceTestBtn').addEventListener('click', async () => {
+            if (!window.performanceTester) {
+                notify.error('خطأ', 'نظام اختبار الأداء غير محمل');
+                return;
+            }
+            
+            document.getElementById('performanceTestBtn').disabled = true;
+            document.getElementById('performanceTestBtn').innerHTML = '<span class="loading-spinner me-2"></span>جاري التحليل...';
+            
+            try {
+                const report = window.performanceTester.generateReport();
+                
+                console.log('تقرير الأداء:', report);
+                
+                notify.success('اكتمل اختبار الأداء', `النتيجة: ${report.analysis.overall}`);
+                
+                // Export performance report
+                if (window.performanceTester.exportReport) {
+                    window.performanceTester.exportReport();
+                }
+                
+            } catch (error) {
+                notify.error('خطأ في اختبار الأداء', error.message);
+            } finally {
+                document.getElementById('performanceTestBtn').disabled = false;
+                document.getElementById('performanceTestBtn').innerHTML = '<i class="fas fa-tachometer-alt me-2"></i>اختبار الأداء';
+            }
+        });
+
+        // Auto-run tests if requested
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('autorun') === 'true') {
+            waitForScripts().then(() => {
+                setTimeout(() => {
+                    if (integrationTester) {
+                        integrationTester.runAllTests();
+                    }
+                }, 1000);
+            });
+        }
+
+        // Initialize sidebar if available
+        auth.onAuthStateChanged(async (user) => {
+            if (user && window.sidebarManager) {
+                try {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    const userRole = userDoc.exists ? userDoc.data().role : null;
+                    window.sidebarManager.updateSidebarNav(true, userRole);
+                } catch (error) {
+                    console.error('خطأ في تحديث القائمة الجانبية:', error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

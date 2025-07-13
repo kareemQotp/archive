@@ -2,12 +2,13 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash
 from app.models.user import User
-from app import db
+from app import db, limiter
 import random
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute", error_message="عدد محاولات تسجيل الدخول تجاوز الحد المسموح به. يرجى المحاولة بعد دقيقة.")
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('document.index'))
@@ -37,6 +38,7 @@ def login():
     return render_template('auth/login.html')
 
 @bp.route('/register', methods=['GET', 'POST'])
+@limiter.limit("3 per hour")
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('document.index'))
@@ -171,6 +173,7 @@ def add_user():
 
 @bp.route('/admin/update-role/<int:user_id>', methods=['POST'])
 @login_required
+@limiter.limit("10 per minute")
 def update_role(user_id):
     if not current_user.is_admin:
         return jsonify({'error': 'غير مصرح لك بهذه العملية'}), 403
@@ -198,6 +201,22 @@ def toggle_status(user_id):
     user = User.query.get_or_404(user_id)
     if user.id == current_user.id:
         return jsonify({'error': 'Cannot deactivate your own account'}), 400
+
+@bp.route('/documentation-users')
+@login_required
+def get_documentation_users():
+    """Get list of all documentation users for permissions management."""
+    if not current_user.is_admin:
+        return jsonify([]), 403
+        
+    users = User.query.filter_by(role='documentation').all()
+    user_list = [{
+        'id': user.id,
+        'username': user.username,
+        'full_name': user.full_name
+    } for user in users]
+    
+    return jsonify(user_list)
         
     user.is_active = not user.is_active
     db.session.commit()
@@ -205,6 +224,7 @@ def toggle_status(user_id):
 
 @bp.route('/admin/reset-password/<int:user_id>', methods=['POST'])
 @login_required
+@limiter.limit("3 per hour")
 def reset_password(user_id):
     if not current_user.is_admin:
         flash('غير مصرح لك بإعادة تعيين كلمة المرور', 'error')

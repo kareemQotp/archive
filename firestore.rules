@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+    
+    function isArchiveOfficer() {
+      return isAuthenticated() && getUserRole() == 'archive_officer';
+    }
+    
+    function isOwnerOrAdmin(userId) {
+      return isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isOwnerOrAdmin(userId);
+      allow delete: if isAdmin();
+    }
+
+    // Documents collection
+    match /documents/{documentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        (isAdmin() || isArchiveOfficer() || 
+         resource.data.createdBy == request.auth.uid);
+      allow update: if isAuthenticated() && 
+        (isAdmin() || isArchiveOfficer() || 
+         resource.data.createdBy == request.auth.uid);
+      allow delete: if isAdmin() || 
+        (isAuthenticated() && resource.data.createdBy == request.auth.uid);
+    }
+
+    // File movements collection
+    match /file_movements/{movementId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        (isAdmin() || isArchiveOfficer());
+      allow update: if isAuthenticated() && 
+        (isAdmin() || isArchiveOfficer());
+      allow delete: if isAdmin();
+    }
+
+    // Activity logs collection
+    match /activity_logs/{logId} {
+      allow read: if isAuthenticated() && 
+        (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update: if false; // Logs should not be updated
+      allow delete: if isAdmin();
+    }
+
+    // Departments collection
+    match /departments/{departmentId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // System settings collection
+    match /system_settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Invitations collection
+    match /invitations/{invitationId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isAdmin());
+    }
+  }
+}

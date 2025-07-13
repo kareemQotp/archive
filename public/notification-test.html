@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار نظام الإشعارات - نظام الأرشيف</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .test-content {
+            padding: 2rem;
+        }
+
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        .test-section h3 {
+            color: #1e293b;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .test-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .test-btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .log-container {
+            background: #1e293b;
+            color: #f1f5f9;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #334155;
+        }
+
+        .log-timestamp {
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+
+        .status-online {
+            background: #10b981;
+        }
+
+        .status-offline {
+            background: #ef4444;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <!-- رأس الصفحة -->
+        <div class="test-header">
+            <h1>
+                <i class="fas fa-vial me-3"></i>
+                اختبار نظام الإشعارات
+            </h1>
+            <p class="mb-0">اختبار شامل لجميع أنواع الإشعارات والتنبيهات</p>
+        </div>
+
+        <!-- محتوى الاختبار -->
+        <div class="test-content">
+            <!-- حالة الأنظمة -->
+            <div class="test-section">
+                <h3>
+                    <i class="fas fa-heartbeat me-2"></i>
+                    حالة الأنظمة
+                </h3>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>نظام التنبيهات المتقدم</span>
+                    <span id="alertsStatus">
+                        <span class="status-indicator status-offline"></span>
+                        غير متصل
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>نظام الإشعارات الذكية</span>
+                    <span id="smartStatus">
+                        <span class="status-indicator status-offline"></span>
+                        غير متصل
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>نظام التكامل</span>
+                    <span id="integrationStatus">
+                        <span class="status-indicator status-offline"></span>
+                        غير متصل
+                    </span>
+                </div>
+                
+                <button class="btn test-btn btn-info mt-3" onclick="checkSystemStatus()">
+                    <i class="fas fa-sync me-2"></i>
+                    فحص الحالة
+                </button>
+            </div>
+
+            <!-- اختبار التنبيهات المحلية -->
+            <div class="test-section">
+                <h3>
+                    <i class="fas fa-bell me-2"></i>
+                    اختبار التنبيهات المحلية
+                </h3>
+                <div class="test-buttons">
+                    <button class="test-btn btn-success" onclick="testSuccessAlert()">
+                        <i class="fas fa-check-circle me-2"></i>
+                        تنبيه نجاح
+                    </button>
+                    <button class="test-btn btn-info" onclick="testInfoAlert()">
+                        <i class="fas fa-info-circle me-2"></i>
+                        تنبيه معلومات
+                    </button>
+                    <button class="test-btn btn-warning" onclick="testWarningAlert()">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        تنبيه تحذير
+                    </button>
+                    <button class="test-btn btn-danger" onclick="testErrorAlert()">
+                        <i class="fas fa-times-circle me-2"></i>
+                        تنبيه خطأ
+                    </button>
+                </div>
+            </div>
+
+            <!-- اختبار الإشعارات الذكية -->
+            <div class="test-section">
+                <h3>
+                    <i class="fas fa-brain me-2"></i>
+                    اختبار الإشعارات الذكية
+                </h3>
+                <div class="test-buttons">
+                    <button class="test-btn btn-info" onclick="testFileUpload()">
+                        <i class="fas fa-file-upload me-2"></i>
+                        محاكاة تحميل ملف
+                    </button>
+                    <button class="test-btn btn-info" onclick="testFileMovement()">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        محاكاة نقل ملف
+                    </button>
+                    <button class="test-btn btn-warning" onclick="testUrgentActivity()">
+                        <i class="fas fa-bolt me-2"></i>
+                        محاكاة نشاط عاجل
+                    </button>
+                    <button class="test-btn btn-danger" onclick="testSecurityEvent()">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        محاكاة حدث أمني
+                    </button>
+                </div>
+            </div>
+
+            <!-- اختبار الإشعارات الجماعية -->
+            <div class="test-section">
+                <h3>
+                    <i class="fas fa-users me-2"></i>
+                    اختبار الإشعارات الجماعية
+                </h3>
+                <div class="test-buttons">
+                    <button class="test-btn btn-info" onclick="testBulkNotification()">
+                        <i class="fas fa-broadcast-tower me-2"></i>
+                        إشعار جماعي
+                    </button>
+                    <button class="test-btn btn-warning" onclick="testDepartmentNotification()">
+                        <i class="fas fa-building me-2"></i>
+                        إشعار قسم
+                    </button>
+                </div>
+            </div>
+
+            <!-- إحصائيات -->
+            <div class="test-section">
+                <h3>
+                    <i class="fas fa-chart-bar me-2"></i>
+                    الإحصائيات
+                </h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalAlerts">0</div>
+                        <div class="stat-label">إجمالي التنبيهات</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="unreadAlerts">0</div>
+                        <div class="stat-label">غير المقروءة</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="urgentAlerts">0</div>
+                        <div class="stat-label">العاجلة</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="testCount">0</div>
+                        <div class="stat-label">الاختبارات</div>
+                    </div>
+                </div>
+                
+                <button class="btn test-btn btn-info mt-3" onclick="updateStats()">
+                    <i class="fas fa-sync me-2"></i>
+                    تحديث الإحصائيات
+                </button>
+            </div>
+
+            <!-- سجل الأحداث -->
+            <div class="test-section">
+                <h3>
+                    <i class="fas fa-terminal me-2"></i>
+                    سجل الأحداث
+                </h3>
+                <div class="log-container" id="eventLog">
+                    <div class="log-entry">
+                        <span class="log-timestamp">[جاري التحميل...]</span>
+                        نظام الاختبار جاهز للعمل
+                    </div>
+                </div>
+                
+                <button class="btn test-btn btn-secondary mt-3" onclick="clearLog()">
+                    <i class="fas fa-trash me-2"></i>
+                    مسح السجل
+                </button>
+            </div>
+
+            <!-- أدوات إضافية -->
+            <div class="test-section">
+                <h3>
+                    <i class="fas fa-tools me-2"></i>
+                    أدوات إضافية
+                </h3>
+                <div class="test-buttons">
+                    <button class="test-btn btn-warning" onclick="clearAllAlerts()">
+                        <i class="fas fa-broom me-2"></i>
+                        مسح جميع التنبيهات
+                    </button>
+                    <button class="test-btn btn-info" onclick="showNotificationCenter()">
+                        <i class="fas fa-eye me-2"></i>
+                        عرض مركز الإشعارات
+                    </button>
+                    <button class="test-btn btn-secondary" onclick="exportTestResults()">
+                        <i class="fas fa-download me-2"></i>
+                        تصدير النتائج
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- النظم الأساسية -->
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/notifications.js"></script>
+    
+    <!-- أنظمة الإشعارات -->
+    <script src="assets/js/advanced-alerts.js"></script>
+    <script src="assets/js/smart-notifications.js"></script>
+    <script src="assets/js/notification-integration.js"></script>
+    
+    <script>
+        // متغيرات الاختبار
+        let testCount = 0;
+        let logEntries = [];
+
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            log('تم تحميل صفحة الاختبار');
+            
+            // انتظار تحميل الأنظمة
+            setTimeout(() => {
+                checkSystemStatus();
+                updateStats();
+            }, 2000);
+            
+            // تحديث الإحصائيات كل 5 ثواني
+            setInterval(updateStats, 5000);
+        });
+
+        // فحص حالة الأنظمة
+        function checkSystemStatus() {
+            log('فحص حالة الأنظمة...');
+            
+            // فحص نظام التنبيهات المتقدم
+            if (window.advancedAlertSystem && window.advancedAlertSystem.isInitialized) {
+                updateSystemStatus('alertsStatus', true, 'نظام التنبيهات المتقدم');
+            } else {
+                updateSystemStatus('alertsStatus', false, 'نظام التنبيهات المتقدم');
+            }
+            
+            // فحص نظام الإشعارات الذكية
+            if (window.smartNotificationManager && window.smartNotificationManager.isInitialized) {
+                updateSystemStatus('smartStatus', true, 'نظام الإشعارات الذكية');
+            } else {
+                updateSystemStatus('smartStatus', false, 'نظام الإشعارات الذكية');
+            }
+            
+            // فحص نظام التكامل
+            if (window.notificationIntegration && window.notificationIntegration.isInitialized) {
+                updateSystemStatus('integrationStatus', true, 'نظام التكامل');
+            } else {
+                updateSystemStatus('integrationStatus', false, 'نظام التكامل');
+            }
+        }
+
+        function updateSystemStatus(elementId, isOnline, systemName) {
+            const element = document.getElementById(elementId);
+            const indicator = element.querySelector('.status-indicator');
+            
+            if (isOnline) {
+                indicator.classList.remove('status-offline');
+                indicator.classList.add('status-online');
+                element.innerHTML = `<span class="status-indicator status-online"></span> متصل`;
+                log(`✅ ${systemName}: متصل`);
+            } else {
+                indicator.classList.remove('status-online');
+                indicator.classList.add('status-offline');
+                element.innerHTML = `<span class="status-indicator status-offline"></span> غير متصل`;
+                log(`❌ ${systemName}: غير متصل`);
+            }
+        }
+
+        // اختبار تنبيهات مختلفة
+        function testSuccessAlert() {
+            if (window.advancedAlertSystem) {
+                window.advancedAlertSystem.createCustomAlert({
+                    title: 'اختبار نجاح',
+                    message: 'تم تنفيذ العملية بنجاح',
+                    type: 'success',
+                    priority: 'normal'
+                });
+                log('✅ تم إرسال تنبيه نجاح');
+                incrementTestCount();
+            } else {
+                log('❌ نظام التنبيهات غير متاح');
+            }
+        }
+
+        function testInfoAlert() {
+            if (window.advancedAlertSystem) {
+                window.advancedAlertSystem.createCustomAlert({
+                    title: 'معلومات',
+                    message: 'هذا تنبيه معلوماتي للاختبار',
+                    type: 'info',
+                    priority: 'normal'
+                });
+                log('ℹ️ تم إرسال تنبيه معلوماتي');
+                incrementTestCount();
+            } else {
+                log('❌ نظام التنبيهات غير متاح');
+            }
+        }
+
+        function testWarningAlert() {
+            if (window.advancedAlertSystem) {
+                window.advancedAlertSystem.createCustomAlert({
+                    title: 'تحذير',
+                    message: 'هذا تنبيه تحذيري يتطلب انتباهك',
+                    type: 'warning',
+                    priority: 'high'
+                });
+                log('⚠️ تم إرسال تنبيه تحذيري');
+                incrementTestCount();
+            } else {
+                log('❌ نظام التنبيهات غير متاح');
+            }
+        }
+
+        function testErrorAlert() {
+            if (window.advancedAlertSystem) {
+                window.advancedAlertSystem.createCustomAlert({
+                    title: 'خطأ عاجل',
+                    message: 'حدث خطأ عاجل يتطلب تدخل فوري',
+                    type: 'error',
+                    priority: 'urgent'
+                });
+                log('🚨 تم إرسال تنبيه خطأ عاجل');
+                incrementTestCount();
+            } else {
+                log('❌ نظام التنبيهات غير متاح');
+            }
+        }
+
+        // اختبار الإشعارات الذكية
+        function testFileUpload() {
+            if (window.notificationIntegration) {
+                const data = {
+                    uploaderId: 'test_user_123',
+                    fileName: 'تقرير_اختبار.pdf',
+                    fileSize: '2.5 MB',
+                    department: 'تقنية المعلومات',
+                    uploaderName: 'أحمد محمد'
+                };
+                
+                window.notificationIntegration.handleFileUpload(data);
+                log('📁 تم محاكاة تحميل ملف');
+                incrementTestCount();
+            } else {
+                log('❌ نظام التكامل غير متاح');
+            }
+        }
+
+        function testFileMovement() {
+            if (window.notificationIntegration) {
+                const data = {
+                    moverId: 'test_user_456',
+                    receiverId: 'test_user_789',
+                    fileNumber: 'F-2024-001',
+                    fromLocation: 'الإدارة المالية',
+                    toLocation: 'الإدارة القانونية',
+                    department: 'الشئون الإدارية',
+                    moverName: 'سارة أحمد'
+                };
+                
+                window.notificationIntegration.handleFileMovement(data);
+                log('🔄 تم محاكاة نقل ملف');
+                incrementTestCount();
+            } else {
+                log('❌ نظام التكامل غير متاح');
+            }
+        }
+
+        function testUrgentActivity() {
+            if (window.notificationIntegration) {
+                const data = {
+                    category: 'file_management',
+                    action: 'emergency_access',
+                    userId: 'test_user_emergency',
+                    priority: 'urgent'
+                };
+                
+                window.notificationIntegration.handleActivity(data);
+                log('⚡ تم محاكاة نشاط عاجل');
+                incrementTestCount();
+            } else {
+                log('❌ نظام التكامل غير متاح');
+            }
+        }
+
+        function testSecurityEvent() {
+            if (window.notificationIntegration) {
+                const data = {
+                    eventType: 'failed_login',
+                    severity: 'high',
+                    sourceIP: '192.168.1.100'
+                };
+                
+                window.notificationIntegration.handleSecurityEvent(data);
+                log('🛡️ تم محاكاة حدث أمني');
+                incrementTestCount();
+            } else {
+                log('❌ نظام التكامل غير متاح');
+            }
+        }
+
+        // اختبار الإشعارات الجماعية
+        function testBulkNotification() {
+            log('📢 محاكاة إشعار جماعي...');
+            
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    if (window.advancedAlertSystem) {
+                        window.advancedAlertSystem.createCustomAlert({
+                            title: `إشعار جماعي ${i + 1}`,
+                            message: `هذا إشعار جماعي رقم ${i + 1} للاختبار`,
+                            type: 'info',
+                            priority: 'normal'
+                        });
+                    }
+                }, i * 500);
+            }
+            
+            incrementTestCount();
+        }
+
+        function testDepartmentNotification() {
+            if (window.advancedAlertSystem) {
+                window.advancedAlertSystem.createCustomAlert({
+                    title: 'إشعار قسم تقنية المعلومات',
+                    message: 'هذا إشعار خاص بقسم تقنية المعلومات',
+                    type: 'info',
+                    priority: 'normal'
+                });
+                log('🏢 تم إرسال إشعار قسم');
+                incrementTestCount();
+            } else {
+                log('❌ نظام التنبيهات غير متاح');
+            }
+        }
+
+        // تحديث الإحصائيات
+        function updateStats() {
+            if (window.advancedAlertSystem) {
+                const stats = window.advancedAlertSystem.getStats();
+                document.getElementById('totalAlerts').textContent = stats.total || 0;
+                document.getElementById('unreadAlerts').textContent = stats.unread || 0;
+                document.getElementById('urgentAlerts').textContent = stats.urgent || 0;
+            }
+            
+            document.getElementById('testCount').textContent = testCount;
+        }
+
+        // أدوات إضافية
+        function clearAllAlerts() {
+            if (window.advancedAlertSystem) {
+                window.advancedAlertSystem.clearAllAlerts();
+                log('🗑️ تم مسح جميع التنبيهات');
+                updateStats();
+            } else {
+                log('❌ نظام التنبيهات غير متاح');
+            }
+        }
+
+        function showNotificationCenter() {
+            if (window.advancedAlertSystem) {
+                window.advancedAlertSystem.showNotificationCenter();
+                log('👁️ تم عرض مركز الإشعارات');
+            } else {
+                log('❌ نظام التنبيهات غير متاح');
+            }
+        }
+
+        function exportTestResults() {
+            const results = {
+                timestamp: new Date().toISOString(),
+                testCount: testCount,
+                systemStatus: {
+                    alerts: !!window.advancedAlertSystem?.isInitialized,
+                    smart: !!window.smartNotificationManager?.isInitialized,
+                    integration: !!window.notificationIntegration?.isInitialized
+                },
+                stats: window.advancedAlertSystem?.getStats() || {},
+                logEntries: logEntries
+            };
+            
+            const blob = new Blob([JSON.stringify(results, null, 2)], {
+                type: 'application/json'
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `notification_test_results_${Date.now()}.json`;
+            a.click();
+            
+            log('💾 تم تصدير نتائج الاختبار');
+        }
+
+        function clearLog() {
+            logEntries = [];
+            document.getElementById('eventLog').innerHTML = '';
+            log('🗑️ تم مسح سجل الأحداث');
+        }
+
+        // دوال مساعدة
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString('ar-SA');
+            const entry = `[${timestamp}] ${message}`;
+            
+            logEntries.push({
+                timestamp: timestamp,
+                message: message,
+                fullEntry: entry
+            });
+            
+            const logContainer = document.getElementById('eventLog');
+            const logElement = document.createElement('div');
+            logElement.className = 'log-entry';
+            logElement.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
+            
+            logContainer.appendChild(logElement);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // الاحتفاظ بآخر 50 رسالة فقط
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        function incrementTestCount() {
+            testCount++;
+            document.getElementById('testCount').textContent = testCount;
+        }
+    </script>
+</body>
+</html>

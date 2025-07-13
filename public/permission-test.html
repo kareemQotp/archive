@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار الصلاحيات</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Arial', sans-serif; direction: rtl; padding: 20px; }
+        .permission-test { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .permission-granted { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .permission-denied { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>اختبار نظام الصلاحيات</h1>
+        <div id="testResults"></div>
+        <button onclick="testUploadAccess()" class="btn btn-primary mt-3">اختبار الوصول لصفحة الرفع</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/app-config.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        const testResults = document.getElementById('testResults');
+
+        function addTestResult(testName, granted, details = '') {
+            const div = document.createElement('div');
+            div.className = `permission-test ${granted ? 'permission-granted' : 'permission-denied'}`;
+            div.innerHTML = `
+                <strong>${testName}:</strong> ${granted ? '✅ مُنح' : '❌ مرفوض'}
+                ${details ? `<br><small>${details}</small>` : ''}
+            `;
+            testResults.appendChild(div);
+        }
+
+        function testUploadAccess() {
+            window.location.href = 'upload.html';
+        }
+
+        // Wait for auth to initialize
+        setTimeout(() => {
+            if (unifiedAuth && unifiedAuth.isInitialized && unifiedAuth.currentUser) {
+                const user = unifiedAuth.currentUser;
+                const role = unifiedAuth.getCurrentUserRole();
+                const permissions = unifiedAuth.userPermissions;
+
+                addTestResult('المستخدم مسجل دخول', !!user, user ? user.email : 'غير مسجل');
+                addTestResult('دور المستخدم', !!role, `الدور: ${role}`);
+                addTestResult('الصلاحيات محمّلة', permissions.length > 0, `عدد الصلاحيات: ${permissions.length}`);
+                addTestResult('صلاحية files.view', unifiedAuth.hasPermission('files.view'), 'عرض الملفات');
+                addTestResult('صلاحية files.create', unifiedAuth.hasPermission('files.create'), 'إنشاء الملفات (مطلوبة للرفع)');
+                addTestResult('صلاحية files.edit', unifiedAuth.hasPermission('files.edit'), 'تعديل الملفات');
+                addTestResult('صلاحية files.delete', unifiedAuth.hasPermission('files.delete'), 'حذف الملفات');
+
+                // List all permissions
+                addTestResult('جميع الصلاحيات', true, permissions.join(', '));
+            } else {
+                addTestResult('حالة النظام', false, 'النظام غير مهيأ أو المستخدم غير مسجل دخول');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

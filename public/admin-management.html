@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المدراء - نظام الأرشيف</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- تطبيق الألوان الجديدة -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <!-- Permission-based styling system -->
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    
+    <style>
+        /* Admin management specific styles */
+
+        .main-content {
+            margin-right: 280px;
+            transition: margin-right 0.3s ease;
+            padding: 2rem;
+        }
+
+        .sidebar-collapsed .main-content {
+            margin-right: 0;
+        }
+
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-title {
+            background: linear-gradient(135deg, #dc3545 0%, #667eea 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 2.5rem;
+        }
+
+        .admin-card {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .admin-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #dc3545 0%, #667eea 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .admin-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.2);
+        }
+
+        .status-inactive {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #dc3545 0%, #667eea 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-outline-primary {
+            border: 2px solid #dc3545;
+            color: #dc3545;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-primary:hover {
+            background: #dc3545;
+            border-color: #dc3545;
+            transform: translateY(-2px);
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #dc3545 0%, #667eea 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            border-bottom: none;
+        }
+
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
+        }
+
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+
+        .admin-permissions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .permission-badge {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .search-input {
+            width: 250px;
+        }
+
+        .department-filter {
+            width: 200px;
+        }
+
+        .d-none-custom {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-right: 0;
+                padding: 1rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .admin-card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-archive"></i>
+                <span>نظام الأرشيف</span>
+            </div>
+            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="user-info" id="userInfo">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </div>
+        
+        <nav class="sidebar-nav" id="sidebarNav">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </nav>
+    </aside>
+
+    <div class="overlay" id="overlay"></div>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="page-title mb-2">إدارة المدراء</h1>
+                    <p class="text-muted mb-0">إدارة حسابات المدراء وصلاحياتهم</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-info me-2" onclick="window.open('page-permissions.html', '_blank')" title="إدارة صلاحيات الصفحات">
+                        <i class="fas fa-key me-2"></i>
+                        صلاحيات الصفحات
+                    </button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+                        <i class="fas fa-user-plus me-2"></i>
+                        إضافة مدير جديد
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- إحصائيات سريعة -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="admin-card text-center">
+                    <div class="h3 text-primary mb-1" id="totalAdmins">-</div>
+                    <div class="text-muted">إجمالي المدراء</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="admin-card text-center">
+                    <div class="h3 text-success mb-1" id="activeAdmins">-</div>
+                    <div class="text-muted">المدراء النشطون</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="admin-card text-center">
+                    <div class="h3 text-warning mb-1" id="inactiveAdmins">-</div>
+                    <div class="text-muted">المدراء غير النشطين</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="admin-card text-center">
+                    <div class="h3 text-info mb-1" id="recentLogins">-</div>
+                    <div class="text-muted">دخول خلال الأسبوع</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة المدراء -->
+        <div class="admin-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-users-cog me-2"></i>
+                    قائمة المدراء
+                </h5>
+                <div class="d-flex gap-2">
+                    <select class="form-control department-filter" id="departmentFilter" title="فلترة حسب الإدارة" onchange="filterByDepartment(this.value)">
+                        <option value="">جميع الإدارات</option>
+                        <option value="archive">إدارة الأرشيف</option>
+                        <option value="legal">إدارة الشؤون القانونية</option>
+                        <option value="governance">إدارة الحوكمة والامتثال</option>
+                        <option value="collection">إدارة التحصيل</option>
+                        <option value="securitization">إدارة التوريق</option>
+                        <option value="finance">إدارة المالية</option>
+                        <option value="hr">إدارة الموارد البشرية</option>
+                        <option value="it">إدارة تقنية المعلومات</option>
+                        <option value="general">الإدارة العامة</option>
+                    </select>
+                    <input type="text" class="form-control search-input" id="searchAdmins" placeholder="البحث عن مدير...">
+                    <button class="btn btn-outline-primary" onclick="loadAdmins()" title="إعادة تحميل">
+                        <i class="fas fa-sync"></i>
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="loadAdminsWithoutFilter()" title="تحميل بديل">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="adminsContainer">
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal إضافة مدير جديد -->
+    <div class="modal fade" id="addAdminModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-plus me-2"></i>
+                        إضافة مدير جديد
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" title="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addAdminForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">الاسم الكامل</label>
+                                    <input type="text" class="form-control" id="adminFullName" placeholder="أدخل الاسم الكامل" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">البريد الإلكتروني</label>
+                                    <input type="email" class="form-control" id="adminEmail" placeholder="أدخل البريد الإلكتروني" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">رقم الهاتف</label>
+                                    <input type="tel" class="form-control" id="adminPhone" placeholder="أدخل رقم الهاتف">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">كلمة المرور المؤقتة</label>
+                                    <input type="password" class="form-control" id="adminPassword" placeholder="أدخل كلمة المرور" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">الإدارة المسؤول عنها</label>
+                                    <select class="form-control" id="adminDepartment" title="اختر الإدارة التي سيكون المدير مسؤولاً عنها" required>
+                                        <option value="">اختر الإدارة</option>
+                                        <option value="archive">إدارة الأرشيف</option>
+                                        <option value="legal">إدارة الشؤون القانونية</option>
+                                        <option value="governance">إدارة الحوكمة والامتثال</option>
+                                        <option value="collection">إدارة التحصيل</option>
+                                        <option value="securitization">إدارة التوريق</option>
+                                        <option value="finance">إدارة المالية</option>
+                                        <option value="hr">إدارة الموارد البشرية</option>
+                                        <option value="it">إدارة تقنية المعلومات</option>
+                                        <option value="general">الإدارة العامة</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">المنصب</label>
+                                    <input type="text" class="form-control" id="adminPosition" placeholder="مدير الإدارة / نائب المدير / مساعد المدير">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">الصلاحيات الإضافية</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="canManageSystem" checked>
+                                        <label class="form-check-label" for="canManageSystem">
+                                            إدارة النظام
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="canManageUsers" checked>
+                                        <label class="form-check-label" for="canManageUsers">
+                                            إدارة المستخدمين
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="canViewAllDocuments" checked>
+                                        <label class="form-check-label" for="canViewAllDocuments">
+                                            عرض جميع الوثائق
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="canManageDocuments" checked>
+                                        <label class="form-check-label" for="canManageDocuments">
+                                            إدارة الوثائق
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="createAdmin()">
+                        <i class="fas fa-plus me-2"></i>
+                        إنشاء المدير
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal تعديل المدير -->
+    <div class="modal fade" id="editAdminModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-edit me-2"></i>
+                        تعديل بيانات المدير
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" title="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editAdminForm">
+                        <input type="hidden" id="editAdminId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">الاسم الكامل</label>
+                                    <input type="text" class="form-control" id="editAdminFullName" placeholder="أدخل الاسم الكامل" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">البريد الإلكتروني</label>
+                                    <input type="email" class="form-control" id="editAdminEmail" placeholder="أدخل البريد الإلكتروني" required readonly>
+                                    <small class="text-muted">لا يمكن تعديل البريد الإلكتروني</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">رقم الهاتف</label>
+                                    <input type="tel" class="form-control" id="editAdminPhone" placeholder="أدخل رقم الهاتف">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">حالة الحساب</label>
+                                    <select class="form-control" id="editAdminStatus" title="حالة الحساب">
+                                        <option value="true">نشط</option>
+                                        <option value="false">غير نشط</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">الإدارة المسؤول عنها</label>
+                                    <select class="form-control" id="editAdminDepartment" title="اختر الإدارة التي سيكون المدير مسؤولاً عنها" required>
+                                        <option value="">اختر الإدارة</option>
+                                        <option value="archive">إدارة الأرشيف</option>
+                                        <option value="legal">إدارة الشؤون القانونية</option>
+                                        <option value="governance">إدارة الحوكمة والامتثال</option>
+                                        <option value="collection">إدارة التحصيل</option>
+                                        <option value="securitization">إدارة التوريق</option>
+                                        <option value="finance">إدارة المالية</option>
+                                        <option value="hr">إدارة الموارد البشرية</option>
+                                        <option value="it">إدارة تقنية المعلومات</option>
+                                        <option value="general">الإدارة العامة</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">المنصب</label>
+                                    <input type="text" class="form-control" id="editAdminPosition" placeholder="مدير الإدارة / نائب المدير / مساعد المدير">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">الصلاحيات الإضافية</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="editCanManageSystem">
+                                        <label class="form-check-label" for="editCanManageSystem">
+                                            إدارة النظام
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="editCanManageUsers">
+                                        <label class="form-check-label" for="editCanManageUsers">
+                                            إدارة المستخدمين
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="editCanViewAllDocuments">
+                                        <label class="form-check-label" for="editCanViewAllDocuments">
+                                            عرض جميع الوثائق
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="editCanManageDocuments">
+                                        <label class="form-check-label" for="editCanManageDocuments">
+                                            إدارة الوثائق
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="resetPassword">
+                                <label class="form-check-label" for="resetPassword">
+                                    إعادة تعيين كلمة المرور
+                                </label>
+                            </div>
+                            <div id="passwordResetSection" class="d-none-custom">
+                                <div class="mt-2">
+                                    <label class="form-label">كلمة المرور الجديدة</label>
+                                    <input type="password" class="form-control" id="editAdminNewPassword" placeholder="أدخل كلمة المرور الجديدة">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" onclick="updateAdmin()">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ التعديلات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-init.js"></script>
+
+    <script src="assets/js/roles.js"></script>
+    <script src="assets/js/page-permissions.js"></script>
+    <script src="assets/js/page-access-control.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    
+    <!-- Unified Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        // Initialize unified auth system
+        let authSystem;
+        let permissionController;
+        let currentUser = null;
+        let sidebarManager = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        authSystem = unifiedAuth;
+                        // Initialize permission controller
+                        permissionController = new UIPermissionController(authSystem);
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Initialize sidebar
+            sidebarManager = new SidebarManager();
+            
+            // Set up auth state listener
+            authSystem.onAuthStateChanged(function(user) {
+                handleAuthStateChange(user);
+            });
+
+            // Initialize search functionality
+            document.getElementById('searchAdmins').addEventListener('input', function() {
+                filterAdmins(this.value);
+            });
+
+            // Password reset checkbox
+            document.getElementById('resetPassword').addEventListener('change', function() {
+                const passwordSection = document.getElementById('passwordResetSection');
+                if (this.checked) {
+                    passwordSection.classList.remove('d-none-custom');
+                } else {
+                    passwordSection.classList.add('d-none-custom');
+                    document.getElementById('editAdminNewPassword').value = '';
+                }
+            });
+        });
+
+        async function handleAuthStateChange(user) {
+            if (user) {
+                currentUser = user;
+                
+                // Check admin permissions first
+                if (!authSystem.hasPermission('admin-management')) {
+                    window.location.href = 'index.html?message=permission-denied';
+                    return;
+                }
+                
+                // Update permission-based UI
+                if (permissionController) {
+                    permissionController.updateUI();
+                }
+                
+                // Load page content
+                await updateLastLogin(user.uid);
+                loadAdmins();
+                loadStatistics();
+            } else {
+                window.location.href = 'login.html?message=session-expired';
+            }
+        }
+
+        // دالة تحديث آخر دخول
+        async function updateLastLogin(userId) {
+            try {
+                await firebase.firestore().collection('users').doc(userId).update({
+                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (error) {
+                console.log('تعذر تحديث آخر دخول:', error);
+            }
+        }
+
+        async function loadAdmins() {
+            const container = document.getElementById('adminsContainer');
+            
+            try {
+                container.innerHTML = `
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-primary"></div>
+                        <p class="mt-2 text-muted">جاري تحميل قائمة المدراء...</p>
+                    </div>
+                `;
+
+                // استعلام بدون ترتيب لتجنب مشكلة الفهرس
+                const adminsQuery = await db.collection('users')
+                    .where('role', '==', 'admin')
+                    .get();
+
+                if (adminsQuery.empty) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-users-slash"></i>
+                            </div>
+                            <h5>لا يوجد مدراء</h5>
+                            <p>لم يتم العثور على أي مدراء في النظام</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+                                <i class="fas fa-user-plus me-2"></i>
+                                إضافة مدير جديد
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const admins = [];
+                adminsQuery.forEach(doc => {
+                    admins.push({ id: doc.id, ...doc.data() });
+                });
+
+                // ترتيب البيانات محلياً حسب تاريخ الإنشاء
+                admins.sort((a, b) => {
+                    if (a.createdAt && b.createdAt) {
+                        return b.createdAt.toDate() - a.createdAt.toDate();
+                    } else if (a.createdAt) {
+                        return -1;
+                    } else if (b.createdAt) {
+                        return 1;
+                    }
+                    return 0;
+                });
+
+                renderAdmins(admins);
+                window.allAdmins = admins; // للبحث
+
+            } catch (error) {
+                console.error('خطأ في تحميل المدراء:', error);
+                
+                let errorMessage = 'خطأ في تحميل البيانات';
+                
+                if (error.code === 'failed-precondition' || error.message.includes('index')) {
+                    errorMessage = 'يتطلب النظام إعداد فهرس قاعدة البيانات. يرجى المحاولة مرة أخرى.';
+                } else if (error.code === 'permission-denied') {
+                    errorMessage = 'ليس لديك صلاحية للوصول لهذه البيانات';
+                } else if (error.code === 'unavailable') {
+                    errorMessage = 'الخدمة غير متاحة حالياً. يرجى المحاولة لاحقاً.';
+                }
+                
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>خطأ:</strong> ${errorMessage}
+                        <br><small class="text-muted mt-2 d-block">تفاصيل تقنية: ${error.message}</small>
+                        <button class="btn btn-outline-danger btn-sm mt-2" onclick="loadAdmins()">
+                            <i class="fas fa-redo me-1"></i> إعادة المحاولة
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // دالة بديلة للتحميل بدون فلترة
+        async function loadAdminsWithoutFilter() {
+            const container = document.getElementById('adminsContainer');
+            
+            try {
+                container.innerHTML = `
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-warning"></div>
+                        <p class="mt-2 text-muted">جاري تحميل جميع المستخدمين...</p>
+                    </div>
+                `;
+
+                // تحميل جميع المستخدمين وفلترة المدراء محلياً
+                const allUsersQuery = await db.collection('users').get();
+                
+                const admins = [];
+                allUsersQuery.forEach(doc => {
+                    const userData = doc.data();
+                    if (userData.role === 'admin') {
+                        admins.push({ id: doc.id, ...userData });
+                    }
+                });
+
+                // ترتيب البيانات محلياً
+                admins.sort((a, b) => {
+                    if (a.createdAt && b.createdAt) {
+                        return b.createdAt.toDate() - a.createdAt.toDate();
+                    }
+                    return 0;
+                });
+
+                if (admins.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-users-slash"></i>
+                            </div>
+                            <h5>لا يوجد مدراء</h5>
+                            <p>لم يتم العثور على أي مدراء في النظام</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                renderAdmins(admins);
+                window.allAdmins = admins;
+
+            } catch (error) {
+                console.error('خطأ في التحميل البديل:', error);
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        فشل في تحميل البيانات بالطريقة البديلة أيضاً
+                    </div>
+                `;
+            }
+        }
+
+        function renderAdmins(admins) {
+            const container = document.getElementById('adminsContainer');
+            
+            if (admins.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h5>لا توجد نتائج</h5>
+                        <p>لم يتم العثور على مدراء مطابقين للبحث</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = admins.map(admin => {
+                const initials = admin.displayName ? admin.displayName.split(' ').map(n => n[0]).join('').toUpperCase() : 'A';
+                const isActive = admin.isActive !== false;
+                
+                // تحسين عرض آخر دخول مع التاريخ والوقت
+                let lastLoginText = 'لم يسجل دخول';
+                let loginStatusClass = 'muted';
+                if (admin.lastLogin) {
+                    const lastLoginDate = new Date(admin.lastLogin.toDate());
+                    const today = new Date();
+                    const diffTime = today - lastLoginDate;
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    // تحديد لون النص حسب المدة
+                    if (diffDays <= 1) {
+                        loginStatusClass = 'success';
+                    } else if (diffDays <= 7) {
+                        loginStatusClass = 'warning';
+                    } else {
+                        loginStatusClass = 'muted';
+                    }
+                    
+                    if (diffDays === 0) {
+                        // نفس اليوم - عرض الوقت فقط
+                        lastLoginText = `اليوم ${lastLoginDate.toLocaleTimeString('ar-SA', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                        })}`;
+                    } else if (diffDays === 1) {
+                        // أمس
+                        lastLoginText = `أمس ${lastLoginDate.toLocaleTimeString('ar-SA', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                        })}`;
+                    } else if (diffDays < 7) {
+                        // خلال الأسبوع - عرض اليوم والوقت
+                        const dayName = lastLoginDate.toLocaleDateString('ar-SA', { weekday: 'long' });
+                        const time = lastLoginDate.toLocaleTimeString('ar-SA', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                        });
+                        lastLoginText = `${dayName} ${time}`;
+                    } else {
+                        // أكثر من أسبوع - عرض التاريخ والوقت
+                        const date = lastLoginDate.toLocaleDateString('ar-SA');
+                        const time = lastLoginDate.toLocaleTimeString('ar-SA', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                        });
+                        lastLoginText = `${date} ${time}`;
+                    }
+                }
+                
+                const departmentName = getDepartmentName(admin.department);
+                const position = admin.position || 'مدير';
+
+                return `
+                    <div class="admin-card">
+                        <div class="row align-items-center">
+                            <div class="col-md-2">
+                                <div class="admin-avatar">
+                                    ${initials}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="mb-1">${admin.displayName || 'غير محدد'}</h6>
+                                <p class="text-muted mb-1">${admin.email}</p>
+                                <small class="text-muted">${admin.phone || 'لا يوجد رقم هاتف'}</small>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-1">
+                                    <small class="text-muted">الإدارة:</small><br>
+                                    <span class="fw-bold">${departmentName}</span>
+                                </div>
+                                <div>
+                                    <small class="text-muted">المنصب:</small><br>
+                                    <span class="text-primary">${position}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="admin-status ${isActive ? 'status-active' : 'status-inactive'}">
+                                    <i class="fas fa-${isActive ? 'check-circle' : 'times-circle'} me-1"></i>
+                                    ${isActive ? 'نشط' : 'غير نشط'}
+                                </span>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-clock me-1"></i>آخر دخول:
+                                    </small>
+                                    <span class="fw-bold text-${loginStatusClass}" style="font-size: 0.85rem;">
+                                        ${lastLoginText}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-1 text-end">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="editAdmin('${admin.id}')">
+                                            <i class="fas fa-edit me-2"></i>تعديل
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="toggleAdminStatus('${admin.id}', ${isActive})">
+                                            <i class="fas fa-${isActive ? 'ban' : 'check'} me-2"></i>
+                                            ${isActive ? 'تعطيل' : 'تفعيل'}
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteAdmin('${admin.id}')">
+                                            <i class="fas fa-trash me-2"></i>حذف
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        ${admin.permissions ? `
+                            <div class="admin-permissions mt-2">
+                                ${Object.entries(admin.permissions).filter(([key, value]) => value === true).map(([key]) => 
+                                    `<span class="permission-badge">${translatePermission(key)}</span>`
+                                ).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterAdmins(searchTerm) {
+            if (!window.allAdmins) return;
+            
+            let filtered = window.allAdmins;
+            
+            // فلترة حسب الإدارة المختارة
+            const selectedDepartment = document.getElementById('departmentFilter').value;
+            if (selectedDepartment) {
+                filtered = filtered.filter(admin => admin.department === selectedDepartment);
+            }
+            
+            // فلترة حسب نص البحث
+            if (searchTerm) {
+                filtered = filtered.filter(admin => {
+                    const name = (admin.displayName || '').toLowerCase();
+                    const email = (admin.email || '').toLowerCase();
+                    const phone = (admin.phone || '').toLowerCase();
+                    const department = getDepartmentName(admin.department).toLowerCase();
+                    const position = (admin.position || '').toLowerCase();
+                    const search = searchTerm.toLowerCase();
+                    
+                    return name.includes(search) || 
+                           email.includes(search) || 
+                           phone.includes(search) ||
+                           department.includes(search) ||
+                           position.includes(search);
+                });
+            }
+            
+            renderAdmins(filtered);
+        }
+
+        function getDepartmentName(department) {
+            const departments = {
+                'archive': 'إدارة الأرشيف',
+                'legal': 'إدارة الشؤون القانونية',
+                'governance': 'إدارة الحوكمة والامتثال',
+                'collection': 'إدارة التحصيل',
+                'securitization': 'إدارة التوريق',
+                'finance': 'إدارة المالية',
+                'hr': 'إدارة الموارد البشرية',
+                'it': 'إدارة تقنية المعلومات',
+                'general': 'الإدارة العامة'
+            };
+            return departments[department] || 'غير محدد';
+        }
+
+        function filterByDepartment(selectedDepartment) {
+            if (!window.allAdmins) return;
+            
+            let filtered = window.allAdmins;
+            
+            // فلترة حسب الإدارة
+            if (selectedDepartment) {
+                filtered = filtered.filter(admin => admin.department === selectedDepartment);
+            }
+            
+            // فلترة حسب البحث إذا كان هناك نص بحث
+            const searchTerm = document.getElementById('searchAdmins').value.trim();
+            if (searchTerm) {
+                filtered = filtered.filter(admin => {
+                    const name = (admin.displayName || '').toLowerCase();
+                    const email = (admin.email || '').toLowerCase();
+                    const phone = (admin.phone || '').toLowerCase();
+                    const department = getDepartmentName(admin.department).toLowerCase();
+                    const position = (admin.position || '').toLowerCase();
+                    const search = searchTerm.toLowerCase();
+                    
+                    return name.includes(search) || 
+                           email.includes(search) || 
+                           phone.includes(search) ||
+                           department.includes(search) ||
+                           position.includes(search);
+                });
+            }
+            
+            renderAdmins(filtered);
+        }
+
+        async function loadStatistics() {
+            try {
+                const adminsQuery = await db.collection('users').where('role', '==', 'admin').get();
+                const admins = adminsQuery.docs.map(doc => doc.data());
+                
+                const total = admins.length;
+                const active = admins.filter(admin => admin.isActive !== false).length;
+                const inactive = total - active;
+                
+                // حساب الدخول خلال الأسبوع مع معلومات أكثر تفصيلاً
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const recentLogins = admins.filter(admin => 
+                    admin.lastLogin && admin.lastLogin.toDate() > weekAgo
+                ).length;
+                
+                const todayLogins = admins.filter(admin => 
+                    admin.lastLogin && admin.lastLogin.toDate() > today
+                ).length;
+
+                document.getElementById('totalAdmins').textContent = total;
+                document.getElementById('activeAdmins').textContent = active;
+                document.getElementById('inactiveAdmins').textContent = inactive;
+                document.getElementById('recentLogins').textContent = recentLogins;
+
+                // إضافة معلومات إضافية للإحصائيات
+                const recentLoginsElement = document.getElementById('recentLogins');
+                if (recentLoginsElement) {
+                    recentLoginsElement.setAttribute('title', 
+                        `${todayLogins} دخل اليوم، ${recentLogins} دخل هذا الأسبوع`
+                    );
+                }
+
+                // إحصائيات إضافية حسب الإدارة
+                const departmentStats = {};
+                admins.forEach(admin => {
+                    if (admin.department) {
+                        if (!departmentStats[admin.department]) {
+                            departmentStats[admin.department] = 0;
+                        }
+                        departmentStats[admin.department]++;
+                    }
+                });
+
+                console.log('إحصائيات الإدارات:', departmentStats);
+                console.log(`إحصائيات الدخول: ${todayLogins} اليوم، ${recentLogins} هذا الأسبوع`);
+
+            } catch (error) {
+                console.error('خطأ في تحميل الإحصائيات:', error);
+            }
+        }
+
+        async function createAdmin() {
+            const fullName = document.getElementById('adminFullName').value.trim();
+            const email = document.getElementById('adminEmail').value.trim();
+            const phone = document.getElementById('adminPhone').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            const department = document.getElementById('adminDepartment').value;
+            const position = document.getElementById('adminPosition').value.trim();
+            
+            const permissions = {
+                isAdmin: true,
+                canManageSystem: document.getElementById('canManageSystem').checked,
+                canManageUsers: document.getElementById('canManageUsers').checked,
+                canViewAllDocuments: document.getElementById('canViewAllDocuments').checked,
+                canManageDocuments: document.getElementById('canManageDocuments').checked
+            };
+
+            if (!fullName || !email || !password || !department) {
+                alert('يرجى ملء جميع الحقول المطلوبة (الاسم، البريد الإلكتروني، كلمة المرور، والإدارة)');
+                return;
+            }
+
+            try {
+                // إنشاء الحساب (يجب استخدام Firebase Admin SDK في الإنتاج)
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // تحديث الملف الشخصي
+                await user.updateProfile({
+                    displayName: fullName
+                });
+
+                // حفظ بيانات المدير
+                await db.collection('users').doc(user.uid).set({
+                    uid: user.uid,
+                    email: email,
+                    displayName: fullName,
+                    phone: phone || null,
+                    department: department,
+                    position: position || 'مدير',
+                    role: 'admin',
+                    isActive: true,
+                    permissions: permissions,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdBy: currentUser.uid
+                });
+
+                // تسجيل العملية
+                await db.collection('audit_logs').add({
+                    action: 'admin_created',
+                    targetType: 'user',
+                    targetId: user.uid,
+                    details: {
+                        email: email,
+                        displayName: fullName,
+                        department: department,
+                        position: position || 'مدير',
+                        role: 'admin',
+                        permissions: permissions
+                    },
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    performedBy: currentUser.uid
+                });
+
+                // إغلاق النافذة وإعادة التحميل
+                bootstrap.Modal.getInstance(document.getElementById('addAdminModal')).hide();
+                document.getElementById('addAdminForm').reset();
+                loadAdmins();
+                loadStatistics();
+                
+                alert('تم إنشاء حساب المدير بنجاح');
+
+            } catch (error) {
+                console.error('خطأ في إنشاء المدير:', error);
+                alert('حدث خطأ في إنشاء الحساب: ' + error.message);
+            }
+        }
+
+        async function toggleAdminStatus(adminId, currentStatus) {
+            if (!confirm(`هل أنت متأكد من ${currentStatus ? 'تعطيل' : 'تفعيل'} هذا المدير؟`)) {
+                return;
+            }
+
+            try {
+                await db.collection('users').doc(adminId).update({
+                    isActive: !currentStatus,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: currentUser.uid
+                });
+
+                // تسجيل العملية
+                await db.collection('audit_logs').add({
+                    action: currentStatus ? 'admin_deactivated' : 'admin_activated',
+                    targetType: 'user',
+                    targetId: adminId,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    performedBy: currentUser.uid
+                });
+
+                loadAdmins();
+                loadStatistics();
+                
+            } catch (error) {
+                console.error('خطأ في تحديث حالة المدير:', error);
+                alert('حدث خطأ في تحديث الحالة');
+            }
+        }
+
+        async function deleteAdmin(adminId) {
+            if (adminId === currentUser.uid) {
+                alert('لا يمكنك حذف حسابك الخاص');
+                return;
+            }
+
+            if (!confirm('هل أنت متأكد من حذف هذا المدير؟ هذا الإجراء لا يمكن التراجع عنه.')) {
+                return;
+            }
+
+            try {
+                await db.collection('users').doc(adminId).delete();
+
+                // تسجيل العملية
+                await db.collection('audit_logs').add({
+                    action: 'admin_deleted',
+                    targetType: 'user',
+                    targetId: adminId,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    performedBy: currentUser.uid
+                });
+
+                loadAdmins();
+                loadStatistics();
+                
+            } catch (error) {
+                console.error('خطأ في حذف المدير:', error);
+                alert('حدث خطأ في حذف المدير');
+            }
+        }
+
+        async function editAdmin(adminId) {
+            try {
+                // تحميل بيانات المدير
+                const adminDoc = await db.collection('users').doc(adminId).get();
+                if (!adminDoc.exists) {
+                    alert('لم يتم العثور على المدير');
+                    return;
+                }
+
+                const adminData = adminDoc.data();
+
+                // ملء النموذج بالبيانات الحالية
+                document.getElementById('editAdminId').value = adminId;
+                document.getElementById('editAdminFullName').value = adminData.displayName || '';
+                document.getElementById('editAdminEmail').value = adminData.email || '';
+                document.getElementById('editAdminPhone').value = adminData.phone || '';
+                document.getElementById('editAdminStatus').value = adminData.isActive !== false ? 'true' : 'false';
+                document.getElementById('editAdminDepartment').value = adminData.department || '';
+                document.getElementById('editAdminPosition').value = adminData.position || '';
+
+                // ملء الصلاحيات
+                const permissions = adminData.permissions || {};
+                document.getElementById('editCanManageSystem').checked = permissions.canManageSystem || false;
+                document.getElementById('editCanManageUsers').checked = permissions.canManageUsers || false;
+                document.getElementById('editCanViewAllDocuments').checked = permissions.canViewAllDocuments || false;
+                document.getElementById('editCanManageDocuments').checked = permissions.canManageDocuments || false;
+
+                // إعادة تعيين خيارات كلمة المرور
+                document.getElementById('resetPassword').checked = false;
+                document.getElementById('passwordResetSection').classList.add('d-none-custom');
+                document.getElementById('editAdminNewPassword').value = '';
+
+                // فتح النافذة
+                const modal = new bootstrap.Modal(document.getElementById('editAdminModal'));
+                modal.show();
+
+            } catch (error) {
+                console.error('خطأ في تحميل بيانات المدير:', error);
+                alert('حدث خطأ في تحميل البيانات');
+            }
+        }
+
+        async function updateAdmin() {
+            const adminId = document.getElementById('editAdminId').value;
+            const fullName = document.getElementById('editAdminFullName').value.trim();
+            const phone = document.getElementById('editAdminPhone').value.trim();
+            const isActive = document.getElementById('editAdminStatus').value === 'true';
+            const department = document.getElementById('editAdminDepartment').value;
+            const position = document.getElementById('editAdminPosition').value.trim();
+            const resetPassword = document.getElementById('resetPassword').checked;
+            const newPassword = document.getElementById('editAdminNewPassword').value;
+
+            const permissions = {
+                isAdmin: true,
+                canManageSystem: document.getElementById('editCanManageSystem').checked,
+                canManageUsers: document.getElementById('editCanManageUsers').checked,
+                canViewAllDocuments: document.getElementById('editCanViewAllDocuments').checked,
+                canManageDocuments: document.getElementById('editCanManageDocuments').checked
+            };
+
+            if (!fullName || !department) {
+                alert('يرجى ملء الحقول المطلوبة (الاسم الكامل والإدارة)');
+                return;
+            }
+
+            if (resetPassword && !newPassword) {
+                alert('يرجى إدخال كلمة المرور الجديدة');
+                return;
+            }
+
+            // تأكيد التحديث
+            if (!confirm('هل أنت متأكد من تحديث بيانات هذا المدير؟')) {
+                return;
+            }
+
+            try {
+                // تعطيل الزر أثناء التحديث
+                const updateBtn = document.querySelector('#editAdminModal .btn-primary');
+                const originalText = updateBtn.innerHTML;
+                updateBtn.disabled = true;
+                updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
+
+                // تحديث البيانات في Firestore
+                const updateData = {
+                    displayName: fullName,
+                    phone: phone || null,
+                    department: department,
+                    position: position || 'مدير',
+                    isActive: isActive,
+                    permissions: permissions,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: currentUser.uid
+                };
+
+                await db.collection('users').doc(adminId).update(updateData);
+
+                // إعادة تعيين كلمة المرور إذا طُلب ذلك
+                if (resetPassword && newPassword) {
+                    // ملاحظة: في البيئة الحقيقية، يجب استخدام Firebase Admin SDK
+                    // هنا سنضع رسالة للمطور
+                    console.warn('تحديث كلمة المرور يتطلب Firebase Admin SDK');
+                    
+                    // يمكن إضافة طلب لـ Cloud Function هنا
+                    try {
+                        // إرسال طلب إعادة تعيين كلمة المرور عبر البريد الإلكتروني
+                        const email = document.getElementById('editAdminEmail').value;
+                        await auth.sendPasswordResetEmail(email);
+                        alert('تم تحديث البيانات وإرسال رابط إعادة تعيين كلمة المرور إلى البريد الإلكتروني');
+                    } catch (emailError) {
+                        console.error('خطأ في إرسال البريد الإلكتروني:', emailError);
+                        alert('تم تحديث البيانات، لكن فشل إرسال رابط إعادة تعيين كلمة المرور');
+                    }
+                }
+
+                // تسجيل العملية
+                await db.collection('audit_logs').add({
+                    action: 'admin_updated',
+                    targetType: 'user',
+                    targetId: adminId,
+                    details: {
+                        displayName: fullName,
+                        department: department,
+                        position: position || 'مدير',
+                        isActive: isActive,
+                        permissions: permissions,
+                        passwordReset: resetPassword
+                    },
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    performedBy: currentUser.uid
+                });
+
+                // إغلاق النافذة وإعادة التحميل
+                bootstrap.Modal.getInstance(document.getElementById('editAdminModal')).hide();
+                loadAdmins();
+                loadStatistics();
+                
+                if (!resetPassword) {
+                    alert('تم تحديث بيانات المدير بنجاح');
+                }
+
+            } catch (error) {
+                console.error('خطأ في تحديث المدير:', error);
+                alert('حدث خطأ في تحديث البيانات: ' + error.message);
+            } finally {
+                // إعادة تفعيل الزر
+                const updateBtn = document.querySelector('#editAdminModal .btn-primary');
+                updateBtn.disabled = false;
+                updateBtn.innerHTML = originalText;
+            }
+        }
+
+        function translatePermission(key) {
+            const translations = {
+                isAdmin: 'مدير النظام',
+                canManageSystem: 'إدارة النظام',
+                canManageUsers: 'إدارة المستخدمين',
+                canViewAllDocuments: 'عرض جميع الوثائق',
+                canManageDocuments: 'إدارة الوثائق'
+            };
+            return translations[key] || key;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+/* Toast Container */
+.toast-container {
+    z-index: 1050;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    transition: all 0.3s ease;
+}
+
+/* Tag Input */
+.tag-input-container {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    min-height: 2.5rem;
+}
+
+.tag-input-container:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: #0d6efd;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.tag .btn-close {
+    font-size: 0.75rem;
+    padding: 0.25rem;
+}
+
+/* File Upload */
+.upload-zone {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.upload-zone.drag-over {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.file-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.file-item {
+    transition: all 0.2s ease;
+}
+
+.file-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.file-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Modal Animation */
+.modal.fade .modal-dialog {
+    transform: scale(0.95);
+    transition: transform 0.2s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}
+
+/* RTL Support */
+[dir="rtl"] .modal-header .btn-close {
+    margin: calc(-.5 * var(--bs-modal-header-padding-y)) auto calc(-.5 * var(--bs-modal-header-padding-y)) calc(-.5 * var(--bs-modal-header-padding-y));
+}
+
+[dir="rtl"] .toast-container {
+    left: 0;
+    right: auto;
+}
+
+[dir="rtl"] .tag .btn-close {
+    margin-right: 0.5rem;
+    margin-left: 0;
+}
+
+/* Accessibility */
+.tag-input-container:focus-within,
+.upload-zone:focus-within {
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal.fade .modal-dialog,
+    .upload-zone,
+    .loading-overlay,
+    .file-item {
+        transition: none;
+    }
+}
