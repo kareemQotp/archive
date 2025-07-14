@@ -3,7 +3,9 @@
  * Advanced Notification System
  */
 
-class NotificationManager {
+// تجنب إعادة التعريف
+if (typeof NotificationManager === 'undefined') {
+    window.NotificationManager = class NotificationManager {
     constructor() {
         this.notifications = [];
         this.container = null;
@@ -456,15 +458,19 @@ class NotificationManager {
             AppUtils.saveToStorage('notification_settings', settings);
         }
     }
-}
+    }; // إنهاء تعريف الكلاس
 
-// إنشاء مثيل عام
-const notificationManager = new NotificationManager();
+    // إنشاء instance عام
+    window.notificationManager = new NotificationManager();
+} else {
+    console.log('NotificationManager already exists, skipping redefinition');
+}
 
 // تصدير للاستخدام العام
 if (typeof window !== 'undefined') {
-    window.NotificationManager = NotificationManager;
-    window.notify = notificationManager;
+    if (!window.notify) {
+        window.notify = window.notificationManager;
+    }
 }
 
 if (typeof module !== 'undefined' && module.exports) {

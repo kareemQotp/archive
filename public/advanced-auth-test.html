@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار متقدم - Firebase Auth</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f8f9fa; 
+            direction: rtl;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status { 
+            padding: 8px 12px; 
+            margin: 5px; 
+            border-radius: 4px; 
+            display: inline-block;
+            font-size: 14px;
+            min-width: 80px;
+            text-align: center;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .loading { background: #e2e3e5; color: #6c757d; border: 1px solid #d1d3d4; }
+        
+        .timeline {
+            background: #212529;
+            color: #ffffff;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid #343a40;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .btn:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #545b62; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .step {
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #ddd;
+            background: #f8f9fa;
+        }
+        
+        .step.completed { border-left-color: #28a745; background: #d4edda; }
+        .step.failed { border-left-color: #dc3545; background: #f8d7da; }
+        .step.running { border-left-color: #ffc107; background: #fff3cd; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 اختبار متقدم - Firebase Auth</h1>
+        
+        <!-- حالة المكونات -->
+        <div class="card">
+            <h3>📊 حالة المكونات</h3>
+            <div class="status-grid">
+                <div>
+                    <strong>Firebase SDK:</strong><br>
+                    <span id="firebase-status" class="status loading">فحص...</span>
+                </div>
+                <div>
+                    <strong>Firebase Auth:</strong><br>
+                    <span id="auth-status" class="status loading">فحص...</span>
+                </div>
+                <div>
+                    <strong>Unified Auth:</strong><br>
+                    <span id="unified-status" class="status loading">فحص...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- خطوات التحميل -->
+            <div class="card">
+                <h3>⚡ مراحل التحميل</h3>
+                <div id="loading-steps">
+                    <div class="step" id="step1">1. تحميل Firebase SDK</div>
+                    <div class="step" id="step2">2. تهيئة Firebase App</div>
+                    <div class="step" id="step3">3. تهيئة Firebase Auth</div>
+                    <div class="step" id="step4">4. إعداد Persistence</div>
+                    <div class="step" id="step5">5. إرسال حدث firebaseReady</div>
+                    <div class="step" id="step6">6. تهيئة Unified Auth</div>
+                    <div class="step" id="step7">7. إرسال حدث unifiedAuthReady</div>
+                </div>
+            </div>
+
+            <!-- التحكم -->
+            <div class="card">
+                <h3>🎮 أدوات التحكم</h3>
+                <button class="btn" onclick="runFullTest()">🔄 تشغيل اختبار كامل</button>
+                <button class="btn" onclick="testFirebaseOnly()">🔥 اختبار Firebase فقط</button>
+                <button class="btn" onclick="testAuthOnly()">🔐 اختبار Auth فقط</button>
+                <button class="btn btn-secondary" onclick="clearTimeline()">🗑️ مسح السجل</button>
+                
+                <div style="margin-top: 20px;">
+                    <strong>المعلومات السريعة:</strong>
+                    <div id="quick-info" style="font-family: monospace; font-size: 12px; margin-top: 10px;">
+                        جاري التحميل...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline الأحداث -->
+        <div class="card">
+            <h3>📋 سجل الأحداث</h3>
+            <div id="timeline" class="timeline"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Archive Scripts -->
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        let eventCount = 0;
+        let startTime = Date.now();
+
+        function log(message, type = 'info') {
+            const timeline = document.getElementById('timeline');
+            const now = Date.now();
+            const elapsed = ((now - startTime) / 1000).toFixed(2);
+            const time = new Date().toLocaleTimeString('ar-EG');
+            
+            const colors = {
+                info: '#17a2b8',
+                success: '#28a745', 
+                error: '#dc3545',
+                warning: '#ffc107'
+            };
+            
+            eventCount++;
+            const line = `<div style="color: ${colors[type] || colors.info}">` +
+                        `[${elapsed}s] [${time}] ${message}</div>`;
+            timeline.innerHTML += line;
+            timeline.scrollTop = timeline.scrollHeight;
+            
+            console.log(`[Advanced Test] ${message}`);
+        }
+
+        function updateStep(stepNum, status) {
+            const step = document.getElementById(`step${stepNum}`);
+            step.className = `step ${status}`;
+            
+            if (status === 'completed') {
+                step.innerHTML += ' ✅';
+            } else if (status === 'failed') {
+                step.innerHTML += ' ❌';
+            } else if (status === 'running') {
+                step.innerHTML += ' ⏳';
+            }
+        }
+
+        function updateStatus(elementId, text, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = text;
+            element.className = `status ${type}`;
+        }
+
+        function updateQuickInfo() {
+            const info = document.getElementById('quick-info');
+            const firebaseOk = typeof firebase !== 'undefined';
+            const authOk = !!window.auth;
+            const unifiedOk = !!window.unifiedAuth?.isInitialized;
+            
+            info.innerHTML = `
+                Firebase: ${firebaseOk ? '✅' : '❌'} | 
+                Auth: ${authOk ? '✅' : '❌'} | 
+                Unified: ${unifiedOk ? '✅' : '❌'} |
+                Events: ${eventCount}
+            `;
+        }
+
+        function clearTimeline() {
+            document.getElementById('timeline').innerHTML = '';
+            eventCount = 0;
+            startTime = Date.now();
+            log('تم مسح السجل', 'info');
+        }
+
+        function runFullTest() {
+            log('=== بدء الاختبار الكامل ===', 'info');
+            clearTimeline();
+            
+            setTimeout(() => {
+                testFirebaseSDK();
+                setTimeout(() => testFirebaseAuth(), 500);
+                setTimeout(() => testUnifiedAuth(), 1000);
+                setTimeout(() => testIntegration(), 1500);
+            }, 100);
+        }
+
+        function testFirebaseOnly() {
+            log('=== اختبار Firebase SDK فقط ===', 'info');
+            testFirebaseSDK();
+        }
+
+        function testAuthOnly() {
+            log('=== اختبار Auth فقط ===', 'info');
+            testFirebaseAuth();
+            setTimeout(() => testUnifiedAuth(), 500);
+        }
+
+        function testFirebaseSDK() {
+            updateStep(1, 'running');
+            
+            if (typeof firebase === 'undefined') {
+                log('❌ Firebase SDK غير محمل', 'error');
+                updateStep(1, 'failed');
+                updateStatus('firebase-status', 'غير محمل', 'error');
+                return false;
+            }
+            
+            log('✅ Firebase SDK محمل', 'success');
+            updateStep(1, 'completed');
+            
+            if (firebase.apps.length === 0) {
+                log('⚠️ لا توجد تطبيقات Firebase مهيئة', 'warning');
+                updateStep(2, 'failed');
+                updateStatus('firebase-status', 'غير مهيئ', 'warning');
+                return false;
+            }
+            
+            log(`✅ Firebase App مهيئ: ${firebase.apps[0].name}`, 'success');
+            updateStep(2, 'completed');
+            updateStatus('firebase-status', 'جاهز', 'success');
+            
+            return true;
+        }
+
+        function testFirebaseAuth() {
+            updateStep(3, 'running');
+            
+            if (!window.auth) {
+                log('❌ window.auth غير متوفر', 'error');
+                updateStep(3, 'failed');
+                updateStatus('auth-status', 'غير متوفر', 'error');
+                return false;
+            }
+            
+            log('✅ Firebase Auth متوفر', 'success');
+            updateStep(3, 'completed');
+            
+            // فحص الخصائص
+            try {
+                const user = window.auth.currentUser;
+                log(`المستخدم الحالي: ${user ? user.email : 'لا يوجد'}`, 'info');
+                
+                const appName = window.auth.app?.name || 'unknown';
+                log(`Auth App: ${appName}`, 'info');
+                
+                updateStep(4, 'completed');
+                updateStatus('auth-status', 'جاهز', 'success');
+                return true;
+            } catch (error) {
+                log(`❌ خطأ في فحص Auth: ${error.message}`, 'error');
+                updateStep(4, 'failed');
+                updateStatus('auth-status', 'خطأ', 'error');
+                return false;
+            }
+        }
+
+        function testUnifiedAuth() {
+            updateStep(6, 'running');
+            
+            if (!window.unifiedAuth) {
+                log('❌ window.unifiedAuth غير متوفر', 'error');
+                updateStep(6, 'failed');
+                updateStatus('unified-status', 'غير متوفر', 'error');
+                return false;
+            }
+            
+            log('✅ Unified Auth موجود', 'success');
+            
+            if (window.unifiedAuth.isInitialized) {
+                log('✅ Unified Auth مهيئ', 'success');
+                updateStep(6, 'completed');
+                updateStep(7, 'completed');
+                updateStatus('unified-status', 'جاهز', 'success');
+                return true;
+            } else {
+                log('⚠️ Unified Auth قيد التهيئة', 'warning');
+                updateStep(6, 'running');
+                updateStatus('unified-status', 'قيد التهيئة', 'warning');
+                return false;
+            }
+        }
+
+        function testIntegration() {
+            log('=== اختبار التكامل ===', 'info');
+            
+            const firebaseOk = testFirebaseSDK();
+            const authOk = testFirebaseAuth();
+            const unifiedOk = testUnifiedAuth();
+            
+            if (firebaseOk && authOk && unifiedOk) {
+                log('🎉 جميع الاختبارات نجحت!', 'success');
+            } else {
+                log('❌ فشل في بعض الاختبارات', 'error');
+            }
+        }
+
+        // مراقبة الأحداث
+        window.addEventListener('firebaseReady', () => {
+            log('📡 حدث firebaseReady تم استقباله', 'success');
+            updateStep(5, 'completed');
+        });
+
+        window.addEventListener('unifiedAuthReady', () => {
+            log('📡 حدث unifiedAuthReady تم استقباله', 'success');
+            updateStep(7, 'completed');
+            updateStatus('unified-status', 'جاهز', 'success');
+        });
+
+        // فحص دوري
+        function periodicCheck() {
+            updateQuickInfo();
+            
+            // فحص تلقائي للحالة
+            if (typeof firebase !== 'undefined') {
+                updateStatus('firebase-status', 'جاهز', 'success');
+            }
+            
+            if (window.auth) {
+                updateStatus('auth-status', 'جاهز', 'success');
+            }
+            
+            if (window.unifiedAuth?.isInitialized) {
+                updateStatus('unified-status', 'جاهز', 'success');
+            }
+        }
+
+        // بدء الفحص الأولي
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 بدء الاختبار المتقدم لـ Firebase Auth', 'info');
+            
+            setTimeout(() => {
+                runFullTest();
+            }, 1000);
+            
+            setInterval(periodicCheck, 2000);
+        });
+    </script>
+</body>
+</html>

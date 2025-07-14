@@ -169,14 +169,20 @@ class SmartNotificationManager {
         // تحميل القواعد المخصصة من Firebase
         try {
             if (window.db) {
-                const customRules = await db.collection('notification_rules').get();
+                // استعلام بسيط بدون فهارس معقدة
+                const customRules = await db.collection('notification_rules')
+                    .limit(50)
+                    .get();
+                    
                 customRules.forEach(doc => {
                     const rule = doc.data();
                     this.notificationRules.set(doc.id, rule);
                 });
+                
+                console.log(`تم تحميل ${customRules.size} قاعدة مخصصة`);
             }
         } catch (error) {
-            console.warn('خطأ في تحميل القواعد المخصصة:', error);
+            console.warn('خطأ في تحميل القواعد المخصصة، سيتم استخدام القواعد الافتراضية:', error.message);
         }
     }
 
@@ -698,7 +704,10 @@ class SmartNotificationManager {
     }
 
     async getDepartmentHead(department) {
-        if (!window.db) return null;
+        if (!window.db || !department || department === undefined || department === null) {
+            console.warn('قسم غير صالح للبحث عن رئيس القسم:', department);
+            return null;
+        }
         
         try {
             const query = await db.collection('users')

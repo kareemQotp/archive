@@ -1,0 +1,11 @@
+specVersion: "v1"
+serviceId: "archive21"
+location: "us-central1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "fdcdb"
+      cloudSql:
+        instanceId: "archive21-fdc"
+connectorDirs: ["./connectors"]

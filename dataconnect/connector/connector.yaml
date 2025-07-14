@@ -1,0 +1,7 @@
+connectorId: archive-connector
+generate:
+  javascriptSdk:
+    outputDir: ../../public/assets/js/generated
+    package: "@firebase/archive-connector"
+    packageJsonDir: ../..
+    react: false

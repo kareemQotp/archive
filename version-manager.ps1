@@ -1,7 +1,7 @@
-# نسخة PowerShell من مدير الإصدارات
 # PowerShell Version Manager for Archive System
+# نسخة PowerShell من مدير الإصدارات
 
-# ألوان للعرض
+# Colors for display
 $Color = @{
     Red = "Red"
     Green = "Green" 
@@ -9,7 +9,7 @@ $Color = @{
     Blue = "Cyan"
 }
 
-# دوال الإخراج الملونة
+# Colored output functions
 function Write-Success($message) {
     Write-Host "✅ $message" -ForegroundColor $Color.Green
 }
@@ -26,13 +26,13 @@ function Write-Info($message) {
     Write-Host "ℹ️ $message" -ForegroundColor $Color.Blue
 }
 
-# متغيرات المشروع
+# Project variables
 $BackupDir = "backups"
 $CurrentDate = Get-Date -Format "yyyyMMdd_HHmmss"
 
-# فحص المتطلبات
+# Check requirements
 function Test-Requirements {
-    Write-Info "فحص المتطلبات..."
+    Write-Info "Checking requirements..."
     
     $requirements = @(
         @{Name = "git"; Command = "git --version"},
@@ -46,25 +46,25 @@ function Test-Requirements {
     foreach ($req in $requirements) {
         try {
             $null = Invoke-Expression $req.Command -ErrorAction Stop
-            Write-Success "$($req.Name) متوفر"
+            Write-Success "$($req.Name) available"
         }
         catch {
-            Write-Error "$($req.Name) غير مثبت"
+            Write-Error "$($req.Name) not installed"
             $allGood = $false
         }
     }
     
     if ($allGood) {
-        Write-Success "جميع المتطلبات متوفرة"
+        Write-Success "All requirements are available"
     } else {
-        Write-Error "يرجى تثبيت المتطلبات المفقودة"
+        Write-Error "Please install missing requirements"
         exit 1
     }
 }
 
-# إنشاء نسخة احتياطية
+# Create backup
 function New-Backup {
-    Write-Info "إنشاء نسخة احتياطية..."
+    Write-Info "Creating backup..."
     
     if (!(Test-Path $BackupDir)) {
         New-Item -ItemType Directory -Path $BackupDir | Out-Null
@@ -72,7 +72,7 @@ function New-Backup {
     
     $backupFile = "$BackupDir\backup_$CurrentDate.zip"
     
-    # قائمة الملفات للاستثناء
+    # Files to exclude
     $excludePatterns = @(
         ".git*",
         "node_modules*",
@@ -83,7 +83,7 @@ function New-Backup {
         "*.log"
     )
     
-    # إنشاء ملف مؤقت بقائمة الملفات
+    # Create temp file with file list
     $tempFile = [System.IO.Path]::GetTempFileName()
     Get-ChildItem -Recurse -File | Where-Object {
         $file = $_
@@ -97,14 +97,14 @@ function New-Backup {
         return !$shouldExclude
     } | ForEach-Object { $_.FullName } | Out-File -FilePath $tempFile
     
-    # إنشاء ZIP
+    # Create ZIP
     try {
         $filesToZip = Get-Content $tempFile
         Compress-Archive -Path $filesToZip -DestinationPath $backupFile -Force
-        Write-Success "تم إنشاء النسخة الاحتياطية: $backupFile"
+        Write-Success "Backup created: $backupFile"
     }
     catch {
-        Write-Error "فشل في إنشاء النسخة الاحتياطية: $($_.Exception.Message)"
+        Write-Error "Failed to create backup: $($_.Exception.Message)"
     }
     finally {
         Remove-Item $tempFile -ErrorAction SilentlyContinue

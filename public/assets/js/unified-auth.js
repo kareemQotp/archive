@@ -18,51 +18,73 @@ class UnifiedAuth {
         this.loginAttempts = 0;
         this.maxLoginAttempts = 5;
         this.lockoutDuration = 15 * 60 * 1000; // 15 minutes
-        this.sessionTimeout = 7 * 24 * 60 * 60 * 1000; // 7 days
         this.isInitialized = false;
         
         // Event listeners for auth state changes
         this.authStateListeners = [];
         this.permissionChangeListeners = [];
         
-        this.init();
+        // Initialize asynchronously
+        this.init().catch(error => {
+            console.error('❌ فشل في تهيئة نظام المصادقة:', error);
+        });
     }
 
     async init() {
         try {
+            console.log('🔄 بدء تهيئة نظام المصادقة الموحد...');
+            
             // انتظار تهيئة Firebase
             if (typeof firebase === 'undefined') {
+                console.log('⏳ انتظار تحميل Firebase...');
                 await this.waitForFirebase();
             }
+            console.log('✅ Firebase محمل ومتاح');
 
             // انتظار تهيئة auth
             if (!window.auth) {
+                console.log('⏳ انتظار تهيئة Firebase Auth...');
                 await this.waitForAuth();
             }
+            console.log('✅ Firebase Auth متاح');
 
-            // Set up auth state persistence
-            await window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+            // Set up auth state persistence - Firebase v10 compat mode
+            console.log('Firebase Auth سيحافظ على الجلسة تلقائياً');
             
             // Monitor auth state changes
             window.auth.onAuthStateChanged(async (user) => {
+                console.log('🔄 Auth state changed:', user ? user.email : 'لا يوجد مستخدم');
                 await this.handleAuthStateChange(user);
             });
 
             this.isInitialized = true;
             console.log('✅ نظام المصادقة الموحد تم تهيئته بنجاح');
             
+            // إرسال حدث التهيئة
+            window.dispatchEvent(new CustomEvent('unifiedAuthReady', {
+                detail: { auth: this }
+            }));
+            
         } catch (error) {
-            console.error('فشل في تهيئة نظام المصادقة:', error);
+            console.error('❌ فشل في تهيئة نظام المصادقة:', error);
             this.isInitialized = false;
         }
     }
 
     // انتظار تحميل Firebase
     async waitForFirebase() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 30; // 3 seconds
+            
             const checkFirebase = () => {
+                attempts++;
                 if (typeof firebase !== 'undefined') {
+                    console.log('✅ Firebase SDK متاح');
                     resolve();
+                } else if (attempts >= maxAttempts) {
+                    console.error('❌ انتهت المحاولات - Firebase SDK غير متاح');
+                    reject(new Error('Firebase SDK load timeout'));
                 } else {
                     setTimeout(checkFirebase, 100);
                 }
@@ -73,10 +95,20 @@ class UnifiedAuth {
 
     // انتظار تهيئة Auth
     async waitForAuth() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 50; // 5 seconds
+            
             const checkAuth = () => {
+                attempts++;
+                console.log(`🔍 محاولة ${attempts}/${maxAttempts} - فحص window.auth...`);
+                
                 if (window.auth) {
+                    console.log('✅ window.auth متاح!');
                     resolve();
+                } else if (attempts >= maxAttempts) {
+                    console.error('❌ انتهت المحاولات - window.auth غير متاح');
+                    reject(new Error('Firebase Auth initialization timeout'));
                 } else {
                     setTimeout(checkAuth, 100);
                 }
@@ -84,7 +116,10 @@ class UnifiedAuth {
             
             // الاستماع لحدث firebaseReady
             window.addEventListener('firebaseReady', () => {
-                resolve();
+                console.log('📡 حدث firebaseReady تم استقباله');
+                if (window.auth) {
+                    resolve();
+                }
             });
             
             checkAuth();
@@ -99,6 +134,19 @@ class UnifiedAuth {
                 // Load user profile and permissions
                 await this.loadUserProfile(user.uid);
                 await this.loadUserPermissions(user.uid);
+
+                // إرسال حدث للتكامل مع Data Connect
+                window.dispatchEvent(new CustomEvent('userAuthenticated', {
+                    detail: {
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName,
+                        photoURL: user.photoURL,
+                        emailVerified: user.emailVerified,
+                        profile: this.userProfile,
+                        permissions: this.permissions
+                    }
+                }));
                 await this.updateLastLogin(user.uid);
                 
                 // Notify listeners
@@ -112,6 +160,10 @@ class UnifiedAuth {
             // User signed out
             this.userProfile = null;
             this.permissions = [];
+            
+            // إرسال حدث تسجيل الخروج للتكامل مع Data Connect
+            window.dispatchEvent(new CustomEvent('userSignedOut'));
+            
             this.notifyAuthStateListeners('logout', null);
             console.log('المستخدم غير مسجل دخول');
         }
@@ -573,37 +625,9 @@ class UnifiedAuth {
         }
     }
 
-    // Session Management
-    isSessionValid() {
-        if (!this.currentUser) return false;
-        
-        const lastActivity = localStorage.getItem('lastActivity');
-        if (!lastActivity) return true;
-        
-        const timeSinceActivity = Date.now() - parseInt(lastActivity);
-        return timeSinceActivity < this.sessionTimeout;
-    }
-
-    updateActivity() {
-        localStorage.setItem('lastActivity', Date.now().toString());
-    }
-
     setupActivityTracking() {
-        // Track user activity
-        const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-        events.forEach(event => {
-            document.addEventListener(event, () => this.updateActivity(), true);
-        });
-
-        // Check session validity periodically
-        setInterval(() => {
-            if (this.currentUser && !this.isSessionValid()) {
-                this.signOut().then(() => {
-                    alert('انتهت جلسة العمل. يرجى تسجيل الدخول مرة أخرى.');
-                    this.redirectToLogin();
-                });
-            }
-        }, 60000); // Check every minute
+        // نظام الجلسة معطل - لا حاجة لتتبع النشاط
+        console.log('🔓 نظام الجلسة معطل');
     }
 
     // Getters
@@ -620,7 +644,7 @@ class UnifiedAuth {
     }
 
     get isAuthenticated() {
-        return !!this.currentUser && this.isSessionValid();
+        return !!this.currentUser;
     }
 
     get userRole() {

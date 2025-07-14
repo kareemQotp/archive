@@ -37,6 +37,9 @@
         .dashboard-actions .btn {
             min-width: 140px;
         }
+        .department-dashboards-hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -97,21 +100,43 @@
                     <i class="fas fa-search me-1"></i> البحث
                 </a>
             </div>
+            
+            <!-- Department Dashboards Section -->
+            <div id="departmentDashboards" class="mt-4 department-dashboards-hidden">
+                <h5 class="text-center mb-3">
+                    <i class="fas fa-building me-2"></i>
+                    لوحات الإدارات
+                </h5>
+                <div class="row" id="departmentLinks">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/sidebar.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase v10.7.1 - الإصدار الموحد -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
     <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
     
     <!-- Unified Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-auth.js"></script>
+    
+    <!-- Notification System -->
+    <script src="assets/js/notifications.js"></script>
+    <script src="assets/js/notification-service.js"></script>
+    <script src="assets/js/notification-badge.js"></script>
+    
+    <!-- Department Router -->
+    <script src="assets/js/department-router.js"></script>
     
     <script>
         // Initialize unified auth system
@@ -119,11 +144,16 @@
         let permissionController;
 
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔧 تحميل لوحة التحكم');
+            
             // Wait for unified auth to initialize
             await new Promise(resolve => {
                 const checkAuth = () => {
                     if (window.unifiedAuth && unifiedAuth.isInitialized) {
                         authSystem = unifiedAuth;
+                        
+                        console.log('✅ تم تحميل authSystem');
+                        
                         // Initialize permission controller
                         permissionController = new UIPermissionController(authSystem);
                         resolve();
@@ -142,14 +172,34 @@
 
         async function handleAuthStateChange(user) {
             if (!user) {
-                // Redirect to login with enhanced message
-                window.location.href = 'login.html?message=session-expired';
+                // التوجيه لتسجيل الدخول
+                setTimeout(() => {
+                    if (!authSystem.currentUser && !window.auth?.currentUser) {
+                        console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
+                        window.location.href = 'login.html?message=session-expired';
+                    }
+                }, 2000); // انتظار 2 ثانية للتأكد
                 return;
+            }
+
+            // التحقق من التوجيه التلقائي لوحة الإدارة
+            if (window.departmentRouter) {
+                const wasRedirected = await window.departmentRouter.redirectToDepartmentDashboard();
+                if (wasRedirected) {
+                    return; // توقف هنا إذا تم التوجيه
+                }
             }
 
             // Update user info display with enhanced styling
             const displayName = user.displayName || user.email.split('@')[0];
-            document.getElementById('userInfo').innerHTML = `<i class="fas fa-user me-1"></i> ${displayName}`;
+            const userDepartment = authSystem.userDepartment;
+            const departmentBadge = userDepartment !== 'عام' ? 
+                `<span class="badge bg-primary ms-2">${userDepartment}</span>` : '';
+            
+            document.getElementById('userInfo').innerHTML = `
+                <i class="fas fa-user me-1"></i> ${displayName}
+                ${departmentBadge}
+            `;
             
             // Update sidebar with permission-based navigation
             if (window.sidebarManager) {
@@ -163,6 +213,49 @@
             
             // Load dashboard statistics with enhanced error handling
             await loadDashboardStats();
+            
+            // Load department dashboards for admins
+            await loadDepartmentDashboards();
+        }
+
+        async function loadDepartmentDashboards() {
+            try {
+                // إظهار لوحات الإدارات للمديرين فقط
+                if (authSystem.hasPermission('system.admin') || authSystem.hasPermission('departments.manage')) {
+                    const departmentDashboards = document.getElementById('departmentDashboards');
+                    const departmentLinks = document.getElementById('departmentLinks');
+                    
+                    if (window.departmentRouter) {
+                        const departments = window.departmentRouter.getAllDepartments();
+                        const currentDept = authSystem.userDepartment;
+                        
+                        let departmentHTML = '';
+                        departments.forEach(dept => {
+                            const isCurrentDept = dept.id === currentDept || dept.name === currentDept;
+                            departmentHTML += `
+                                <div class="col-md-4 col-lg-3 mb-3">
+                                    <a href="${dept.dashboard}" class="text-decoration-none">
+                                        <div class="card h-100 ${isCurrentDept ? 'border-primary' : ''}" 
+                                             style="border-right: 4px solid ${dept.color};">
+                                            <div class="card-body text-center">
+                                                <i class="${dept.icon} fa-2x mb-2" style="color: ${dept.color};"></i>
+                                                <h6 class="card-title">${dept.name}</h6>
+                                                <small class="text-muted">${dept.description}</small>
+                                                ${isCurrentDept ? '<div class="badge bg-primary mt-2">إدارتك</div>' : ''}
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                            `;
+                        });
+                        
+                        departmentLinks.innerHTML = departmentHTML;
+                        departmentDashboards.classList.remove('department-dashboards-hidden');
+                    }
+                }
+            } catch (error) {
+                console.warn('لا يمكن تحميل لوحات الإدارات:', error);
+            }
         }
 
         async function loadDashboardStats() {

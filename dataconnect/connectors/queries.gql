@@ -1,0 +1,134 @@
+# Archive System Queries
+
+query GetUserProfile($userId: String!) @auth(level: USER) {
+  users(where: { id: { eq: $userId } }) {
+    id
+    email
+    displayName
+    phoneNumber
+    photoURL
+    role
+    isActive
+    lastLogin
+    createdAt
+    department {
+      id
+      nameAr
+      nameEn
+      color
+    }
+  }
+}
+
+query GetAllDepartments @auth(level: PUBLIC) {
+  departments(where: { isActive: { eq: true } }) {
+    id
+    nameAr
+    nameEn
+    description
+    color
+    createdAt
+  }
+}
+
+query GetFilesByDepartment($departmentId: String!, $limit: Int = 50) @auth(level: USER) {
+  fileDocuments(
+    where: { departmentId: { eq: $departmentId } }
+    orderBy: { createdAt: DESC }
+    limit: $limit
+  ) {
+    id
+    fileName
+    originalName
+    title
+    description
+    category
+    status
+    priority
+    qrCode
+    fileSize
+    createdAt
+    updatedAt
+    uploadedBy {
+      displayName
+      email
+    }
+    department {
+      nameAr
+      color
+    }
+  }
+}
+
+query SearchFiles($searchTerm: String!, $limit: Int = 50) @auth(level: USER) {
+  fileDocuments(
+    where: { 
+      _or: [
+        { title: { contains: $searchTerm } }
+        { fileName: { contains: $searchTerm } }
+        { description: { contains: $searchTerm } }
+      ]
+    }
+    orderBy: { createdAt: DESC }
+    limit: $limit
+  ) {
+    id
+    fileName
+    title
+    description
+    category
+    status
+    priority
+    createdAt
+    department {
+      nameAr
+    }
+    uploadedBy {
+      displayName
+    }
+  }
+}
+
+query GetUserActivities($userId: String!, $limit: Int = 20) @auth(level: USER) {
+  activityLogs(
+    where: { userId: { eq: $userId } }
+    orderBy: { timestamp: DESC }
+    limit: $limit
+  ) {
+    id
+    action
+    entityType
+    entityId
+    details
+    timestamp
+    severity
+    ipAddress
+  }
+}
+
+query GetUserNotifications($userId: String!, $limit: Int = 50) @auth(level: USER) {
+  notifications(
+    where: { 
+      _and: [
+        { userId: { eq: $userId } }
+        { isArchived: { eq: false } }
+      ]
+    }
+    orderBy: { createdAt: DESC }
+    limit: $limit
+  ) {
+    id
+    title
+    message
+    type
+    category
+    isRead
+    createdAt
+    readAt
+    expiresAt
+    actionUrl
+    actionLabel
+    relatedEntityType
+    relatedEntityId
+  }
+}

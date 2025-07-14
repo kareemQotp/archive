@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار Firebase Auth</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status-badge {
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin: 5px 0;
+            display: inline-block;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .loading { background-color: #e2e3e5; color: #495057; }
+        .log-output {
+            background-color: #212529;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+            border: 1px solid #343a40;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-shield-alt"></i> اختبار Firebase Auth</h4>
+            </div>
+            <div class="card-body">
+                
+                <!-- حالة النظام -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5>حالة المكونات:</h5>
+                        <div class="mb-2">
+                            <strong>Firebase SDK:</strong>
+                            <span id="firebase-status" class="status-badge loading">جاري التحقق...</span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Firebase Auth:</strong>
+                            <span id="auth-status" class="status-badge loading">جاري التحقق...</span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Unified Auth:</strong>
+                            <span id="unified-auth-status" class="status-badge loading">جاري التحقق...</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>معلومات المستخدم:</h5>
+                        <div id="user-info">
+                            <p class="text-muted">لا يوجد مستخدم مسجل دخول</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- أزرار الاختبار -->
+                <div class="mb-4">
+                    <h5>اختبارات المصادقة:</h5>
+                    <button class="btn btn-primary btn-sm me-2" onclick="testFirebaseConnection()">
+                        <i class="fas fa-link"></i> اختبار اتصال Firebase
+                    </button>
+                    <button class="btn btn-success btn-sm me-2" onclick="testAuthInitialization()">
+                        <i class="fas fa-play"></i> اختبار تهيئة Auth
+                    </button>
+                    <button class="btn btn-info btn-sm me-2" onclick="testAuthState()">
+                        <i class="fas fa-user"></i> فحص حالة المستخدم
+                    </button>
+                    <button class="btn btn-secondary btn-sm me-2" onclick="clearLogs()">
+                        <i class="fas fa-trash"></i> مسح السجلات
+                    </button>
+                </div>
+
+                <!-- سجل الأحداث -->
+                <div>
+                    <h5>سجل الأحداث:</h5>
+                    <div id="log-output" class="log-output"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Archive Scripts -->
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        let logCount = 0;
+
+        // دالة لإضافة السجلات
+        function addLog(message, type = 'info') {
+            const logOutput = document.getElementById('log-output');
+            const timestamp = new Date().toLocaleTimeString('ar-EG');
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            
+            logCount++;
+            const logLine = `[${timestamp}] ${prefix} ${message}\n`;
+            logOutput.textContent += logLine;
+            logOutput.scrollTop = logOutput.scrollHeight;
+            
+            // طباعة في console أيضاً
+            console.log(`[Auth Test] ${message}`);
+        }
+
+        // مسح السجلات
+        function clearLogs() {
+            document.getElementById('log-output').textContent = '';
+            logCount = 0;
+            addLog('تم مسح السجلات');
+        }
+
+        // فحص حالة المكونات
+        function checkComponentStatus() {
+            // Firebase SDK
+            const firebaseStatus = document.getElementById('firebase-status');
+            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                firebaseStatus.textContent = 'متصل';
+                firebaseStatus.className = 'status-badge success';
+                addLog('Firebase SDK محمل ومتصل', 'success');
+            } else {
+                firebaseStatus.textContent = 'غير متصل';
+                firebaseStatus.className = 'status-badge error';
+                addLog('Firebase SDK غير محمل أو غير متصل', 'error');
+            }
+
+            // Firebase Auth
+            const authStatus = document.getElementById('auth-status');
+            if (typeof window.auth !== 'undefined' && window.auth) {
+                authStatus.textContent = 'جاهز';
+                authStatus.className = 'status-badge success';
+                addLog('Firebase Auth جاهز ومتاح', 'success');
+            } else {
+                authStatus.textContent = 'غير جاهز';
+                authStatus.className = 'status-badge error';
+                addLog('Firebase Auth غير جاهز أو غير متاح', 'error');
+            }
+
+            // Unified Auth
+            const unifiedAuthStatus = document.getElementById('unified-auth-status');
+            if (typeof window.unifiedAuth !== 'undefined') {
+                if (window.unifiedAuth.isInitialized) {
+                    unifiedAuthStatus.textContent = 'جاهز';
+                    unifiedAuthStatus.className = 'status-badge success';
+                    addLog('Unified Auth مهيئ وجاهز', 'success');
+                } else {
+                    unifiedAuthStatus.textContent = 'قيد التهيئة';
+                    unifiedAuthStatus.className = 'status-badge warning';
+                    addLog('Unified Auth قيد التهيئة...', 'warning');
+                }
+            } else {
+                unifiedAuthStatus.textContent = 'غير متوفر';
+                unifiedAuthStatus.className = 'status-badge error';
+                addLog('Unified Auth غير متوفر', 'error');
+            }
+        }
+
+        // اختبار اتصال Firebase
+        function testFirebaseConnection() {
+            addLog('--- بدء اختبار اتصال Firebase ---');
+            
+            try {
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK غير محمل');
+                }
+
+                addLog(`Firebase موجود: ${!!firebase}`, 'success');
+                addLog(`عدد التطبيقات المهيئة: ${firebase.apps?.length || 0}`);
+                
+                if (firebase.apps.length > 0) {
+                    const app = firebase.apps[0];
+                    addLog(`اسم التطبيق: ${app.name}`);
+                    addLog(`إعدادات التطبيق: ${JSON.stringify(app.options, null, 2)}`);
+                }
+
+                addLog('--- انتهى اختبار اتصال Firebase ---', 'success');
+            } catch (error) {
+                addLog(`خطأ في اختبار Firebase: ${error.message}`, 'error');
+            }
+        }
+
+        // اختبار تهيئة Auth
+        function testAuthInitialization() {
+            addLog('--- بدء اختبار تهيئة Auth ---');
+            
+            try {
+                // فحص window.auth
+                addLog(`window.auth موجود: ${!!window.auth}`);
+                
+                if (window.auth) {
+                    addLog(`Firebase Auth app: ${window.auth.app?.name || 'unknown'}`);
+                    addLog(`Firebase Auth currentUser: ${window.auth.currentUser?.email || 'لا يوجد'}`);
+                    
+                    // فحص الطرق المتاحة
+                    const authMethods = Object.getOwnPropertyNames(window.auth.__proto__);
+                    addLog(`Auth methods available: ${authMethods.slice(0, 5).join(', ')}...`);
+                }
+
+                // فحص window.unifiedAuth
+                addLog(`window.unifiedAuth موجود: ${!!window.unifiedAuth}`);
+                
+                if (window.unifiedAuth) {
+                    addLog(`Unified Auth initialized: ${window.unifiedAuth.isInitialized}`);
+                    addLog(`Current user: ${window.unifiedAuth.currentUser?.email || 'لا يوجد'}`);
+                    addLog(`Login attempts: ${window.unifiedAuth.loginAttempts}`);
+                }
+
+                addLog('--- انتهى اختبار تهيئة Auth ---', 'success');
+            } catch (error) {
+                addLog(`خطأ في اختبار تهيئة Auth: ${error.message}`, 'error');
+            }
+        }
+
+        // اختبار حالة المستخدم
+        function testAuthState() {
+            addLog('--- بدء اختبار حالة المستخدم ---');
+            
+            try {
+                if (!window.auth) {
+                    throw new Error('Firebase Auth غير متاح');
+                }
+
+                const user = window.auth.currentUser;
+                
+                if (user) {
+                    addLog(`المستخدم مسجل دخول:`, 'success');
+                    addLog(`  - UID: ${user.uid}`);
+                    addLog(`  - Email: ${user.email}`);
+                    addLog(`  - Display Name: ${user.displayName || 'غير محدد'}`);
+                    addLog(`  - Email Verified: ${user.emailVerified}`);
+                    addLog(`  - Creation Time: ${user.metadata.creationTime}`);
+                    addLog(`  - Last Sign In: ${user.metadata.lastSignInTime}`);
+                } else {
+                    addLog('لا يوجد مستخدم مسجل دخول', 'warning');
+                }
+
+                addLog('--- انتهى اختبار حالة المستخدم ---', 'success');
+            } catch (error) {
+                addLog(`خطأ في اختبار حالة المستخدم: ${error.message}`, 'error');
+            }
+        }
+
+        // تحديث معلومات المستخدم
+        function updateUserInfo() {
+            const userInfoElement = document.getElementById('user-info');
+            
+            try {
+                if (window.auth && window.auth.currentUser) {
+                    const user = window.auth.currentUser;
+                    userInfoElement.innerHTML = `
+                        <p><strong>البريد الإلكتروني:</strong> ${user.email}</p>
+                        <p><strong>الاسم:</strong> ${user.displayName || 'غير محدد'}</p>
+                        <p><strong>التحقق:</strong> ${user.emailVerified ? 'تم التحقق' : 'لم يتم التحقق'}</p>
+                        <p><strong>آخر دخول:</strong> ${user.metadata.lastSignInTime}</p>
+                    `;
+                } else {
+                    userInfoElement.innerHTML = '<p class="text-muted">لا يوجد مستخدم مسجل دخول</p>';
+                }
+            } catch (error) {
+                userInfoElement.innerHTML = `<p class="text-danger">خطأ: ${error.message}</p>`;
+            }
+        }
+
+        // مراقبة تغييرات حالة المصادقة
+        if (typeof window !== 'undefined') {
+            window.addEventListener('userAuthenticated', (event) => {
+                addLog(`حدث userAuthenticated تم استقباله: ${event.detail?.email}`, 'success');
+                updateUserInfo();
+            });
+
+            window.addEventListener('userSignedOut', () => {
+                addLog('حدث userSignedOut تم استقباله', 'warning');
+                updateUserInfo();
+            });
+        }
+
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('=== بدء اختبار Firebase Auth ===');
+            addLog('DOM محمل، بدء الفحوصات...');
+            
+            // فحص فوري
+            setTimeout(() => {
+                checkComponentStatus();
+                updateUserInfo();
+            }, 1000);
+
+            // فحص دوري
+            setInterval(() => {
+                checkComponentStatus();
+                updateUserInfo();
+            }, 5000);
+
+            addLog('تم تعيين الفحوصات الدورية');
+        });
+    </script>
+</body>
+</html>

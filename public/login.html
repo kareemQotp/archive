@@ -410,6 +410,24 @@
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
+        .alert-info {
+            background: linear-gradient(135deg, 
+                rgba(102, 126, 234, 0.9) 0%, 
+                rgba(118, 75, 162, 0.9) 100%
+            );
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, 
+                rgba(255, 193, 7, 0.9) 0%, 
+                rgba(255, 152, 0, 0.9) 100%
+            );
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
         .spinner-border {
             width: 1rem;
             height: 1rem;
@@ -516,8 +534,6 @@
                         نسيت كلمة المرور؟
                     </a>
                 </div>
-                    </span>
-                </button>
 
                 <a href="index.html" class="btn btn-outline-secondary">
                     <i class="fas fa-home me-2"></i>
@@ -542,12 +558,15 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/sidebar.js"></script>
     
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-functions-compat.js"></script>
+    <!-- Firebase v10.7.1 - الإصدار الموحد -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
     <script src="assets/js/unified-auth.js"></script>
 
@@ -571,17 +590,10 @@
 
             // Check if user is already logged in
             if (authSystem.isAuthenticated) {
-                console.log('User already logged in, redirecting...');
+                console.log('المستخدم مسجل دخول مسبقاً، جاري التوجيه...');
                 window.location.href = 'dashboard.html';
                 return;
             }
-
-            // Initialize sidebar for non-authenticated state
-            setTimeout(() => {
-                if (window.sidebarManager) {
-                    window.sidebarManager.updateSidebarNav(false);
-                }
-            }, 100);
 
             // Check for URL parameters and show messages
             handleUrlMessages();
@@ -605,7 +617,7 @@
                 console.log('Login successful:', result);
                 showAlert('تم تسجيل الدخول بنجاح! جاري الانتقال...', 'success');
                 
-                // Redirect after successful login with improved logic
+                // Redirect after successful login
                 setTimeout(() => {
                     // Try to redirect to saved page first
                     const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
@@ -614,14 +626,14 @@
                         !redirectUrl.includes('login.html') &&
                         !redirectUrl.includes('register.html')) {
                         sessionStorage.removeItem('redirectAfterLogin');
-                        console.log('Redirecting to saved URL:', redirectUrl);
+                        console.log('توجيه لصفحة محفوظة:', redirectUrl);
                         window.location.href = redirectUrl;
                     } else {
                         // Default redirect to dashboard
-                        console.log('Redirecting to dashboard');
+                        console.log('توجيه لوحة التحكم');
                         window.location.href = 'dashboard.html';
                     }
-                }, 1000); // Reduced time to 1 second
+                }, 1000);
                 
             } catch (error) {
                 showLoading(false);
@@ -667,11 +679,11 @@
             } else if (message === 'registration-pending') {
                 showAlert('تم إنشاء حسابك بنجاح! حسابك في انتظار موافقة مدير النظام. ستتمكن من تسجيل الدخول بعد الموافقة على حسابك.', 'info');
                 window.history.replaceState({}, document.title, window.location.pathname);
-            } else if (message === 'session-expired') {
-                showAlert('انتهت صلاحية جلسة العمل. يرجى تسجيل الدخول مرة أخرى.', 'warning');
-                window.history.replaceState({}, document.title, window.location.pathname);
             } else if (message === 'permission-denied') {
                 showAlert('ليس لديك صلاحية للوصول إلى هذه الصفحة.', 'warning');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (message === 'logout') {
+                showAlert('تم تسجيل الخروج بنجاح.', 'info');
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
@@ -694,9 +706,26 @@
 
         function showAlert(message, type) {
             const alertContainer = document.getElementById('alertContainer');
+            let icon = 'exclamation-circle';
+            
+            switch(type) {
+                case 'success':
+                    icon = 'check-circle';
+                    break;
+                case 'info':
+                    icon = 'info-circle';
+                    break;
+                case 'warning':
+                    icon = 'exclamation-triangle';
+                    break;
+                case 'danger':
+                    icon = 'times-circle';
+                    break;
+            }
+            
             const alertHtml = `
                 <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                    <i class="fas fa-${icon} me-2"></i>
                     ${message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
@@ -733,7 +762,6 @@
                 this.classList.add('is-valid');
             }
         });
-
     </script>
 </body>
 </html>

@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم إدارة التحصيل - نظام الأرشيف</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
+    <style>
+        .department-header {
+            background: linear-gradient(135deg, #DC143C 0%, #FF6347 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 20px 20px;
+        }
+        
+        .department-logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        
+        .dashboard-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 1.5rem 0;
+            border-right: 5px solid #DC143C;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #DC143C 0%, #FF6347 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 2rem 1rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-box .fa {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .quick-action-btn {
+            background: linear-gradient(135deg, #DC143C 0%, #FF6347 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            color: white;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 20, 60, 0.3);
+            color: white;
+        }
+        
+        .collection-feature {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-right: 4px solid #DC143C;
+        }
+        
+        .collection-feature h5 {
+            color: #DC143C;
+            margin-bottom: 0.5rem;
+        }
+        
+        .debt-item {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-right: 3px solid #DC143C;
+            transition: background 0.3s ease;
+        }
+        
+        .debt-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .debt-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .debt-status.overdue {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .debt-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .debt-status.collected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .debt-status.in-progress {
+            background: #cce7ff;
+            color: #004085;
+        }
+        
+        .amount-large {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #DC143C;
+        }
+        
+        .amount-currency {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: normal;
+        }
+        
+        .breadcrumb {
+            background: rgba(220, 20, 60, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .breadcrumb-item.active {
+            color: #DC143C;
+        }
+        
+        .priority-urgent {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .priority-high {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+        
+        .priority-normal {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .target-progress {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 10px;
+            overflow: hidden;
+        }
+        
+        .target-progress-bar {
+            background: linear-gradient(135deg, #DC143C 0%, #FF6347 100%);
+            height: 100%;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-archive me-2"></i>
+                    نظام الأرشيف
+                </a>
+            </div>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userInfo"></span>
+                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    خروج
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Department Header -->
+    <div class="department-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="department-logo">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                </div>
+                <div class="col">
+                    <h1 class="mb-1">إدارة التحصيل</h1>
+                    <p class="mb-0 opacity-75">متابعة وتحصيل المستحقات والديون</p>
+                </div>
+                <div class="col-auto">
+                    <div class="text-end">
+                        <div class="h4 mb-0" id="departmentUserCount">0</div>
+                        <small>مستخدم نشط</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="dashboard.html">الرئيسية</a></li>
+                <li class="breadcrumb-item active" aria-current="page">إدارة التحصيل</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            <!-- Statistics -->
+            <div class="col-12">
+                <div class="dashboard-card">
+                    <h3 class="mb-4">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        إحصائيات التحصيل
+                    </h3>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <i class="fa fa-money-bill-wave"></i>
+                                <div class="h3 mb-0" id="statTotalDebts">0</div>
+                                <div class="stat-title">إجمالي الديون</div>
+                                <small class="amount-currency">مليون جنيه</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <i class="fa fa-clock"></i>
+                                <div class="h3 mb-0" id="statOverdueDebts">0</div>
+                                <div class="stat-title">الديون المتأخرة</div>
+                                <small class="amount-currency">مليون جنيه</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <i class="fa fa-check-circle"></i>
+                                <div class="h3 mb-0" id="statCollectedMonth">0</div>
+                                <div class="stat-title">المحصل هذا الشهر</div>
+                                <small class="amount-currency">مليون جنيه</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <i class="fa fa-percentage"></i>
+                                <div class="h3 mb-0" id="statCollectionRate">0%</div>
+                                <div class="stat-title">معدل التحصيل</div>
+                                <small class="amount-currency">هذا الشهر</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collection Target Progress -->
+            <div class="col-12">
+                <div class="dashboard-card">
+                    <h4 class="mb-3">
+                        <i class="fas fa-target me-2"></i>
+                        تقدم الهدف الشهري
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>الهدف المحقق</span>
+                                <span class="amount-large" id="targetProgress">0%</span>
+                            </div>
+                            <div class="target-progress">
+                                <div class="target-progress-bar" id="targetProgressBar"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <small class="text-muted">المحصل: <span id="collectedAmount">0</span> مليون جنيه</small>
+                                <small class="text-muted">الهدف: <span id="targetAmount">100</span> مليون جنيه</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="h2 text-success" id="daysLeft">30</div>
+                            <small class="text-muted">يوم متبقي</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="col-md-6">
+                <div class="dashboard-card">
+                    <h4 class="mb-3">
+                        <i class="fas fa-bolt me-2"></i>
+                        الإجراءات السريعة
+                    </h4>
+                    <div class="row">
+                        <div class="col-6">
+                            <a href="debt-management.html" class="quick-action-btn">
+                                <i class="fas fa-list me-2"></i>
+                                إدارة الديون
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="payment-tracking.html" class="quick-action-btn">
+                                <i class="fas fa-credit-card me-2"></i>
+                                تتبع المدفوعات
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="debtor-contacts.html" class="quick-action-btn">
+                                <i class="fas fa-phone me-2"></i>
+                                الاتصال بالمدينين
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="collection-reports.html" class="quick-action-btn">
+                                <i class="fas fa-chart-line me-2"></i>
+                                تقارير التحصيل
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Department Features -->
+            <div class="col-md-6">
+                <div class="dashboard-card">
+                    <h4 class="mb-3">
+                        <i class="fas fa-cogs me-2"></i>
+                        خدمات الإدارة
+                    </h4>
+                    <div class="collection-feature">
+                        <h5>خطط السداد</h5>
+                        <p class="mb-2">إنشاء ومتابعة خطط السداد المرنة</p>
+                        <a href="payment-plans.html" class="btn btn-sm btn-outline-danger">الدخول</a>
+                    </div>
+                    <div class="collection-feature">
+                        <h5>الإجراءات القانونية</h5>
+                        <p class="mb-2">متابعة الإجراءات القانونية للتحصيل</p>
+                        <a href="legal-actions.html" class="btn btn-sm btn-outline-danger">الدخول</a>
+                    </div>
+                    <div class="collection-feature">
+                        <h5>تحليل المخاطر</h5>
+                        <p class="mb-2">تقييم مخاطر عدم السداد والإنذار المبكر</p>
+                        <a href="risk-analysis.html" class="btn btn-sm btn-outline-danger">الدخول</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Urgent Collections -->
+            <div class="col-12">
+                <div class="dashboard-card">
+                    <h4 class="mb-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        الديون العاجلة والمتأخرة
+                    </h4>
+                    <div id="urgentDebts">
+                        <!-- Will be populated by JavaScript -->
+                        <div class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            جاري تحميل الديون العاجلة...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/sidebar.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    
+    <!-- Authentication System -->
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    
+    <!-- Notification System -->
+    <script src="assets/js/notifications.js"></script>
+    <script src="assets/js/notification-service.js"></script>
+    <script src="assets/js/notification-badge.js"></script>
+    
+    <script>
+        let authSystem;
+        let permissionController;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔧 تحميل لوحة تحكم إدارة التحصيل');
+            
+            // Wait for unified auth to initialize
+            await new Promise(resolve => {
+                const checkAuth = () => {
+                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                        authSystem = unifiedAuth;
+                        permissionController = new UIPermissionController(authSystem);
+                        resolve();
+                    } else {
+                        setTimeout(checkAuth, 100);
+                    }
+                };
+                checkAuth();
+            });
+
+            // Set up auth state listener
+            authSystem.onAuthStateChanged(async (user) => {
+                await handleAuthStateChange(user);
+            });
+        });
+
+        async function handleAuthStateChange(user) {
+            if (!user) {
+                setTimeout(() => {
+                    if (!authSystem.currentUser && !window.auth?.currentUser) {
+                        console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
+                        window.location.href = 'login.html?message=session-expired';
+                    }
+                }, 2000);
+                return;
+            }
+
+            // Check if user belongs to Collection department
+            const userDepartment = authSystem.userDepartment;
+            if (userDepartment !== 'collection' && userDepartment !== 'إدارة التحصيل') {
+                console.log('❌ المستخدم لا ينتمي لإدارة التحصيل، التوجيه للوحة العامة');
+                window.location.href = 'dashboard.html?message=wrong-department';
+                return;
+            }
+
+            // Update user info display
+            const displayName = user.displayName || user.email.split('@')[0];
+            document.getElementById('userInfo').innerHTML = `
+                <i class="fas fa-user me-1"></i> ${displayName}
+                <span class="badge bg-danger ms-2">إدارة التحصيل</span>
+            `;
+            
+            // Update sidebar
+            if (window.sidebarManager) {
+                window.sidebarManager.updateSidebarNav(true);
+            }
+
+            // Update permission-based UI
+            if (permissionController) {
+                permissionController.updateUI();
+            }
+            
+            // Load department-specific data
+            await loadCollectionDashboardData();
+        }
+
+        async function loadCollectionDashboardData() {
+            try {
+                // Load department statistics
+                await loadDepartmentStats();
+                
+                // Load urgent debts
+                await loadUrgentDebts();
+                
+                // Load department user count
+                await loadDepartmentUserCount();
+                
+                // Load target progress
+                await loadTargetProgress();
+                
+            } catch (error) {
+                console.error('خطأ في تحميل بيانات لوحة التحصيل:', error);
+            }
+        }
+
+        async function loadDepartmentStats() {
+            try {
+                // Total debts amount
+                const debtsQuery = authSystem.db.collection('collection_records')
+                    .where('department', '==', 'collection')
+                    .where('status', 'in', ['pending', 'overdue', 'in-progress']);
+                const debtsSnap = await debtsQuery.get();
+                
+                let totalDebts = 0;
+                let overdueDebts = 0;
+                debtsSnap.forEach(doc => {
+                    const debt = doc.data();
+                    const amount = debt.amount || 0;
+                    totalDebts += amount;
+                    if (debt.status === 'overdue') {
+                        overdueDebts += amount;
+                    }
+                });
+                
+                document.getElementById('statTotalDebts').textContent = (totalDebts / 1000000).toFixed(1);
+                document.getElementById('statOverdueDebts').textContent = (overdueDebts / 1000000).toFixed(1);
+
+                // Collected this month
+                const thisMonth = new Date();
+                thisMonth.setDate(1);
+                thisMonth.setHours(0, 0, 0, 0);
+                
+                const collectedQuery = authSystem.db.collection('collection_records')
+                    .where('department', '==', 'collection')
+                    .where('status', '==', 'collected')
+                    .where('collectionDate', '>=', thisMonth);
+                const collectedSnap = await collectedQuery.get();
+                
+                let collectedMonth = 0;
+                collectedSnap.forEach(doc => {
+                    const payment = doc.data();
+                    collectedMonth += payment.amount || 0;
+                });
+                
+                document.getElementById('statCollectedMonth').textContent = (collectedMonth / 1000000).toFixed(1);
+
+                // Collection rate calculation
+                const totalTargetMonth = 100000000; // 100 million as example target
+                const collectionRate = totalTargetMonth > 0 ? (collectedMonth / totalTargetMonth * 100).toFixed(1) : 0;
+                document.getElementById('statCollectionRate').textContent = collectionRate;
+
+            } catch (error) {
+                console.warn('لا يمكن تحميل إحصائيات الإدارة:', error);
+                // Set default values
+                document.getElementById('statTotalDebts').textContent = '0';
+                document.getElementById('statOverdueDebts').textContent = '0';
+                document.getElementById('statCollectedMonth').textContent = '0';
+                document.getElementById('statCollectionRate').textContent = '0';
+            }
+        }
+
+        async function loadTargetProgress() {
+            try {
+                // Example target calculation
+                const monthlyTarget = 100; // 100 million
+                const collectedThisMonth = parseFloat(document.getElementById('statCollectedMonth').textContent) || 0;
+                
+                const progressPercentage = (collectedThisMonth / monthlyTarget * 100).toFixed(1);
+                
+                document.getElementById('targetProgress').textContent = `${progressPercentage}%`;
+                document.getElementById('targetProgressBar').style.width = `${Math.min(progressPercentage, 100)}%`;
+                document.getElementById('collectedAmount').textContent = collectedThisMonth;
+                document.getElementById('targetAmount').textContent = monthlyTarget;
+                
+                // Calculate days left in month
+                const now = new Date();
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                const daysLeft = Math.max(0, lastDay.getDate() - now.getDate());
+                document.getElementById('daysLeft').textContent = daysLeft;
+                
+            } catch (error) {
+                console.warn('لا يمكن تحميل تقدم الهدف:', error);
+            }
+        }
+
+        async function loadDepartmentUserCount() {
+            try {
+                const usersQuery = authSystem.db.collection('users')
+                    .where('department', '==', 'collection');
+                const usersSnap = await usersQuery.get();
+                document.getElementById('departmentUserCount').textContent = usersSnap.size;
+            } catch (error) {
+                console.warn('لا يمكن تحميل عدد المستخدمين:', error);
+                document.getElementById('departmentUserCount').textContent = '0';
+            }
+        }
+
+        async function loadUrgentDebts() {
+            try {
+                // Get overdue and high priority debts
+                const urgentQuery = authSystem.db.collection('collection_records')
+                    .where('department', '==', 'collection')
+                    .where('status', 'in', ['overdue', 'urgent'])
+                    .orderBy('amount', 'desc')
+                    .limit(8);
+                
+                const urgentSnap = await urgentQuery.get();
+                const urgentContainer = document.getElementById('urgentDebts');
+                
+                if (urgentSnap.empty) {
+                    urgentContainer.innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-check-circle me-2"></i>
+                            لا توجد ديون عاجلة حالياً
+                        </div>
+                    `;
+                    return;
+                }
+
+                let debtsHTML = '';
+                urgentSnap.forEach(doc => {
+                    const debt = doc.data();
+                    const dueDate = debt.dueDate?.toDate();
+                    const dueDateStr = dueDate ? 
+                        dueDate.toLocaleDateString('ar-EG', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                        }) : 'غير محدد';
+
+                    const daysOverdue = dueDate ? 
+                        Math.floor((new Date() - dueDate) / (1000 * 60 * 60 * 24)) : null;
+                    
+                    let priorityClass = 'priority-normal';
+                    let priorityText = 'عادي';
+                    if (daysOverdue !== null && daysOverdue > 0) {
+                        if (daysOverdue > 90) {
+                            priorityClass = 'priority-urgent';
+                            priorityText = 'عاجل جداً';
+                        } else if (daysOverdue > 30) {
+                            priorityClass = 'priority-high';
+                            priorityText = 'عاجل';
+                        }
+                    }
+
+                    const formattedAmount = (debt.amount / 1000000).toFixed(2);
+
+                    debtsHTML += `
+                        <div class="debt-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">${debt.debtorName || 'مدين غير محدد'}</h6>
+                                    <p class="mb-1 text-muted small">${debt.description || 'دين بدون وصف'}</p>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="debt-status ${debt.status || 'pending'}">${getDebtStatusText(debt.status)}</span>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            استحقاق: ${dueDateStr}
+                                        </small>
+                                        <span class="${priorityClass}">${priorityText}</span>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="amount-large">
+                                        ${formattedAmount}
+                                        <span class="amount-currency">م.ج</span>
+                                    </div>
+                                    ${daysOverdue > 0 ? `
+                                        <small class="text-danger">
+                                            متأخر ${daysOverdue} يوم
+                                        </small>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                urgentContainer.innerHTML = debtsHTML;
+
+            } catch (error) {
+                console.warn('لا يمكن تحميل الديون العاجلة:', error);
+                document.getElementById('urgentDebts').innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        خطأ في تحميل الديون العاجلة
+                    </div>
+                `;
+            }
+        }
+
+        function getDebtStatusText(status) {
+            const statusTexts = {
+                'pending': 'قيد الانتظار',
+                'overdue': 'متأخر',
+                'in-progress': 'قيد التحصيل',
+                'collected': 'تم التحصيل',
+                'written-off': 'شطب',
+                'legal-action': 'إجراء قانوني'
+            };
+            return statusTexts[status] || status;
+        }
+
+        async function logout() {
+            try {
+                await authSystem.signOut();
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('خطأ في تسجيل الخروج:', error);
+                alert('حدث خطأ أثناء تسجيل الخروج');
+            }
+        }
+    </script>
+</body>
+</html>
+

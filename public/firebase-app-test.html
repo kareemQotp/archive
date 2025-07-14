@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase App Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .log { background: #000; color: #fff; padding: 15px; height: 400px; overflow-y: auto; font-family: monospace; font-size: 14px; }
+        .status { padding: 8px; margin: 8px; display: inline-block; border-radius: 4px; }
+        .ok { background: #28a745; color: white; }
+        .fail { background: #dc3545; color: white; }
+        .wait { background: #ffc107; color: black; }
+        .test-section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Firebase App Initialization Test</h1>
+    
+    <div class="test-section">
+        <h3>📊 حالة المكونات:</h3>
+        Firebase SDK: <span id="sdk-status" class="status wait">فحص...</span>
+        Firebase Apps: <span id="apps-status" class="status wait">فحص...</span>
+        window.auth: <span id="auth-status" class="status wait">فحص...</span>
+        <br><br>
+        <button onclick="testFirebaseSDK()">اختبار Firebase SDK</button>
+        <button onclick="testInitialization()">اختبار التهيئة</button>
+        <button onclick="manualInit()">تهيئة يدوية</button>
+        <button onclick="clearLog()">مسح السجل</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>📋 سجل التفاصيل:</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Archive Scripts -->
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+
+    <script>
+        const logDiv = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const colors = { info: '#17a2b8', success: '#28a745', error: '#dc3545', warning: '#ffc107' };
+            const color = colors[type] || colors.info;
+            
+            logDiv.innerHTML += `<div style="color: ${color}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[Firebase Test] ${message}`);
+        }
+
+        function updateStatus(id, text, className) {
+            const element = document.getElementById(id);
+            element.textContent = text;
+            element.className = `status ${className}`;
+        }
+
+        function clearLog() {
+            logDiv.innerHTML = '';
+            log('سجل جديد', 'info');
+        }
+
+        function checkAll() {
+            // Firebase SDK
+            if (typeof firebase !== 'undefined') {
+                updateStatus('sdk-status', 'محمّل', 'ok');
+                log('✅ Firebase SDK محمّل', 'success');
+            } else {
+                updateStatus('sdk-status', 'غير محمّل', 'fail');
+                log('❌ Firebase SDK غير محمّل', 'error');
+                return;
+            }
+
+            // Firebase Apps
+            const appsCount = firebase.apps.length;
+            if (appsCount > 0) {
+                updateStatus('apps-status', `${appsCount} تطبيق`, 'ok');
+                log(`✅ Firebase Apps: ${appsCount}`, 'success');
+                
+                // تفاصيل التطبيق
+                const app = firebase.apps[0];
+                log(`📱 اسم التطبيق: ${app.name}`, 'info');
+                log(`📱 معرف المشروع: ${app.options.projectId}`, 'info');
+            } else {
+                updateStatus('apps-status', 'لا يوجد', 'fail');
+                log('❌ لا توجد تطبيقات Firebase مهيئة', 'error');
+            }
+
+            // window.auth
+            if (window.auth) {
+                updateStatus('auth-status', 'جاهز', 'ok');
+                log('✅ window.auth جاهز', 'success');
+            } else {
+                updateStatus('auth-status', 'غير جاهز', 'fail');
+                log('❌ window.auth غير جاهز', 'error');
+            }
+        }
+
+        function testFirebaseSDK() {
+            log('=== اختبار Firebase SDK ===', 'info');
+            
+            log(`typeof firebase: ${typeof firebase}`, 'info');
+            
+            if (typeof firebase !== 'undefined') {
+                log(`firebase.SDK_VERSION: ${firebase.SDK_VERSION || 'غير متوفر'}`, 'info');
+                log(`firebase.apps: ${firebase.apps}`, 'info');
+                log(`firebase.apps.length: ${firebase.apps.length}`, 'info');
+                
+                // فحص الخدمات المتاحة
+                log(`firebase.auth متاح: ${!!firebase.auth}`, 'info');
+                log(`firebase.firestore متاح: ${!!firebase.firestore}`, 'info');
+                log(`firebase.storage متاح: ${!!firebase.storage}`, 'info');
+            }
+            
+            checkAll();
+        }
+
+        function testInitialization() {
+            log('=== اختبار التهيئة ===', 'info');
+            
+            // فحص firebase-config
+            if (typeof firebaseConfig !== 'undefined') {
+                log('✅ firebaseConfig موجود', 'success');
+                log(`المشروع: ${firebaseConfig.projectId}`, 'info');
+                log(`المنطقة: ${firebaseConfig.authDomain}`, 'info');
+            } else {
+                log('❌ firebaseConfig غير موجود', 'error');
+            }
+
+            // فحص initializeFirebase function
+            if (typeof initializeFirebase !== 'undefined') {
+                log('✅ دالة initializeFirebase موجودة', 'success');
+            } else {
+                log('❌ دالة initializeFirebase غير موجودة', 'error');
+            }
+
+            checkAll();
+        }
+
+        function manualInit() {
+            log('=== تهيئة يدوية ===', 'warning');
+            
+            if (typeof firebase === 'undefined') {
+                log('❌ Firebase SDK غير محمّل', 'error');
+                return;
+            }
+
+            if (firebase.apps.length > 0) {
+                log('⚠️ Firebase مهيئ مسبقاً', 'warning');
+                checkAll();
+                return;
+            }
+
+            try {
+                // استخدام إعدادات مباشرة
+                const config = {
+                    apiKey: "AIzaSyBn9zLcodNLKWlUPfqsnEGoA1z7QZw_Ezk",
+                    authDomain: "archive-tech.firebaseapp.com",
+                    projectId: "archive-tech",
+                    storageBucket: "archive-tech.firebasestorage.app",
+                    messagingSenderId: "911076711034",
+                    appId: "1:911076711034:web:7f190eed397becfe6779c3"
+                };
+
+                log('🔧 بدء التهيئة اليدوية...', 'info');
+                log(`الإعدادات: ${JSON.stringify(config, null, 2)}`, 'info');
+
+                firebase.initializeApp(config);
+                log(`✅ تمت التهيئة! عدد التطبيقات: ${firebase.apps.length}`, 'success');
+
+                // تهيئة Auth
+                const auth = firebase.auth();
+                window.auth = auth;
+                log('✅ تم تهيئة Auth', 'success');
+
+                checkAll();
+
+            } catch (error) {
+                log(`❌ خطأ في التهيئة: ${error.message}`, 'error');
+                log(`تفاصيل الخطأ: ${error.stack}`, 'error');
+            }
+        }
+
+        // فحص أولي
+        log('🚀 بدء اختبار Firebase App', 'info');
+        setTimeout(checkAll, 1000);
+        setInterval(checkAll, 3000);
+
+        // مراقبة الأحداث
+        window.addEventListener('firebaseReady', () => {
+            log('📡 تم استقبال حدث firebaseReady', 'success');
+            checkAll();
+        });
+    </script>
+</body>
+</html>

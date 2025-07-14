@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Auth Debug</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .log { background: #000; color: #0f0; padding: 10px; height: 400px; overflow-y: auto; font-family: monospace; }
+        .status { padding: 5px; margin: 5px; display: inline-block; }
+        .ok { background: green; color: white; }
+        .fail { background: red; color: white; }
+        .wait { background: orange; color: black; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Simple Auth Debug</h1>
+    
+    <div>
+        Firebase: <span id="firebase-check" class="status wait">?</span>
+        Auth: <span id="auth-check" class="status wait">?</span>
+        Unified: <span id="unified-check" class="status wait">?</span>
+    </div>
+    
+    <div id="log" class="log"></div>
+
+    <!-- Firebase (ترتيب مهم!) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Archive Scripts (ترتيب مهم!) -->
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        const log = document.getElementById('log');
+        function addLog(msg) {
+            const time = new Date().toLocaleTimeString();
+            log.innerHTML += `[${time}] ${msg}\n`;
+            log.scrollTop = log.scrollHeight;
+            console.log(msg);
+        }
+
+        function checkStatus() {
+            // Firebase SDK
+            const fbCheck = document.getElementById('firebase-check');
+            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                fbCheck.textContent = 'OK';
+                fbCheck.className = 'status ok';
+            } else {
+                fbCheck.textContent = 'FAIL';
+                fbCheck.className = 'status fail';
+            }
+
+            // Firebase Auth
+            const authCheck = document.getElementById('auth-check');
+            if (window.auth) {
+                authCheck.textContent = 'OK';
+                authCheck.className = 'status ok';
+            } else {
+                authCheck.textContent = 'FAIL';
+                authCheck.className = 'status fail';
+            }
+
+            // Unified Auth
+            const unifiedCheck = document.getElementById('unified-check');
+            if (window.unifiedAuth?.isInitialized) {
+                unifiedCheck.textContent = 'OK';
+                unifiedCheck.className = 'status ok';
+            } else if (window.unifiedAuth) {
+                unifiedCheck.textContent = 'INIT...';
+                unifiedCheck.className = 'status wait';
+            } else {
+                unifiedCheck.textContent = 'FAIL';
+                unifiedCheck.className = 'status fail';
+            }
+        }
+
+        addLog('=== START DEBUG ===');
+        
+        // فحص كل ثانية
+        const interval = setInterval(() => {
+            checkStatus();
+        }, 1000);
+
+        // فحص مراحل التحميل
+        setTimeout(() => {
+            addLog('Check 1: Firebase SDK = ' + (typeof firebase !== 'undefined'));
+            addLog('Check 1.1: firebase-config loaded = ' + (typeof firebaseConfig !== 'undefined'));
+            addLog('Check 1.2: initializeFirebase function = ' + (typeof initializeFirebase !== 'undefined'));
+        }, 500);
+        
+        setTimeout(() => {
+            addLog('Check 2: Firebase Apps = ' + (firebase?.apps?.length || 0));
+            if (firebase?.apps?.length > 0) {
+                addLog('Check 2.1: App name = ' + firebase.apps[0].name);
+                addLog('Check 2.2: Project ID = ' + firebase.apps[0].options.projectId);
+            }
+        }, 1000);
+        
+        setTimeout(() => addLog('Check 3: window.auth = ' + !!window.auth), 1500);
+        setTimeout(() => addLog('Check 4: window.unifiedAuth = ' + !!window.unifiedAuth), 2000);
+        setTimeout(() => addLog('Check 5: UnifiedAuth.isInitialized = ' + (window.unifiedAuth?.isInitialized || false)), 2500);
+
+        // الأحداث
+        window.addEventListener('firebaseReady', () => addLog('EVENT: firebaseReady'));
+        window.addEventListener('unifiedAuthReady', () => addLog('EVENT: unifiedAuthReady'));
+
+        // فحص نهائي
+        setTimeout(() => {
+            addLog('=== FINAL CHECK ===');
+            addLog('Firebase: ' + (typeof firebase !== 'undefined'));
+            addLog('Firebase Apps: ' + (firebase?.apps?.length || 0));
+            addLog('window.auth: ' + !!window.auth);
+            addLog('window.unifiedAuth: ' + !!window.unifiedAuth);
+            addLog('UnifiedAuth.isInitialized: ' + (window.unifiedAuth?.isInitialized || false));
+            
+            if (window.auth && window.unifiedAuth?.isInitialized) {
+                addLog('🎉 SUCCESS: All components ready!');
+            } else {
+                addLog('❌ FAIL: Some components not ready');
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

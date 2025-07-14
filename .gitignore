@@ -101,6 +101,7 @@ tmp/
 
 # Backup files
 backup/
+backups/
 *.backup
 
 # Certificate files

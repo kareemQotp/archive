@@ -1,0 +1,32 @@
+module.exports = {
+  env: {
+    browser: true,
+    es6: true,
+    node: true,
+  },
+  extends: [
+    "eslint:recommended",
+    "google",
+  ],
+  rules: {
+    "no-restricted-globals": ["error", "name", "length"],
+    "prefer-arrow-callback": "error",
+    "quotes": ["error", "double", {"allowTemplateLiterals": true}],
+    "max-len": ["error", {"code": 120}],
+    "object-curly-spacing": ["error", "never"],
+    "comma-dangle": ["error", "never"],
+    "no-unused-vars": ["error", {"argsIgnorePattern": "^_"}],
+    "require-jsdoc": "off",
+    "valid-jsdoc": "off"
+  },
+  overrides: [
+    {
+      files: ["**/*.spec.*"],
+      env: {
+        mocha: true,
+      },
+      rules: {},
+    },
+  ],
+  globals: {},
+};

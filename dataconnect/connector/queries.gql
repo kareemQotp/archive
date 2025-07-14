@@ -1,0 +1,331 @@
+# Archive System Queries
+# استعلامات نظام الأرشيف
+
+# ================================
+# استعلامات المستخدمين
+# User Queries
+# ================================
+
+query GetUserProfile($userId: String!) @auth(level: USER) {
+  user(id: $userId) {
+    id
+    email
+    displayName
+    phoneNumber
+    photoURL
+    role
+    isActive
+    lastLogin
+    createdAt
+    department {
+      id
+      nameAr
+      nameEn
+      color
+    }
+  }
+}
+
+query GetUsersByDepartment($departmentId: String!) @auth(level: USER) {
+  users(where: { departmentId: { eq: $departmentId } }) {
+    id
+    displayName
+    email
+    role
+    isActive
+    lastLogin
+    createdAt
+  }
+}
+
+query GetAllUsers($limit: Int = 100) @auth(level: USER) {
+  users(limit: $limit, orderBy: { createdAt: DESC }) {
+    id
+    email
+    displayName
+    role
+    isActive
+    lastLogin
+    department {
+      nameAr
+      color
+    }
+  }
+}
+
+# ================================
+# استعلامات الأقسام
+# Department Queries
+# ================================
+
+query GetAllDepartments @auth(level: PUBLIC) {
+  departments(where: { isActive: { eq: true } }) {
+    id
+    nameAr
+    nameEn
+    description
+    color
+    createdAt
+  }
+}
+
+query GetDepartment($departmentId: String!) @auth(level: PUBLIC) {
+  department(id: $departmentId) {
+    id
+    nameAr
+    nameEn
+    description
+    color
+    isActive
+    createdAt
+  }
+}
+
+# ================================
+# استعلامات الملفات
+# File Queries
+# ================================
+
+query GetFilesByDepartment($departmentId: String!, $limit: Int = 50) @auth(level: USER) {
+  fileDocuments(
+    where: { departmentId: { eq: $departmentId } }
+    orderBy: { createdAt: DESC }
+    limit: $limit
+  ) {
+    id
+    fileName
+    originalName
+    title
+    description
+    category
+    status
+    priority
+    qrCode
+    fileSize
+    createdAt
+    updatedAt
+    uploadedBy {
+      displayName
+      email
+    }
+    department {
+      nameAr
+      color
+    }
+  }
+}
+
+query SearchFiles(
+  $searchTerm: String!
+  $departmentId: String
+  $category: FileCategory
+  $status: FileStatus
+  $limit: Int = 50
+) @auth(level: USER) {
+  fileDocuments(
+    where: { 
+      _and: [
+        { 
+          _or: [
+            { title: { contains: $searchTerm } }
+            { fileName: { contains: $searchTerm } }
+            { description: { contains: $searchTerm } }
+          ]
+        }
+        { departmentId: { eq: $departmentId } }
+        { category: { eq: $category } }
+        { status: { eq: $status } }
+      ]
+    }
+    orderBy: { createdAt: DESC }
+    limit: $limit
+  ) {
+    id
+    fileName
+    title
+    description
+    category
+    status
+    priority
+    createdAt
+    department {
+      nameAr
+    }
+    uploadedBy {
+      displayName
+    }
+  }
+}
+
+query GetFileDetails($fileId: String!) @auth(level: USER) {
+  fileDocument(id: $fileId) {
+    id
+    fileName
+    originalName
+    title
+    description
+    fileType
+    fileSize
+    filePath
+    category
+    priority
+    status
+    qrCode
+    barcode
+    tags
+    createdAt
+    updatedAt
+    expirationDate
+    
+    department {
+      id
+      nameAr
+      nameEn
+      color
+    }
+    
+    uploadedBy {
+      id
+      displayName
+      email
+      role
+    }
+  }
+}
+
+query GetFileByQRCode($qrCode: String!) @auth(level: USER) {
+  fileDocuments(where: { qrCode: { eq: $qrCode } }) {
+    id
+    fileName
+    title
+    description
+    category
+    status
+    department {
+      nameAr
+    }
+    uploadedBy {
+      displayName
+    }
+  }
+}
+
+query GetRecentFiles($limit: Int = 20) @auth(level: USER) {
+  fileDocuments(
+    where: { status: { eq: ACTIVE } }
+    orderBy: { createdAt: DESC }
+    limit: $limit
+  ) {
+    id
+    fileName
+    title
+    category
+    createdAt
+    department {
+      nameAr
+      color
+    }
+    uploadedBy {
+      displayName
+    }
+  }
+}
+
+# ================================
+# استعلامات الأنشطة
+# Activity Queries
+# ================================
+
+query GetUserActivities($userId: String!, $limit: Int = 20) @auth(level: USER) {
+  activityLogs(
+    where: { userId: { eq: $userId } }
+    orderBy: { timestamp: DESC }
+    limit: $limit
+  ) {
+    id
+    action
+    entityType
+    entityId
+    details
+    timestamp
+    severity
+    ipAddress
+  }
+}
+
+query GetSystemActivities($limit: Int = 100) @auth(level: USER) {
+  activityLogs(
+    orderBy: { timestamp: DESC }
+    limit: $limit
+  ) {
+    id
+    action
+    entityType
+    entityId
+    details
+    timestamp
+    severity
+    user {
+      displayName
+      email
+      role
+    }
+  }
+}
+
+# ================================
+# استعلامات الإشعارات
+# Notification Queries
+# ================================
+
+query GetUserNotifications($userId: String!, $unreadOnly: Boolean = false, $limit: Int = 50) @auth(level: USER) {
+  notifications(
+    where: { 
+      _and: [
+        { userId: { eq: $userId } }
+        { isArchived: { eq: false } }
+        { isRead: { eq: $unreadOnly ? false : null } }
+      ]
+    }
+    orderBy: { createdAt: DESC }
+    limit: $limit
+  ) {
+    id
+    title
+    message
+    type
+    category
+    isRead
+    createdAt
+    readAt
+    expiresAt
+    actionUrl
+    actionLabel
+    relatedEntityType
+    relatedEntityId
+  }
+}
+
+# ================================
+# استعلامات الإحصائيات
+# Statistics Queries
+# ================================
+
+query GetDepartmentStats($departmentId: String!) @auth(level: USER) {
+  fileDocuments_aggregate(
+    where: { departmentId: { eq: $departmentId } }
+  ) {
+    count
+  }
+  
+  users_aggregate(
+    where: { 
+      _and: [
+        { departmentId: { eq: $departmentId } }
+        { isActive: { eq: true } }
+      ]
+    }
+  ) {
+    count
+  }
+}

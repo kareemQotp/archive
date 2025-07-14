@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار سريع - Firebase Auth</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f5f5f5; 
+            direction: rtl;
+        }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border: 1px solid #ddd;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        #console { 
+            background: #000; 
+            color: #0f0; 
+            padding: 15px; 
+            height: 300px; 
+            overflow-y: auto; 
+            font-family: monospace;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 اختبار سريع - Firebase Auth</h1>
+    
+    <div id="status-container">
+        <div class="status info">🔄 جاري التحميل...</div>
+    </div>
+    
+    <div id="console"></div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Archive Scripts -->
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+
+    <script>
+        const consoleDiv = document.getElementById('console');
+        const statusContainer = document.getElementById('status-container');
+        
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString('ar-EG');
+            const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : type === 'warning' ? '#fa0' : '#0ff';
+            consoleDiv.innerHTML += `<div style="color:${color}">[${time}] ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(`[Quick Test] ${message}`);
+        }
+
+        function updateStatus(message, type) {
+            statusContainer.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // فحص مراحل التحميل
+        log('=== بدء الاختبار السريع ===');
+        
+        // فحص Firebase
+        setTimeout(() => {
+            if (typeof firebase !== 'undefined') {
+                log('✅ Firebase SDK محمل', 'success');
+                if (firebase.apps.length > 0) {
+                    log(`✅ Firebase App مهيئ: ${firebase.apps[0].name}`, 'success');
+                } else {
+                    log('❌ Firebase App غير مهيئ', 'error');
+                }
+            } else {
+                log('❌ Firebase SDK غير محمل', 'error');
+            }
+        }, 500);
+
+        // فحص window.auth
+        setTimeout(() => {
+            if (window.auth) {
+                log('✅ window.auth متاح', 'success');
+                log(`Firebase Auth App: ${window.auth.app?.name || 'unknown'}`);
+            } else {
+                log('❌ window.auth غير متاح', 'error');
+            }
+        }, 1000);
+
+        // فحص unified auth
+        setTimeout(() => {
+            if (window.unifiedAuth) {
+                log('✅ window.unifiedAuth موجود', 'success');
+                log(`Initialized: ${window.unifiedAuth.isInitialized}`);
+                if (window.unifiedAuth.isInitialized) {
+                    updateStatus('🎉 جميع المكونات جاهزة!', 'success');
+                } else {
+                    updateStatus('⏳ قيد التهيئة...', 'warning');
+                }
+            } else {
+                log('❌ window.unifiedAuth غير موجود', 'error');
+                updateStatus('❌ فشل في التحميل', 'error');
+            }
+        }, 2000);
+
+        // فحص نهائي
+        setTimeout(() => {
+            log('=== الفحص النهائي ===');
+            log(`Firebase: ${!!firebase}`);
+            log(`window.auth: ${!!window.auth}`);
+            log(`window.unifiedAuth: ${!!window.unifiedAuth}`);
+            log(`UnifiedAuth.isInitialized: ${window.unifiedAuth?.isInitialized || false}`);
+            
+            if (window.auth && window.unifiedAuth?.isInitialized) {
+                updateStatus('✅ Auth: جاهز', 'success');
+                log('🎉 جميع اختبارات Auth نجحت!', 'success');
+            } else {
+                updateStatus('❌ Auth: غير جاهز', 'error');
+                log('❌ فشل في تهيئة Auth', 'error');
+            }
+        }, 4000);
+
+        // مراقبة الأحداث
+        window.addEventListener('firebaseReady', () => {
+            log('📡 حدث firebaseReady تم استقباله', 'success');
+        });
+
+        window.addEventListener('unifiedAuthReady', () => {
+            log('📡 حدث unifiedAuthReady تم استقباله', 'success');
+            updateStatus('✅ Auth: جاهز', 'success');
+        });
+    </script>
+</body>
+</html>

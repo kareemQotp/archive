@@ -1,0 +1,420 @@
+# Archive System Mutations
+# طفرات نظام الأرشيف
+
+# ================================
+# طفرات المستخدمين
+# User Mutations
+# ================================
+
+mutation UpsertUser(
+  $displayName: String!
+  $phoneNumber: String
+  $departmentId: String!
+  $role: UserRole!
+) @auth(level: USER) {
+  user_upsert(data: {
+    id_expr: "auth.uid"
+    email_expr: "auth.token.email"
+    displayName: $displayName
+    phoneNumber: $phoneNumber
+    departmentId: $departmentId
+    role: $role
+    isActive: true
+    lastLogin_expr: "request.time"
+    updatedAt_expr: "request.time"
+  }) {
+    id
+    email
+    displayName
+    role
+    department {
+      nameAr
+    }
+  }
+}
+
+mutation UpdateUserProfile(
+  $displayName: String
+  $phoneNumber: String
+  $photoURL: String
+) @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: {
+      displayName: $displayName
+      phoneNumber: $phoneNumber
+      photoURL: $photoURL
+      updatedAt_expr: "request.time"
+    }
+  ) {
+    id
+    displayName
+    phoneNumber
+    photoURL
+    updatedAt
+  }
+}
+
+mutation UpdateUserLastLogin @auth(level: USER) {
+  user_update(
+    id_expr: "auth.uid"
+    data: {
+      lastLogin_expr: "request.time"
+    }
+  ) {
+    id
+    lastLogin
+  }
+}
+
+mutation UpdateUserStatus(
+  $userId: String!
+  $isActive: Boolean!
+) @auth(level: USER) {
+  user_update(
+    id: $userId
+    data: {
+      isActive: $isActive
+      updatedAt_expr: "request.time"
+    }
+  ) {
+    id
+    isActive
+    updatedAt
+  }
+}
+
+# ================================
+# طفرات الأقسام
+# Department Mutations
+# ================================
+
+mutation CreateDepartment(
+  $id: String!
+  $nameAr: String!
+  $nameEn: String
+  $description: String
+  $color: String!
+) @auth(level: USER) {
+  department_insert(data: {
+    id: $id
+    nameAr: $nameAr
+    nameEn: $nameEn
+    description: $description
+    color: $color
+    isActive: true
+    createdAt_expr: "request.time"
+  }) {
+    id
+    nameAr
+    nameEn
+    color
+    createdAt
+  }
+}
+
+mutation UpdateDepartment(
+  $departmentId: String!
+  $nameAr: String
+  $nameEn: String
+  $description: String
+  $color: String
+) @auth(level: USER) {
+  department_update(
+    id: $departmentId
+    data: {
+      nameAr: $nameAr
+      nameEn: $nameEn
+      description: $description
+      color: $color
+    }
+  ) {
+    id
+    nameAr
+    nameEn
+    description
+    color
+  }
+}
+
+# ================================
+# طفرات الملفات
+# File Mutations
+# ================================
+
+mutation CreateFile(
+  $fileName: String!
+  $originalName: String!
+  $fileType: String!
+  $fileSize: Int!
+  $filePath: String!
+  $title: String!
+  $description: String
+  $tags: [String!]!
+  $category: FileCategory!
+  $priority: FilePriority!
+  $departmentId: String!
+  $qrCode: String
+  $barcode: String
+  $expirationDate: Timestamp
+) @auth(level: USER) {
+  fileDocument_insert(data: {
+    fileName: $fileName
+    originalName: $originalName
+    fileType: $fileType
+    fileSize: $fileSize
+    filePath: $filePath
+    title: $title
+    description: $description
+    tags: $tags
+    category: $category
+    priority: $priority
+    status: ACTIVE
+    departmentId: $departmentId
+    uploadedById_expr: "auth.uid"
+    qrCode: $qrCode
+    barcode: $barcode
+    expirationDate: $expirationDate
+    createdAt_expr: "request.time"
+    updatedAt_expr: "request.time"
+  }) {
+    id
+    fileName
+    title
+    category
+    qrCode
+    createdAt
+    department {
+      nameAr
+    }
+  }
+}
+
+mutation UpdateFile(
+  $fileId: String!
+  $title: String
+  $description: String
+  $tags: [String!]
+  $category: FileCategory
+  $priority: FilePriority
+  $status: FileStatus
+  $expirationDate: Timestamp
+) @auth(level: USER) {
+  fileDocument_update(
+    id: $fileId
+    data: {
+      title: $title
+      description: $description
+      tags: $tags
+      category: $category
+      priority: $priority
+      status: $status
+      expirationDate: $expirationDate
+      updatedAt_expr: "request.time"
+    }
+  ) {
+    id
+    title
+    description
+    category
+    priority
+    status
+    updatedAt
+  }
+}
+
+mutation UpdateFileStatus(
+  $fileId: String!
+  $status: FileStatus!
+) @auth(level: USER) {
+  fileDocument_update(
+    id: $fileId
+    data: {
+      status: $status
+      updatedAt_expr: "request.time"
+    }
+  ) {
+    id
+    status
+    updatedAt
+  }
+}
+
+mutation DeleteFile($fileId: String!) @auth(level: USER) {
+  fileDocument_update(
+    id: $fileId
+    data: {
+      status: DELETED
+      updatedAt_expr: "request.time"
+    }
+  ) {
+    id
+    status
+    updatedAt
+  }
+}
+
+# ================================
+# طفرات سجل الأنشطة
+# Activity Log Mutations
+# ================================
+
+mutation LogActivity(
+  $action: ActivityAction!
+  $entityType: EntityType!
+  $entityId: String
+  $details: String
+  $metadata: String
+  $ipAddress: String
+  $userAgent: String
+  $severity: LogSeverity = INFO
+) @auth(level: USER) {
+  activityLog_insert(data: {
+    userId_expr: "auth.uid"
+    action: $action
+    entityType: $entityType
+    entityId: $entityId
+    details: $details
+    metadata: $metadata
+    ipAddress: $ipAddress
+    userAgent: $userAgent
+    severity: $severity
+    timestamp_expr: "request.time"
+  }) {
+    id
+    action
+    timestamp
+  }
+}
+
+# ================================
+# طفرات الإشعارات
+# Notification Mutations
+# ================================
+
+mutation CreateNotification(
+  $userId: String!
+  $title: String!
+  $message: String!
+  $type: NotificationType!
+  $category: NotificationCategory!
+  $relatedEntityType: EntityType
+  $relatedEntityId: String
+  $actionUrl: String
+  $actionLabel: String
+  $expiresAt: Timestamp
+) @auth(level: USER) {
+  notification_insert(data: {
+    userId: $userId
+    title: $title
+    message: $message
+    type: $type
+    category: $category
+    relatedEntityType: $relatedEntityType
+    relatedEntityId: $relatedEntityId
+    actionUrl: $actionUrl
+    actionLabel: $actionLabel
+    expiresAt: $expiresAt
+    isRead: false
+    isArchived: false
+    createdAt_expr: "request.time"
+  }) {
+    id
+    title
+    type
+    createdAt
+  }
+}
+
+mutation MarkNotificationAsRead($notificationId: String!) @auth(level: USER) {
+  notification_update(
+    id: $notificationId
+    data: {
+      isRead: true
+      readAt_expr: "request.time"
+    }
+  ) {
+    id
+    isRead
+    readAt
+  }
+}
+
+mutation MarkAllNotificationsAsRead($userId: String!) @auth(level: USER) {
+  notifications_updateMany(
+    where: {
+      _and: [
+        { userId: { eq: $userId } }
+        { isRead: { eq: false } }
+      ]
+    }
+    data: {
+      isRead: true
+      readAt_expr: "request.time"
+    }
+  ) {
+    count
+  }
+}
+
+mutation ArchiveNotification($notificationId: String!) @auth(level: USER) {
+  notification_update(
+    id: $notificationId
+    data: {
+      isArchived: true
+    }
+  ) {
+    id
+    isArchived
+  }
+}
+
+# ================================
+# طفرات الإعدادات
+# Configuration Mutations
+# ================================
+
+mutation UpsertSystemConfig(
+  $key: String!
+  $value: String!
+  $description: String
+  $category: ConfigCategory!
+) @auth(level: USER) {
+  systemConfig_upsert(data: {
+    key: $key
+    value: $value
+    description: $description
+    category: $category
+    isActive: true
+    updatedById_expr: "auth.uid"
+    updatedAt_expr: "request.time"
+  }) {
+    id
+    key
+    value
+    category
+    updatedAt
+  }
+}
+
+mutation UpdateSystemConfig(
+  $configId: String!
+  $value: String!
+  $description: String
+) @auth(level: USER) {
+  systemConfig_update(
+    id: $configId
+    data: {
+      value: $value
+      description: $description
+      updatedById_expr: "auth.uid"
+      updatedAt_expr: "request.time"
+    }
+  ) {
+    id
+    key
+    value
+    description
+    updatedAt
+  }
+}
