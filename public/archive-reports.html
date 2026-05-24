@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تقارير الأرشيف - نظام الأرشيف</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="assets/css/unified-sidebar.css" />
+  <link rel="stylesheet" href="assets/css/permissions.css" />
+  <link rel="stylesheet" href="assets/css/ux-core.css" />
+  <style>
+    body { background:#f5f8fa; }
+    .page-header { background:linear-gradient(135deg,#0f766e,#0d9488); color:#fff; padding:2rem 0; margin-bottom:2rem; border-radius:0 0 24px 24px; }
+    .report-card { background:#fff; border-radius:16px; padding:1.5rem; box-shadow:0 4px 16px rgba(0,0,0,.08); margin-bottom:1.25rem; }
+    .metric-box { background:linear-gradient(135deg,#0f766e,#0d9488); color:#fff; border-radius:14px; padding:1.25rem 1rem; text-align:center; }
+    .metric-box .value { font-size:1.75rem; font-weight:600; }
+    .chart-placeholder { height:260px; display:flex; align-items:center; justify-content:center; color:#666; font-size:.9rem; background:#f1f5f9; border:1px dashed #94a3b8; border-radius:12px; }
+    .filters .form-label { font-size:.8rem; font-weight:600; color:#334155; }
+  </style>
+  <script defer src="assets/js/format-utils.js"></script>
+  <script defer src="assets/js/ux-core.js"></script>
+</head>
+<body>
+  <a href="#mainContent" class="visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+  <div class="page-header">
+    <div class="container d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="h3 mb-2"><i class="fas fa-chart-bar me-2"></i> تقارير الأرشيف</h1>
+        <p class="mb-0 opacity-75">تحليلات وإحصائيات حول أداء إدارة الأرشيف</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-light btn-sm" id="btnGenerate"><i class="fas fa-sync-alt me-1"></i> تحديث</button>
+        <button class="btn btn-outline-light btn-sm" id="btnExport"><i class="fas fa-file-export me-1"></i> تصدير</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="container" id="mainContent" role="main">
+    <div class="row mb-3 filters">
+      <div class="col-md-3">
+        <label class="form-label" for="fromDate">من تاريخ</label>
+        <input type="date" class="form-control" id="fromDate" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="toDate">إلى تاريخ</label>
+        <input type="date" class="form-control" id="toDate" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="departmentFilter">القسم</label>
+        <select class="form-select" id="departmentFilter">
+          <option value="">جميع الأقسام</option>
+          <option value="archive">الأرشيف</option>
+          <option value="legal">القانونية</option>
+          <option value="collection">التحصيل</option>
+          <option value="governance">الحوكمة</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <button class="btn btn-primary w-100" id="btnRun"><i class="fas fa-chart-line me-1"></i> تشغيل التقرير</button>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-md-3 mb-3">
+        <div class="metric-box">
+          <div class="small">إجمالي الوثائق</div>
+          <div class="value" id="mTotalDocs">-</div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="metric-box">
+          <div class="small">وثائق مضافة</div>
+          <div class="value" id="mAddedDocs">-</div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="metric-box">
+          <div class="small">متوسط يومي</div>
+          <div class="value" id="mDailyAvg">-</div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="metric-box">
+          <div class="small">عمليات البحث</div>
+          <div class="value" id="mSearchOps">-</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="report-card mb-4">
+      <h5 class="mb-3"><i class="fas fa-chart-area me-2 text-primary"></i> الاتجاه الزمني</h5>
+      <div class="chart-placeholder" id="trendChart">سيتم تحميل الرسم...</div>
+    </div>
+
+    <div class="report-card mb-4">
+      <h5 class="mb-3"><i class="fas fa-layer-group me-2 text-success"></i> توزيع التصنيفات</h5>
+      <div class="chart-placeholder" id="classificationChart">--- لا توجد بيانات ---</div>
+    </div>
+
+    <div class="report-card">
+      <h5 class="mb-3"><i class="fas fa-table me-2 text-warning"></i> تفاصيل الوثائق الحديثة</h5>
+      <div class="table-responsive small">
+        <table class="table table-sm table-striped align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>المعرف</th>
+              <th>الاسم</th>
+              <th>القسم</th>
+              <th>التصنيف</th>
+              <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody id="recentDocsBody">
+            <tr><td colspan="5" class="text-center text-muted">لا توجد بيانات بعد</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/firebase-init.js"></script>
+  <script src="assets/js/unified-auth.js"></script>
+  <!-- Access guard delay to prevent premature redirect if auth not resolved yet -->
+  <script>
+    window.__ACCESS_GUARD_DELAY_MS__ = 6000;
+    window.__DELAY_PAGE_GUARD__ = true;
+    document.addEventListener('firebaseAuthReady', ()=>{
+      setTimeout(()=>{ try { delete window.__DELAY_PAGE_GUARD__; } catch(e){} }, 300);
+    }, { once:true });
+  </script>
+  <script src="assets/js/unified-ui-template.js"></script>
+  <script src="assets/js/archive-reports-page.js" defer></script>
+</body>
+</html>

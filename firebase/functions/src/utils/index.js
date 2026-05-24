@@ -1044,3 +1044,6 @@ exports.healthCheck = onCall({
         };
     }
 });
+
+// DEPRECATED legacy utils index
+throw new Error('Deprecated legacy utils index. Use functions/src/utils');

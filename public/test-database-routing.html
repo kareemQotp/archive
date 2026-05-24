@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار نظام التوجيه المحسن - قاعدة البيانات</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            padding-top: 2rem;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .test-result {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .test-error {
+            background: #ffe8e8;
+            border: 1px solid #f44336;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .btn-custom {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,123,255,0.4);
+            color: white;
+        }
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+        }
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="firebase-status">
+        <span id="firebaseStatus" class="badge bg-warning">جاري التهيئة...</span>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card">
+                    <div class="card-header text-center bg-primary text-white">
+                        <h2>🧪 اختبار نظام التوجيه المحسن</h2>
+                        <p class="mb-0">يعتمد على قاعدة البيانات الحقيقية</p>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h4>🔍 اختبار تحميل بيانات المستخدم</h4>
+                                <div class="mb-3">
+                                    <input type="email" id="testEmail" class="form-control" placeholder="أدخل البريد الإلكتروني للاختبار">
+                                </div>
+                                <button onclick="testUserData()" class="btn btn-custom me-2">
+                                    🔍 اختبار البيانات
+                                </button>
+                                <button onclick="listAllUsers()" class="btn btn-outline-info">
+                                    📋 عرض جميع المستخدمين
+                                </button>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h4>🚀 أمثلة سريعة</h4>
+                                <div class="d-grid gap-2">
+                                    <button onclick="testUserData('admin123@aman.eg')" class="btn btn-outline-primary btn-sm">
+                                        👑 admin123@aman.eg
+                                    </button>
+                                    <button onclick="testUserData('khaled.mokhtar@aman.eg')" class="btn btn-outline-success btn-sm">
+                                        📁 khaled.mokhtar@aman.eg
+                                    </button>
+                                    <button onclick="testUserData('kareem.kotb@aman.eg')" class="btn btn-outline-warning btn-sm">
+                                        ⚖️ kareem.kotb@aman.eg
+                                    </button>
+                                    <button onclick="testUserData('mahmoud.eltawil@aman.eg')" class="btn btn-outline-info btn-sm">
+                                        💰 mahmoud.eltawil@aman.eg
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div id="testResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBn9zLcodNLKWlUPfqsnEGoA1z7QZw_Ezk",
+            authDomain: "archive-tech.firebaseapp.com",
+            projectId: "archive-tech",
+            storageBucket: "archive-tech.firebasestorage.app",
+            messagingSenderId: "911076711034",
+            appId: "1:911076711034:web:7f190eed397becfe6779c3"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        
+        // Update Firebase status
+        document.getElementById('firebaseStatus').textContent = 'متصل';
+        document.getElementById('firebaseStatus').className = 'badge bg-success';
+
+        // محاكاة تحميل بيانات المستخدم من قاعدة البيانات
+        async function getUserFromDatabase(email) {
+            try {
+                console.log('🔍 البحث عن المستخدم في قاعدة البيانات:', email);
+                
+                // البحث بالبريد الإلكتروني
+                const emailQuery = await db.collection('users').where('email', '==', email).get();
+                
+                if (!emailQuery.empty) {
+                    const userDoc = emailQuery.docs[0];
+                    const userData = userDoc.data();
+                    console.log('✅ تم العثور على المستخدم:', userData);
+                    return {
+                        uid: userDoc.id,
+                        ...userData
+                    };
+                } else {
+                    console.log('⚠️ لم يتم العثور على المستخدم');
+                    return null;
+                }
+            } catch (error) {
+                console.error('❌ خطأ في البحث:', error);
+                throw error;
+            }
+        }
+
+        // محاكاة نظام التوجيه
+        function getExpectedRoute(userData) {
+            if (!userData) return 'dashboard.html';
+            
+            let targetUrl = 'dashboard.html';
+            
+            if (userData.role === 'admin') {
+                targetUrl = 'user-management.html';
+            } else if (userData.department) {
+                const dept = userData.department.toLowerCase();
+                if (dept === 'archive') {
+                    targetUrl = 'archive-dashboard.html';
+                } else if (dept === 'legal') {
+                    targetUrl = 'legal-dashboard.html';
+                } else if (dept === 'collection') {
+                    targetUrl = 'collection-dashboard.html';
+                } else if (dept === 'file-management') {
+                    targetUrl = 'file-management-dashboard.html';
+                }
+            }
+            
+            return targetUrl;
+        }
+
+        // اختبار بيانات المستخدم
+        async function testUserData(email = null) {
+            const testEmail = email || document.getElementById('testEmail').value;
+            if (!testEmail) {
+                alert('يرجى إدخال بريد إلكتروني للاختبار');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p>جاري البحث...</p></div>';
+
+            try {
+                const userData = await getUserFromDatabase(testEmail);
+                const expectedRoute = getExpectedRoute(userData);
+                
+                if (userData) {
+                    const icon = userData.role === 'admin' ? '👑' : 
+                                userData.department === 'archive' ? '📁' :
+                                userData.department === 'legal' ? '⚖️' :
+                                userData.department === 'collection' ? '💰' :
+                                userData.department === 'file-management' ? '📋' : '👤';
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="test-result">
+                            <h5>${icon} نتائج الاختبار للبريد: ${testEmail}</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>الاسم:</strong> ${userData.displayName || userData.arabicName || 'غير محدد'}</p>
+                                    <p><strong>الدور:</strong> <span class="status-badge bg-info">${userData.role}</span></p>
+                                    <p><strong>الإدارة:</strong> <span class="status-badge bg-success">${userData.department}</span></p>
+                                    <p><strong>حالة النشاط:</strong> ${userData.isActive ? '<span class="status-badge bg-success">نشط</span>' : '<span class="status-badge bg-danger">غير نشط</span>'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>المسار المتوقع:</strong></p>
+                                    <p class="bg-light p-2 border rounded"><code>${expectedRoute}</code></p>
+                                    <p><strong>حالة البيانات:</strong> <span class="status-badge bg-success">موجود في قاعدة البيانات ✅</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="test-error">
+                            <h5>❌ لم يتم العثور على المستخدم</h5>
+                            <p><strong>البريد:</strong> ${testEmail}</p>
+                            <p><strong>الحالة:</strong> غير موجود في قاعدة البيانات</p>
+                            <p><strong>النتيجة:</strong> سيتم إنشاء بيانات افتراضية عند تسجيل الدخول</p>
+                            <p><strong>المسار الافتراضي:</strong> <code>dashboard.html</code></p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="test-error">
+                        <h5>❌ خطأ في الاختبار</h5>
+                        <p><strong>البريد:</strong> ${testEmail}</p>
+                        <p><strong>رسالة الخطأ:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // عرض جميع المستخدمين
+        async function listAllUsers() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p>جاري تحميل المستخدمين...</p></div>';
+
+            try {
+                const usersSnapshot = await db.collection('users').get();
+                
+                let html = `<div class="test-result">
+                    <h5>📋 قائمة جميع المستخدمين (${usersSnapshot.size} مستخدم)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>#</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>الاسم</th>
+                                    <th>الدور</th>
+                                    <th>الإدارة</th>
+                                    <th>المسار المتوقع</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                usersSnapshot.docs.forEach((doc, index) => {
+                    const userData = doc.data();
+                    const expectedRoute = getExpectedRoute(userData);
+                    const icon = userData.role === 'admin' ? '👑' : 
+                                userData.department === 'archive' ? '📁' :
+                                userData.department === 'legal' ? '⚖️' :
+                                userData.department === 'collection' ? '💰' :
+                                userData.department === 'file-management' ? '📋' : '👤';
+                    
+                    html += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${userData.email || 'غير محدد'}</td>
+                            <td>${userData.displayName || userData.arabicName || 'غير محدد'}</td>
+                            <td><span class="status-badge bg-info">${userData.role || 'غير محدد'}</span></td>
+                            <td><span class="status-badge bg-success">${userData.department || 'غير محدد'}</span></td>
+                            <td><small><code>${expectedRoute}</code></small></td>
+                            <td>
+                                <button onclick="testUserData('${userData.email}')" class="btn btn-sm btn-outline-primary">
+                                    ${icon} اختبار
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += `</tbody></table></div></div>`;
+                resultsDiv.innerHTML = html;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="test-error">
+                        <h5>❌ خطأ في تحميل المستخدمين</h5>
+                        <p><strong>رسالة الخطأ:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // تحميل قائمة المستخدمين تلقائياً
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                listAllUsers();
+            }, 1000);
+        });
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

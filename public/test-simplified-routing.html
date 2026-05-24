@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار نظام التوجيه المبسط</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            direction: rtl;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-form {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .result {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        input, button {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .demo-buttons button {
+            margin: 5px;
+            padding: 10px 15px;
+        }
+        .wide-input {
+            width: 300px;
+        }
+        .test-email-input {
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار نظام التوجيه المبسط</h1>
+            <input type="email" id="testEmail" placeholder="أدخل البريد الإلكتروني" class="test-email-input">
+        <div class="test-form">
+            <h3>اختبار التوجيه بالبريد الإلكتروني</h3>
+            <input type="email" id="testEmail" placeholder="أدخل البريد الإلكتروني" style="width: 300px;">
+            <button onclick="testEmailRouting()">اختبار التوجيه</button>
+            <div id="emailResult"></div>
+        </div>
+
+        <div class="test-form">
+            <h3>أمثلة سريعة</h3>
+            <div class="demo-buttons">
+                <button onclick="testQuickExample('admin@aman.eg')">admin@aman.eg</button>
+                <button onclick="testQuickExample('archive.user@company.com')">archive.user@company.com</button>
+                <button onclick="testQuickExample('legal.officer@firm.com')">legal.officer@firm.com</button>
+                <button onclick="testQuickExample('collection.team@bank.com')">collection.team@bank.com</button>
+                <button onclick="testQuickExample('file.manager@office.com')">file.manager@office.com</button>
+                <button onclick="testQuickExample('normal.user@example.com')">normal.user@example.com</button>
+            </div>
+        </div>
+
+        <div id="allResults"></div>
+    </div>
+
+    <script>
+        // محاكاة منطق تحديد الإدارة والدور
+        function getDepartmentAndRole(email) {
+            if (!email) return { department: 'عام', role: 'viewer' };
+            
+            const emailLower = email.toLowerCase();
+            
+            // فحص المدير
+            const isAdminEmail = emailLower.includes('admin') || 
+                               emailLower === 'admin123@aman.eg' ||
+                               emailLower === 'admin@aman.eg';
+            
+            if (isAdminEmail) {
+                return { department: 'admin', role: 'admin' };
+            }
+            
+            // فحص الأقسام
+            if (emailLower.includes('archive') || emailLower.includes('ارشيف')) {
+                return { department: 'archive', role: 'archive-officer' };
+            } else if (emailLower.includes('legal') || emailLower.includes('قانون') || emailLower.includes('محامي')) {
+                return { department: 'legal', role: 'legal-officer' };
+            } else if (emailLower.includes('collection') || emailLower.includes('تحصيل')) {
+                return { department: 'collection', role: 'collection-officer' };
+            } else if (emailLower.includes('file') || emailLower.includes('ملف')) {
+                return { department: 'file-management', role: 'file-manager' };
+            }
+            
+            return { department: 'عام', role: 'viewer' };
+        }
+
+        // محاكاة منطق التوجيه
+        function getTargetUrl(userData) {
+            let targetUrl = 'dashboard.html'; // الافتراضي
+            
+            // تحديد التوجيه بناءً على الدور والإدارة
+            if (userData.role === 'admin') {
+                targetUrl = 'user-management.html';
+            } else if (userData.department) {
+                const dept = userData.department.toLowerCase();
+                if (dept === 'archive' || dept.includes('أرشيف') || dept.includes('ارشيف')) {
+                    targetUrl = 'archive-dashboard.html';
+                } else if (dept === 'legal' || dept.includes('قانون') || dept.includes('محامي')) {
+                    targetUrl = 'legal-dashboard.html';
+                } else if (dept === 'collection' || dept.includes('تحصيل')) {
+                    targetUrl = 'collection-dashboard.html';
+                } else if (dept === 'file-management' || dept.includes('ملف')) {
+                    targetUrl = 'file-management-dashboard.html';
+                }
+            } else if (userData.role) {
+                const role = userData.role.toLowerCase();
+                if (role.includes('archive')) {
+                    targetUrl = 'archive-dashboard.html';
+                } else if (role.includes('legal')) {
+                    targetUrl = 'legal-dashboard.html';
+                } else if (role.includes('collection')) {
+                    targetUrl = 'collection-dashboard.html';
+                } else if (role.includes('file')) {
+                    targetUrl = 'file-management-dashboard.html';
+                }
+            }
+            
+            return targetUrl;
+        }
+
+        function testEmailRouting() {
+            const email = document.getElementById('testEmail').value;
+            testQuickExample(email);
+        }
+
+        function testQuickExample(email) {
+            const userData = getDepartmentAndRole(email);
+            const targetUrl = getTargetUrl(userData);
+            
+            let resultDiv = document.getElementById('emailResult');
+            if (!resultDiv) {
+                resultDiv = document.getElementById('allResults');
+            }
+            
+            const icon = userData.role === 'admin' ? '👑' : 
+                        userData.department === 'archive' ? '📁' :
+                        userData.department === 'legal' ? '⚖️' :
+                        userData.department === 'collection' ? '💰' :
+                        userData.department === 'file-management' ? '📋' : '👤';
+            
+            const result = `
+                <div class="result">
+                    <strong>${icon} ${email}</strong><br>
+                    <strong>الإدارة:</strong> ${userData.department}<br>
+                    <strong>الدور:</strong> ${userData.role}<br>
+                    <strong>المسار المتوقع:</strong> <code>${targetUrl}</code>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = result + (resultDiv.innerHTML || '');
+        }
+
+        // اختبارات تلقائية عند تحميل الصفحة
+        window.onload = function() {
+            const testEmails = [
+                'admin@aman.eg',
+                'archive.officer@company.com',
+                'legal.department@firm.com',
+                'collection.manager@bank.com',
+                'file.admin@office.com',
+                'regular.user@domain.com'
+            ];
+            
+            setTimeout(() => {
+                testEmails.forEach(email => {
+                    setTimeout(() => testQuickExample(email), 100);
+                });
+            }, 500);
+        };
+    </script>
+</body>
+</html>

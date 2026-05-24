@@ -1,1 +1,2 @@
-// File processing Cloud Function skeleton
+// Deprecated legacy storage file processing stub.
+module.exports = {};

@@ -156,9 +156,15 @@ class SimpleNotificationBadge {
      * إنشاء HTML للإشعار
      */
     createNotificationHTML(notification) {
-        const timeAgo = this.getTimeAgo(notification.createdAt);
+        const F = window.FormatUtils || {};
+        const timeAgo = (F.timeAgo ? F.timeAgo(notification.createdAt) : this.getTimeAgo(notification.createdAt));
         const isUnread = !notification.isRead;
         const unreadClass = isUnread ? 'bg-light border-start border-primary border-3' : '';
+        const esc = (txt)=> {
+            if(F.escapeHtml) return F.escapeHtml(txt);
+            if(txt===undefined||txt===null) return '';
+            return String(txt).replace(/[&<>"']/g, s=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s]));
+        };
 
         return `
             <div class="dropdown-item notification-item ${unreadClass}" 
@@ -170,10 +176,10 @@ class SimpleNotificationBadge {
                     </div>
                     <div class="flex-grow-1">
                         <div class="notification-title fw-bold small">
-                            ${notification.title}
+                            ${esc(notification.title)}
                         </div>
                         <div class="notification-message text-muted small">
-                            ${notification.message}
+                            ${esc(notification.message)}
                         </div>
                         <div class="notification-time text-muted" style="font-size: 0.75rem;">
                             ${timeAgo}
@@ -207,14 +213,19 @@ class SimpleNotificationBadge {
      * حساب الوقت المنقضي
      */
     getTimeAgo(date) {
-        const now = new Date();
-        const notificationDate = new Date(date);
-        const diffInSeconds = Math.floor((now - notificationDate) / 1000);
-
-        if (diffInSeconds < 60) return 'الآن';
-        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} دقيقة`;
-        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ساعة`;
-        return `${Math.floor(diffInSeconds / 86400)} يوم`;
+    // Fallback implementation; prefer FormatUtils.timeAgo when available
+    const F = window.FormatUtils || {};
+    if(F.timeAgo) return F.timeAgo(date);
+    const now = new Date();
+    const d = new Date(date);
+    const diffSec = Math.floor((now - d)/1000);
+    if(diffSec < 60) return 'الآن';
+    const diffMin = Math.floor(diffSec/60);
+    if(diffMin < 60) return diffMin + ' دقيقة';
+    const diffHr = Math.floor(diffMin/60);
+    if(diffHr < 24) return diffHr + ' ساعة';
+    const diffDay = Math.floor(diffHr/24);
+    return diffDay + ' يوم';
     }
 
     /**

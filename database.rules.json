@@ -1,0 +1,32 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "presence": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid",
+        "lastActive": { ".validate": "newData.isNumber() || newData.isString()" },
+        "status": { ".validate": "newData.isString() && (newData.val() == 'online' || newData.val() == 'offline' || newData.val() == 'away')" },
+        "$other": { ".validate": false }
+      }
+    },
+    "locks": {
+      "$docId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (auth.token.role == 'system_admin' || auth.token.role == 'admin')",
+        "owner": { ".validate": "newData.isString()" },
+        "expiresAt": { ".validate": "newData.isNumber() && newData.val() > now" }
+      }
+    },
+    "notifications": {
+      "$uid": {
+        "$notifId": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid && data.exists() && newData.child('read').isBoolean() && newData.child('title').val() == data.child('title').val() && newData.child('body').val() == data.child('body').val() && newData.child('timestamp').val() == data.child('timestamp').val()",
+          ".validate": "newData.hasChildren(['title','body','timestamp','read']) && newData.child('title').isString() && newData.child('body').isString() && newData.child('timestamp').isNumber() && newData.child('read').isBoolean()"
+        }
+      }
+    }
+  }
+}

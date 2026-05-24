@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "archiving-68881"
-  }
+    "default": "archive-tech",
+    "production": "archive-tech",
+    "archive-tech": "archive-tech"
+  },
+  "targets": {},
+  "etags": {}
 }

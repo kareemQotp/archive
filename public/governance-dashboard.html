@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة الحوكمة والامتثال - نظام الأرشيف</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <!-- Unified navbar is injected by unified-ui-template.js -->
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html"><i class="fas fa-shield-alt me-2"></i>إدارة الحوكمة والامتثال</a>
+      <div class="d-flex gap-2">
+        <a href="dashboard.html" class="btn btn-outline-secondary btn-sm"><i class="fas fa-home me-1"></i> اللوحة العامة</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="row mb-4">
+      <div class="col">
+        <h1 class="h3 mb-1"><i class="fas fa-shield-alt text-primary me-2"></i> لوحة الحوكمة والامتثال</h1>
+        <small class="text-muted">مؤشرات الامتثال والسياسات والمخاطر</small>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="card-title"><i class="fas fa-list-check me-2 text-primary"></i>السياسات</h6>
+            <p class="text-muted small mb-0">ملخص السياسات والإجراءات المحدثة</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="card-title"><i class="fas fa-chart-pie me-2 text-success"></i>الامتثال</h6>
+            <p class="text-muted small mb-0">نسب الامتثال والتقارير</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h6 class="card-title"><i class="fas fa-triangle-exclamation me-2 text-warning"></i>المخاطر</h6>
+            <p class="text-muted small mb-0">تنبيهات ومتابعة المخاطر</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Unified UI Template (Sidebar & Navbar) - with page brand -->
+  <script>
+    window.__NAV_BRAND_ICON__ = 'fas fa-shield-alt';
+    window.__NAV_BRAND_TITLE__ = 'إدارة الحوكمة والامتثال';
+    window.__NAV_BRAND_HREF__ = 'governance-dashboard.html';
+  </script>
+  <script src="assets/js/unified-ui-template.js"></script>
+  <!-- Firebase v10.7.1 compat SDKs (must load before firebase-init.js) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+  <!-- Utilities used by notifications (time formatting, UX helpers) -->
+  <script defer src="assets/js/format-utils.js"></script>
+  <script defer src="assets/js/ux-core.js"></script>
+  <!-- Firebase Configuration & Initialization -->
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/firebase-init.js"></script>
+  <!-- Auth and Router -->
+  <script src="assets/js/unified-auth.js"></script>
+  <script src="assets/js/department-router.js"></script>
+  <!-- Notification System -->
+  <script src="assets/js/notifications.js"></script>
+  <script src="assets/js/notification-service.js"></script>
+  <script src="assets/js/notification-badge.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.unifiedAuth && window.departmentRouter) {
+        window.departmentRouter.applyDepartmentTheme('governance');
+        window.departmentRouter.showWelcomeMessage();
+      }
+    });
+  </script>
+</body>
+</html>

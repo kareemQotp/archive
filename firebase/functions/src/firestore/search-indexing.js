@@ -1,1 +1,2 @@
-// Firestore search indexing Cloud Function skeleton
+// Deprecated search indexing stub.
+module.exports = {};

@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <link rel="stylesheet" href="assets/css/permissions.css">
     <style>
         :root {
@@ -315,28 +315,12 @@
             }
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <div class="d-flex align-items-center">
-                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="index.html">
-                    <i class="fas fa-archive me-2"></i>
-                    نظام الأرشيف
-                </a>
-            </div>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3" id="userInfo"></span>
-                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    خروج
-                </button>
-            </div>
-        </div>
-    </nav>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    
     <div class="container">
         <div class="profile-header text-center">
             <div class="profile-avatar-container">
@@ -432,293 +416,616 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
     <!-- Firebase Configuration -->
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
     
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified Authentication System -->
+    <script src="assets/js/unified-auth.js"></script>
     
     <!-- Core Systems -->
     <script src="assets/js/activity-logger.js"></script>
-    <script src="assets/js/notification-service.js"></script>
-    <script src="assets/js/notification-badge.js"></script>
-    
-    <!-- Unified Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
-    <script src="assets/js/unified-auth.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js"></script>
     
     <script>
-        // Initialize unified auth system
-        let authSystem;
-        let permissionController;
+        // نظام المصادقة الموحد والملف الشخصي
         let currentUserData = null;
-        let activityLogger;
-        let notificationService;
+        let sidebarManager = null;
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('Profile page loading...');
-            
-            // إظهار محمل أثناء التحميل
-            showLoading('جاري تهيئة النظام...');
-            
-            try {
-                // انتظار تحميل Firebase أولاً
-                await waitForFirebase();
-                
-                // Wait for unified auth to initialize
-                await new Promise(resolve => {
-                    const checkAuth = () => {
-                        if (window.unifiedAuth && unifiedAuth.isInitialized) {
-                            authSystem = unifiedAuth;
-                            console.log('Unified auth system initialized');
-                            
-                            // Initialize permission controller
-                            permissionController = new UIPermissionController(authSystem);
-                            
-                            // Initialize activity logger
-                            if (window.ActivityLogger) {
-                                activityLogger = new ActivityLogger(authSystem);
-                            }
-                            
-                            // Initialize notification service
-                            if (window.NotificationService) {
-                                notificationService = new NotificationService(authSystem);
-                            }
-                            
-                            resolve();
-                        } else {
-                            console.log('Waiting for unified auth...');
-                            setTimeout(checkAuth, 100);
-                        }
-                    };
-                    checkAuth();
+        // دالة مساعدة لعرض التنبيهات
+        function showAlert(message, type = 'info') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: type === 'error' ? 'خطأ' : type === 'success' ? 'نجح' : 'تنبيه',
+                    text: message,
+                    icon: type === 'error' ? 'error' : type === 'success' ? 'success' : 'info',
+                    confirmButtonText: 'موافق'
                 });
-
-                console.log('Setting up auth state listener...');
-                
-                // تحقق فوري من الجلسة الحالية
-                const currentUser = authSystem.getCurrentUser();
-                if (currentUser) {
-                    console.log('Current session found:', currentUser.email);
-                    hideLoading();
-                    handleAuthStateChange(currentUser);
-                } else {
-                    console.log('No current session, waiting for auth state change...');
-                }
-                
-                // Set up auth state listener
-                authSystem.onAuthStateChanged((user) => {
-                    hideLoading();
-                    handleAuthStateChange(user);
-                });
-                
-                // إخفاء المحمل بعد 5 ثواني كحد أقصى
-                setTimeout(() => {
-                    hideLoading();
-                    
-                    // تحقق نهائي من وجود مستخدم
-                    const finalUser = authSystem && authSystem.getCurrentUser();
-                    if (!finalUser) {
-                        console.log('Final check: No user found after timeout');
-                        showToast('انتهت جلسة المستخدم. يرجى تسجيل الدخول مرة أخرى.', 'warning');
-                        
-                        setTimeout(() => {
-                            window.location.href = 'login.html?message=session-expired';
-                        }, 2000);
-                    }
-                }, 5000);
-                
-            } catch (error) {
-                console.error('Error initializing profile page:', error);
-                hideLoading();
-                showToast('حدث خطأ في تحميل الصفحة', 'danger');
-            }
-        });
-
-        // دالة تشخيص للمساعدة في الـ debugging
-        function debugAuthState() {
-            console.log('=== Auth Debug Info ===');
-            console.log('Firebase loaded:', typeof firebase !== 'undefined');
-            console.log('Firebase auth:', typeof firebase?.auth !== 'undefined');
-            console.log('Window auth:', typeof window.auth !== 'undefined');
-            console.log('Unified auth:', typeof window.unifiedAuth !== 'undefined');
-            console.log('Auth system:', typeof authSystem !== 'undefined');
-            console.log('Auth initialized:', authSystem?.isInitialized);
-            
-            if (authSystem) {
-                const currentUser = authSystem.getCurrentUser();
-                console.log('Current user:', currentUser ? currentUser.email : 'null');
-                console.log('User profile:', authSystem.userProfile);
-            }
-            
-            if (window.auth) {
-                console.log('Firebase current user:', window.auth.currentUser ? window.auth.currentUser.email : 'null');
-            }
-            console.log('======================');
-        }
-
-        // دالة مساعدة لاختبار الجلسة
-        function testSession() {
-            debugAuthState();
-            
-            if (authSystem && authSystem.getCurrentUser()) {
-                showToast('الجلسة نشطة - المستخدم مسجل دخول', 'success');
             } else {
-                showToast('لا توجد جلسة نشطة', 'warning');
+                showToast(message, type === 'error' ? 'danger' : type);
             }
         }
 
-        // إضافة زر تشخيص مؤقت (يمكن إزالته لاحقاً)
-        function addDebugButton() {
-            if (document.getElementById('debugBtn')) return;
-            
-            const debugBtn = document.createElement('button');
-            debugBtn.id = 'debugBtn';
-            debugBtn.className = 'btn btn-sm btn-outline-info position-fixed';
-            debugBtn.style.cssText = 'top: 10px; left: 10px; z-index: 9999;';
-            debugBtn.innerHTML = '<i class="fas fa-bug"></i> Debug';
-            debugBtn.onclick = testSession;
-            document.body.appendChild(debugBtn);
+        // دالة مساعدة لتسجيل الأنشطة
+        function logActivity(action, details = {}) {
+            try {
+                if (window.activityLogger && typeof window.activityLogger.logActivity === 'function') {
+                    const activityData = {
+                        ...details,
+                        page: 'profile',
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    if (window.currentUser && window.currentUser.uid) {
+                        activityData.userId = window.currentUser.uid;
+                    }
+                    
+                    window.activityLogger.logActivity(action, activityData);
+                } else {
+                    console.log('Activity:', action, details);
+                }
+            } catch (error) {
+                console.error('خطأ في تسجيل النشاط:', error);
+            }
         }
 
-        // إضافة زر التشخيص بعد تحميل الصفحة
-        setTimeout(addDebugButton, 1000);
-        async function waitForFirebase() {
-            return new Promise((resolve) => {
-                const checkFirebase = () => {
-                    if (typeof firebase !== 'undefined' && firebase.auth && firebase.firestore) {
-                        console.log('Firebase loaded successfully');
+        // انتظار تهيئة Firebase والمصادقة
+        async function waitForFirebaseAndAuth() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 100; // زيادة عدد المحاولات
+                
+                const checkReady = () => {
+                    attempts++;
+                    
+                    if (window.firebase && 
+                        window.firebase.auth && 
+                        window.firebase.firestore &&
+                        window.unifiedAuth) {
+                        console.log('✅ جميع أنظمة Firebase جاهزة');
                         resolve();
+                    } else if (attempts >= maxAttempts) {
+                        console.error('❌ انتهت المحاولات - Firebase لم يتم تحميله');
+                        reject(new Error('Firebase initialization timeout'));
                     } else {
-                        console.log('Waiting for Firebase...');
-                        setTimeout(checkFirebase, 100);
+                        if (attempts % 10 === 0) {
+                            console.log(`⏳ محاولة ${attempts}/${maxAttempts} - انتظار Firebase...`);
+                        }
+                        setTimeout(checkReady, 200); // زيادة الفترة بين المحاولات
                     }
                 };
-                checkFirebase();
+                
+                checkReady();
             });
         }
 
-        async function handleAuthStateChange(user) {
-            console.log('Auth state changed:', user ? 'User logged in' : 'No user');
-            
-            // انتظار التهيئة الكاملة للنظام قبل التحقق
-            if (!authSystem || !authSystem.isInitialized) {
-                console.log('Auth system not ready yet, waiting...');
-                setTimeout(() => handleAuthStateChange(user), 500);
-                return;
+        // تهيئة الصفحة الرئيسية
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Refresh Unified UI if present; avoid instantiating to prevent duplicates
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                try { await window.unifiedUI.updateSidebar(); } catch (_) { /* ignore */ }
             }
-
-            // تأخير إضافي للتأكد من تحميل الجلسة
-            if (!user) {
-                console.log('No user detected initially, waiting for session restore...');
-                
-                // انتظار محاولة استرداد الجلسة
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                // إعادة فحص المستخدم بعد التأخير
-                const currentUser = authSystem.getCurrentUser();
-                if (!currentUser) {
-                    console.log('No authenticated user found after waiting, redirecting to login...');
-                    window.location.href = 'login.html?message=session-expired';
-                    return;
-                } else {
-                    console.log('User session restored:', currentUser.email);
-                    user = currentUser;
-                }
-            }
-
+            ensureSidebar();
             try {
-                console.log('User authenticated, loading profile...');
+                console.log('🚀 بدء تهيئة صفحة الملف الشخصي...');
                 
-                // Update permission-based UI
-                if (permissionController) {
-                    permissionController.updateUI();
-                }
+                logActivity('page_access', {
+                    path: window.location.pathname
+                });
+
+                // إظهار محمل أثناء التحميل
+                showLoading('جاري تهيئة النظام...');
                 
-                // Update sidebar with proper role
-                if (window.sidebarManager) {
-                    const userRole = authSystem.getCurrentUserRole();
-                    window.sidebarManager.updateSidebarNav(true, userRole);
+                // انتظار تهيئة Firebase والمصادقة
+                await waitForFirebaseAndAuth();
+                console.log('✅ Firebase ونظام المصادقة جاهزان');
+
+                // تهيئة مدير الشريط الجانبي
+                if (window.SidebarManager) {
+                    sidebarManager = new SidebarManager();
+                    console.log('✅ تم تهيئة مدير الشريط الجانبي');
                 }
+
+                // التحقق من المصادقة مع انتظار أطول
+                console.log('🔍 فحص حالة المستخدم...');
+                let user = firebase.auth().currentUser;
+                
+                if (!user) {
+                    console.log('⏳ انتظار تحميل حالة المستخدم...');
+                    // انتظار أطول لتحميل حالة المستخدم
+                    await new Promise(resolve => {
+                        let authCheckAttempts = 0;
+                        const maxAuthAttempts = 10;
+                        
+                        const checkAuth = () => {
+                            authCheckAttempts++;
+                            const currentUser = firebase.auth().currentUser;
+                            
+                            if (currentUser) {
+                                console.log(`✅ تم العثور على المستخدم في المحاولة ${authCheckAttempts}`);
+                                user = currentUser;
+                                resolve();
+                            } else if (authCheckAttempts >= maxAuthAttempts) {
+                                console.log(`❌ لم يتم العثور على مستخدم بعد ${maxAuthAttempts} محاولات`);
+                                resolve();
+                            } else {
+                                console.log(`🔄 محاولة ${authCheckAttempts}/${maxAuthAttempts} - فحص المستخدم...`);
+                                setTimeout(checkAuth, 500);
+                            }
+                        };
+                        
+                        // بدء الفحص فوراً
+                        checkAuth();
+                        
+                        // إعداد مستمع لتغيير حالة المصادقة
+                        const unsubscribe = firebase.auth().onAuthStateChanged((authUser) => {
+                            if (authUser) {
+                                console.log('📡 تم استلام إشعار تغيير حالة المصادقة:', authUser.email);
+                                user = authUser;
+                                unsubscribe();
+                                resolve();
+                            }
+                        });
+                        
+                        // انتظار إضافي كحد أقصى
+                        setTimeout(() => {
+                            unsubscribe();
+                            if (!user) {
+                                user = firebase.auth().currentUser;
+                                if (user) {
+                                    console.log('⏰ تم العثور على المستخدم في الفحص النهائي');
+                                }
+                            }
+                            resolve();
+                        }, 5000);
+                    });
+                }
+
+                if (!user) {
+                    // Check for demo mode
+                    const demoMode = localStorage.getItem('archiveDemoMode');
+                    if (demoMode === 'enabled') {
+                        console.log('🎭 Profile في وضع العرض التوضيحي');
+                        showProfileDemoNotice();
+                        enableProfileDemoMode();
+                        return;
+                    }
+                    
+                    console.log('❌ المستخدم غير مسجل دخول، إعادة توجيه لصفحة تسجيل الدخول');
+                    logActivity('auth_redirect', {
+                        reason: 'user_not_authenticated',
+                        page: 'profile'
+                    });
+                    hideLoading();
+                    
+                    // إظهار رسالة ودية
+                    showAlert('يجب تسجيل الدخول أولاً للوصول إلى الملف الشخصي.', 'info');
+                    
+                    // انتظار ثانيتين ثم إعادة التوجيه
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 2000);
+                    return;
+                }
+
+                window.currentUser = user;
+                console.log('✅ المستخدم مسجل دخول:', user.email);
+
+                // تعطيل وضع العرض التوضيحي بعد تسجيل الدخول الحقيقي
+                try {
+                    if (localStorage.getItem('archiveDemoMode') || localStorage.getItem('demo_mode')) {
+                        localStorage.removeItem('archiveDemoMode');
+                        localStorage.removeItem('demo_mode');
+                        console.log('🧹 تم تعطيل وضع العرض التوضيحي بعد تسجيل الدخول الحقيقي');
+                    }
+                } catch (_) {}
+
+                logActivity('auth_success', {
+                    user_email: user.email
+                });
 
                 // تحديث معلومات المستخدم الأساسية
                 updateBasicUserInfo(user);
+
+                // تحديث الشريط العلوي فوراً لعرض حالة تسجيل الدخول حتى قبل تحميل التفاصيل
+                try {
+                    window.unifiedAuth = window.unifiedAuth || {};
+                    window.unifiedAuth.currentUser = {
+                        uid: user.uid,
+                        displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم'),
+                        email: user.email
+                    };
+                    if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                        await window.unifiedUI.updateSidebar();
+                    }
+                    ensureSidebar();
+                } catch (_) {}
                 
-                // جلب البيانات المفصلة من Firestore
+                // تحميل البيانات المفصلة
                 await loadUserDetails(user);
-                
-                // تسجيل نشاط زيارة الملف الشخصي
-                if (activityLogger) {
-                    await activityLogger.logActivity('profile_view', {
-                        action: 'عرض الملف الشخصي',
-                        page: 'profile.html'
-                    });
+
+                // مزامنة حالة المصادقة مع نظام الواجهة الموحد وتحديث الشريط والقائمة
+                try {
+                    const roleMap = { 'super-admin': 'admin' };
+                    const uiRole = roleMap[(currentUserData?.role || '').toLowerCase?.() || currentUserData?.role] || (currentUserData?.role || 'viewer');
+                    window.unifiedAuth = window.unifiedAuth || {};
+                    window.unifiedAuth.currentUser = {
+                        uid: user.uid,
+                        displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم'),
+                        email: user.email,
+                        role: uiRole,
+                        department: currentUserData?.department || currentUserData?.departmentName || undefined,
+                        photoURL: user.photoURL || currentUserData?.photoURL || undefined
+                    };
+
+                    if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                        await window.unifiedUI.updateSidebar();
+                    }
+                    // بث حدث جاهزية المصادقة للصفحات التي تعتمد عليه
+                    try { document.dispatchEvent(new Event('firebaseAuthReady')); } catch (_) {}
+                    ensureSidebar();
+                } catch (syncErr) {
+                    console.warn('⚠️ فشل في مزامنة واجهة المستخدم الموحدة:', syncErr);
                 }
-                
+
+                hideLoading();
+                console.log('🎉 تم تهيئة صفحة الملف الشخصي بنجاح!');
+
             } catch (error) {
-                console.error('خطأ في تحميل بيانات المستخدم:', error);
-                // Log error using activity logger if available
-                if (activityLogger) {
-                    await activityLogger.logActivity('profile_error', {
-                        action: 'خطأ في تحميل الملف الشخصي',
-                        error: error.message,
-                        page: 'profile.html'
-                    });
+                console.error('❌ خطأ في تهيئة الصفحة:', error);
+                hideLoading();
+                logActivity('page_error', {
+                    error: error.message
+                });
+                showAlert('حدث خطأ في تحميل الصفحة. يرجى إعادة تحميل الصفحة.', 'error');
+            }
+
+            // تشغيل اختبار المصادقة بعد 2 ثانية من تحميل الصفحة
+            setTimeout(checkAuthStatus, 2000);
+        });
+
+        // تمت إزالة نسخ مكررة من showToast/createToastContainer/showLoading/hideLoading لتفادي التعارض
+
+        // محول آمن لأنواع التواريخ المختلفة إلى كائن Date
+        function toJsDate(value) {
+            try {
+                if (!value) return null;
+                if (typeof value.toDate === 'function') return value.toDate(); // Firestore Timestamp
+                if (value instanceof Date) return value;
+                if (typeof value === 'number') return new Date(value);
+                if (typeof value === 'string') {
+                    const d = new Date(value);
+                    return isNaN(d.getTime()) ? null : d;
                 }
+                return null;
+            } catch {
+                return null;
             }
         }
 
+        // ضمان وجود الشريط الجانبي وإنشائه عند الحاجة
+        function ensureSidebar() {
+            try {
+                // إذا كان نظام الواجهة الموحد موجودًا فسيقوم بإنشائه، لكن نضيف حارسًا إضافيًا
+                let sidebar = document.getElementById('sidebar');
+                if (!sidebar) {
+                    sidebar = document.createElement('aside');
+                    sidebar.id = 'sidebar';
+                    sidebar.className = 'sidebar';
+                    try { sidebar.setAttribute('aria-hidden', 'true'); } catch(_) {}
+                    document.body.appendChild(sidebar);
+                }
+                // إذا تم إنشاء العنصر لكن بدون محتوى، اطلب من النظام الموحد إعادة الرسم
+                if (window.unifiedUI && typeof window.unifiedUI.renderSidebar === 'function' && (!sidebar.innerHTML || sidebar.innerHTML.trim() === '')) {
+                    try { window.unifiedUI.renderSidebar(); } catch(_) {}
+                }
+                if (!document.querySelector('.sidebar-overlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'sidebar-overlay';
+                    overlay.id = 'sidebarOverlay';
+                    document.body.appendChild(overlay);
+                }
+                // تأكد من وجود زر الفتح ويعمل
+                const menuBtn = document.getElementById('menuToggle');
+                if (menuBtn && !menuBtn.dataset.bound) {
+                    menuBtn.dataset.bound = '1';
+                    menuBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (window.unifiedUI && typeof window.unifiedUI.toggleSidebar === 'function') {
+                            window.unifiedUI.toggleSidebar();
+                        } else {
+                            // Fallback: قم بالتبديل وتحديث aria-hidden لضمان الظهور
+                            const wasOpen = sidebar.classList.contains('active');
+                            sidebar.classList.toggle('active');
+                            const overlayEl = document.querySelector('.sidebar-overlay');
+                            if (overlayEl) overlayEl.classList.toggle('active');
+                            document.body.classList.toggle('sidebar-open');
+                            try { sidebar.setAttribute('aria-hidden', wasOpen ? 'true' : 'false'); } catch(_) {}
+                        }
+                    });
+                }
+
+                // معالج بديل لإغلاق القائمة عند الضغط على الخلفية في حال غياب النظام الموحد
+                const overlayEl = document.querySelector('.sidebar-overlay');
+                if (overlayEl && !overlayEl.dataset.bound) {
+                    overlayEl.dataset.bound = '1';
+                    overlayEl.addEventListener('click', () => {
+                        if (window.unifiedUI && typeof window.unifiedUI.closeSidebar === 'function') {
+                            window.unifiedUI.closeSidebar();
+                        } else if (sidebar) {
+                            sidebar.classList.remove('active');
+                            try { sidebar.setAttribute('aria-hidden', 'true'); } catch(_) {}
+                            overlayEl.classList.remove('active');
+                            document.body.classList.remove('sidebar-open');
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('ensureSidebar() failed:', e);
+            }
+        }
+
+        // دالة اختبار حالة المصادقة (للتشخيص)
+        function checkAuthStatus() {
+            console.log('=== فحص حالة المصادقة ===');
+            console.log('Firebase متوفر:', typeof firebase !== 'undefined');
+            console.log('Firebase Auth متوفر:', typeof firebase?.auth !== 'undefined');
+            console.log('المستخدم الحالي:', firebase?.auth()?.currentUser ? firebase.auth().currentUser.email : 'لا يوجد');
+            console.log('Unified Auth متوفر:', typeof window.unifiedAuth !== 'undefined');
+            console.log('Current User Global:', window.currentUser ? window.currentUser.email : 'لا يوجد');
+            console.log('Demo Mode:', localStorage.getItem('archiveDemoMode'));
+            console.log('========================');
+            
+            // Check for demo mode first
+            let demoMode = localStorage.getItem('archiveDemoMode');
+            // إذا كان هناك مستخدم حالياً، قم بإيقاف وضع العرض التوضيحي تلقائياً
+            if (firebase?.auth()?.currentUser && demoMode === 'enabled') {
+                try {
+                    localStorage.removeItem('archiveDemoMode');
+                    localStorage.removeItem('demo_mode');
+                    demoMode = null;
+                    console.log('🧹 تم إيقاف وضع العرض التوضيحي لأن المستخدم مسجل الدخول');
+                } catch (_) {}
+            }
+            if (demoMode === 'enabled') {
+                console.log('🎭 Profile في وضع العرض التوضيحي');
+                return; // Don't show login button in demo mode
+            }
+            
+            // إذا لم يكن هناك مستخدم، إظهار زر تسجيل الدخول
+            if (!firebase?.auth()?.currentUser) {
+                if (!document.getElementById('loginButton')) {
+                    const loginBtn = document.createElement('button');
+                    loginBtn.id = 'loginButton';
+                    loginBtn.className = 'btn btn-primary position-fixed';
+                    loginBtn.style.cssText = 'top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; font-size: 1.1rem; padding: 15px 30px;';
+                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>تسجيل الدخول';
+                    loginBtn.onclick = () => window.location.href = '/login.html';
+                    document.body.appendChild(loginBtn);
+                }
+            }
+        }
+        
+        function enableProfileDemoMode() {
+            console.log('🎭 تفعيل وضع العرض التوضيحي للملف الشخصي');
+            
+            // Create demo user
+            window.currentUser = {
+                email: 'demo@archive-tech.com',
+                displayName: 'مستخدم تجريبي',
+                uid: 'demo-user-id',
+                photoURL: null,
+                phoneNumber: '+966501234567'
+            };
+            
+            // Update basic user info with demo data
+            updateBasicUserInfo(window.currentUser);
+            
+            // Load demo profile details
+            loadDemoUserDetails();
+            
+            hideLoading();
+        }
+        
+        function loadDemoUserDetails() {
+            // Demo profile data
+            const demoProfile = {
+                department: 'تقنية المعلومات',
+                role: 'مطور',
+                joinDate: '2024-01-15',
+                lastLogin: new Date().toISOString(),
+                permissions: ['read', 'write', 'admin'],
+                statistics: {
+                    uploadedFiles: 25,
+                    downloadedFiles: 150,
+                    searchQueries: 75
+                }
+            };
+            
+            // Update profile sections with demo data
+            updateProfileSections(demoProfile);
+        }
+        
+        function showProfileDemoNotice() {
+            setTimeout(() => {
+                const notice = document.createElement('div');
+                notice.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    max-width: 300px;
+                    font-family: 'Cairo', sans-serif;
+                `;
+                notice.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-user-circle"></i>
+                        <div>
+                            <strong>وضع العرض التوضيحي</strong>
+                            <br><small>الملف الشخصي في وضع المحاكاة</small>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
+                    </div>
+                `;
+                document.body.appendChild(notice);
+                
+                setTimeout(() => {
+                    if (notice.parentElement) {
+                        notice.remove();
+                    }
+                }, 8000);
+            }, 500);
+        }
+            
+        // إضافة زر اختبار مؤقت
+        if (!document.getElementById('authTestBtn')) {
+            const testBtn = document.createElement('button');
+            testBtn.id = 'authTestBtn';
+            testBtn.className = 'btn btn-sm btn-outline-info position-fixed';
+            testBtn.style.cssText = 'top: 10px; left: 10px; z-index: 9999;';
+            testBtn.innerHTML = '<i class="fas fa-user-check"></i> Test Auth';
+            testBtn.onclick = checkAuthStatus;
+            document.body.appendChild(testBtn);
+        }
+
         function updateBasicUserInfo(user) {
-            document.getElementById('userInfo').innerHTML = `<i class="fas fa-user me-1"></i> ${user.displayName || user.email}`;
-            document.getElementById('profileName').textContent = user.displayName || 'بدون اسم';
+            document.getElementById('profileName').textContent = user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم') || 'بدون اسم';
             document.getElementById('profileEmail').textContent = user.email;
-            document.getElementById('profileAvatar').src = user.photoURL || 'assets/images/icon-192.png';
+            
+            // تحديث صورة المستخدم
+            const avatarElement = document.getElementById('profileAvatar');
+            if (user.photoURL) {
+                avatarElement.src = user.photoURL;
+            } else {
+                avatarElement.src = 'assets/images/icon-192.png';
+            }
+
+            // تحديث معلومات الشريط العلوي
+            const userInfoElement = document.getElementById('userInfo');
+            if (userInfoElement) {
+                userInfoElement.innerHTML = `<i class="fas fa-user me-1"></i> ${user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم')}`;
+            }
         }
 
         async function loadUserDetails(user) {
             try {
-                // Get user data from unified auth system
-                currentUserData = authSystem.getCurrentUserData();
+                console.log('🔄 تحميل بيانات المستخدم التفصيلية...');
                 
-                if (!currentUserData) {
-                    // Fallback: load from Firestore
-                    const doc = await authSystem.db.collection('users').doc(user.uid).get();
-                    
-                    if (doc.exists) {
-                        currentUserData = doc.data();
+                let userData = {};
+                
+                // محاولة جلب البيانات من Firestore
+                try {
+                    if (firebase.firestore) {
+                        const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+                        if (userDoc.exists) {
+                            userData = userDoc.data();
+                            console.log('✅ تم تحميل بيانات المستخدم من قاعدة البيانات');
+                        } else {
+                            console.log('⚠️ لم يتم العثور على بيانات المستخدم، إنشاء ملف جديد');
+                            // إنشاء ملف مستخدم جديد
+                            userData = await createUserProfile(user);
+                        }
                     }
+                } catch (dbError) {
+                    console.warn('⚠️ خطأ في الاتصال بقاعدة البيانات:', dbError);
+                    userData = getDefaultUserData(user);
                 }
                 
-                if (currentUserData) {
-                    console.log('User data loaded:', currentUserData);
-                    
-                    // تحديث الدور
-                    updateUserRole(currentUserData.role, currentUserData.status);
-                    
-                    // تحديث معلومات الإدارة
-                    document.getElementById('profileDepartment').textContent = currentUserData.departmentName || currentUserData.department || 'غير محدد';
-                    
-                    // تحديث التواريخ
-                    updateDates(currentUserData);
-                    
-                    // تحديث حالة المستخدم
-                    updateUserStatus(currentUserData.status, currentUserData.isActive);
-                    
-                    // تحميل الإحصائيات إذا كان المستخدم نشطاً
-                    if (currentUserData.isActive && currentUserData.status === 'approved') {
-                        await loadUserStats(user.uid);
+                currentUserData = userData;
+                
+                // تحديث واجهة المستخدم
+                updateUserRole(userData.role || 'viewer', userData.status || 'active');
+                updateDepartmentInfo(userData);
+                updateDates(userData);
+                updateUserStatus(userData.status || 'active', userData.isActive !== false);
+
+                // مزامنة آخر تسجيل دخول في Firestore (لتتبع النشاط بشكل دقيق)
+                try {
+                    const authUser = firebase.auth().currentUser;
+                    const authLast = authUser?.metadata?.lastSignInTime ? new Date(authUser.metadata.lastSignInTime) : null;
+                    const fsLast = toJsDate(userData.lastLogin);
+                    if (authLast && (!fsLast || authLast > fsLast)) {
+                        await firebase.firestore().collection('users').doc(user.uid).update({
+                            lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+                            isActive: true
+                        });
                     }
-                } else {
-                    console.warn('User document not found in Firestore');
-                    // إظهار بيانات افتراضية
-                    setDefaultUserData();
-                }                } catch (error) {
-                    console.error('Error loading user details:', error);
-                    // Log error using console instead of authSystem.logError
-                    console.error('User details load error:', { error: error.message, userId: user ? user.uid : 'unknown' });
-                    setDefaultUserData();
+                } catch (syncErr) {
+                    console.warn('⚠️ تعذر مزامنة آخر تسجيل الدخول مع Firestore:', syncErr?.message || syncErr);
                 }
+                
+                // تحديث الشريط الجانبي
+                if (sidebarManager) {
+                    sidebarManager.updateSidebarNav(true, userData.role || 'viewer');
+                }
+                
+                // تحميل الإحصائيات
+                if (userData.isActive !== false && userData.status !== 'suspended') {
+                    await loadUserStats(user.uid);
+                }
+                
+                console.log('✅ تم تحميل جميع بيانات المستخدم بنجاح');
+                
+            } catch (error) {
+                console.error('❌ خطأ في تحميل بيانات المستخدم:', error);
+                logActivity('user_details_error', {
+                    error: error.message,
+                    userId: user ? user.uid : 'unknown'
+                });
+                setDefaultUserData();
+            }
+        }
+
+        async function createUserProfile(user) {
+            try {
+                const userData = {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم'),
+                    role: 'viewer',
+                    department: 'عام',
+                    status: 'active',
+                    isActive: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                await firebase.firestore().collection('users').doc(user.uid).set(userData);
+                console.log('✅ تم إنشاء ملف مستخدم جديد');
+                
+                logActivity('user_profile_created', {
+                    userId: user.uid,
+                    email: user.email
+                });
+                
+                return userData;
+            } catch (error) {
+                console.error('❌ خطأ في إنشاء ملف المستخدم:', error);
+                return getDefaultUserData(user);
+            }
+        }
+
+        function getDefaultUserData(user) {
+            return {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم'),
+                role: 'viewer',
+                department: 'عام',
+                status: 'active',
+                isActive: true,
+                createdAt: new Date(),
+                lastLogin: new Date()
+            };
         }
 
         function updateUserRole(role, status) {
@@ -744,6 +1051,10 @@
                         roleText = 'مدير';
                         roleClass = 'badge-manager';
                         break;
+                    case 'employee':
+                        roleText = 'موظف';
+                        roleClass = 'badge-user';
+                        break;
                     case 'editor':
                         roleText = 'محرر';
                         roleClass = 'badge-user';
@@ -761,18 +1072,32 @@
             roleElement.className = `badge badge-custom ${roleClass}`;
         }
 
+        function updateDepartmentInfo(userData) {
+            const department = userData.departmentName || userData.department || 'غير محدد';
+            document.getElementById('profileDepartment').textContent = department;
+        }
+
         function updateDates(userData) {
+            // مزامنة آخر تسجيل دخول من Firebase Auth (أدق مصدر للوقت)
+            try {
+                const authUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+                const authLast = authUser?.metadata?.lastSignInTime ? new Date(authUser.metadata.lastSignInTime) : null;
+                const fsLast = toJsDate(userData.lastLogin);
+                if (authLast && (!fsLast || authLast > fsLast)) {
+                    userData.lastLogin = authLast; // استخدم الأحدث لعرض الواجهة
+                }
+            } catch (_) { /* تجاهل أي أخطاء غير حرجة */ }
             // تاريخ الانضمام
-            if (userData.createdAt) {
-                const joinDate = userData.createdAt.toDate();
+            const joinDate = toJsDate(userData.createdAt);
+            if (joinDate) {
                 document.getElementById('profileJoinDate').textContent = joinDate.toLocaleDateString('ar-SA');
             } else {
                 document.getElementById('profileJoinDate').textContent = 'غير متوفر';
             }
             
             // آخر دخول
-            if (userData.lastLogin) {
-                const lastLogin = userData.lastLogin.toDate();
+            const lastLogin = toJsDate(userData.lastLogin);
+            if (lastLogin) {
                 const now = new Date();
                 const diffTime = now - lastLogin;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -800,19 +1125,22 @@
             
             let statusText = 'غير محدد';
             let indicatorClass = 'status-inactive';
-            
-            if (status === 'approved' && isActive) {
-                statusText = 'نشط';
-                indicatorClass = 'status-active';
-            } else if (status === 'pending') {
+
+            const normalized = (status || '').toString().toLowerCase();
+            const activeStatuses = ['active', 'approved'];
+            const hasAuthUser = (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) ? true : false;
+            const effectiveActive = (isActive !== false) && hasAuthUser && !['suspended', 'rejected', 'disabled'].includes(normalized);
+
+            if (normalized === 'pending') {
                 statusText = 'في انتظار الموافقة';
                 indicatorClass = 'status-pending';
-            } else if (status === 'suspended') {
-                statusText = 'معلق';
+            } else if (['suspended', 'rejected'].includes(normalized)) {
+                statusText = normalized === 'suspended' ? 'معلق' : 'مرفوض';
                 indicatorClass = 'status-inactive';
-            } else if (status === 'rejected') {
-                statusText = 'مرفوض';
-                indicatorClass = 'status-inactive';
+            } else if ((activeStatuses.includes(normalized) || normalized === '') && effectiveActive) {
+                // نشط إذا كانت الحالة Active/Approved أو غير محددة مع وجود جلسة مصادقة
+                statusText = 'نشط';
+                indicatorClass = 'status-active';
             } else {
                 statusText = 'غير نشط';
                 indicatorClass = 'status-inactive';
@@ -825,35 +1153,48 @@
 
         async function loadUserStats(userId) {
             try {
-                console.log('Loading user statistics...');
+                console.log('📊 تحميل إحصائيات المستخدم...');
                 
-                // جلب إحصائيات المستخدم الحقيقية من Firestore
-                const statsPromises = [
-                    // عدد المستندات المرفوعة
-                    authSystem.db.collection('documents')
-                        .where('uploadedBy', '==', userId)
-                        .get(),
-                    
-                    // عدد مرات التحميل
-                    authSystem.db.collection('downloads')
-                        .where('userId', '==', userId)
-                        .get(),
-                    
-                    // عدد الأنشطة
-                    authSystem.db.collection('activities')
-                        .where('userId', '==', userId)
-                        .orderBy('timestamp', 'desc')
-                        .limit(100)
-                        .get()
+                if (!firebase.firestore) {
+                    console.warn('⚠️ Firestore غير متوفر، استخدام الإحصائيات الافتراضية');
+                    setDefaultStats();
+                    return;
+                }
+                
+                // عدد المستندات: ندعم أكثر من حقل للإسناد (uploadedBy / createdBy / ownerId)
+                const fs = firebase.firestore();
+                const docQueries = [
+                    fs.collection('documents').where('uploadedBy', '==', userId).get().catch(() => null),
+                    fs.collection('documents').where('createdBy', '==', userId).get().catch(() => null),
+                    fs.collection('documents').where('ownerId', '==', userId).get().catch(() => null)
                 ];
-                
-                const [documentsSnap, downloadsSnap, activitiesSnap] = await Promise.all(statsPromises);
-                
+
+                const [q1, q2, q3, downloadsSnap, activitiesSnap] = await Promise.all([
+                    ...docQueries,
+                    // عدد مرات التحميل
+                    fs.collection('downloads').where('userId', '==', userId).get().catch(() => null),
+                    // عدد الأنشطة (activity_logs)
+                    fs.collection('activity_logs').where('userId', '==', userId).orderBy('timestamp', 'desc').limit(100).get().catch(() => null)
+                ]);
+
+                const docIdSet = new Set();
+                [q1, q2, q3].forEach(snap => {
+                    if (snap && typeof snap.forEach === 'function') {
+                        snap.forEach(d => {
+                            const data = d.data() || {};
+                            const state = (data.status || 'active').toString().toLowerCase();
+                            if (state !== 'deleted' && state !== 'archived') {
+                                docIdSet.add(d.id);
+                            }
+                        });
+                    }
+                });
+
                 const stats = {
-                    documents: documentsSnap.size,
-                    uploads: documentsSnap.size, // Same as documents for now
-                    downloads: downloadsSnap.size,
-                    activity: activitiesSnap.size
+                    documents: docIdSet.size,
+                    uploads: docIdSet.size,
+                    downloads: (downloadsSnap && typeof downloadsSnap.size === 'number') ? downloadsSnap.size : 0,
+                    activity: (activitiesSnap && typeof activitiesSnap.size === 'number') ? activitiesSnap.size : 0
                 };
                 
                 // تحديث العناصر في الواجهة
@@ -865,27 +1206,23 @@
                 // إظهار قسم الإحصائيات
                 document.getElementById('userStats').classList.remove('stats-hidden');
                 
-                console.log('User statistics loaded:', stats);
+                console.log('✅ تم تحميل الإحصائيات:', stats);
                 
             } catch (error) {
-                console.error('Error loading user stats:', error);
-                
-                // إظهار إحصائيات افتراضية في حال الخطأ
-                const defaultStats = {
-                    documents: 0,
-                    uploads: 0,
-                    downloads: 0,
-                    activity: 0
-                };
-                
-                document.getElementById('statDocuments').textContent = defaultStats.documents;
-                document.getElementById('statUploads').textContent = defaultStats.uploads;
-                document.getElementById('statDownloads').textContent = defaultStats.downloads;
-                document.getElementById('statActivity').textContent = defaultStats.activity;
-                
-                // إظهار قسم الإحصائيات حتى لو كانت فارغة
-                document.getElementById('userStats').classList.remove('stats-hidden');
+                console.error('❌ خطأ في تحميل الإحصائيات:', error);
+                setDefaultStats();
             }
+        }
+
+        function setDefaultStats() {
+            const defaultStats = { documents: 0, uploads: 0, downloads: 0, activity: 0 };
+            
+            document.getElementById('statDocuments').textContent = defaultStats.documents;
+            document.getElementById('statUploads').textContent = defaultStats.uploads;
+            document.getElementById('statDownloads').textContent = defaultStats.downloads;
+            document.getElementById('statActivity').textContent = defaultStats.activity;
+            
+            document.getElementById('userStats').classList.remove('stats-hidden');
         }
 
         function setDefaultUserData() {
@@ -894,6 +1231,7 @@
             document.getElementById('profileLastLogin').textContent = 'غير متوفر';
             document.getElementById('profileStatus').textContent = 'غير محدد';
             document.getElementById('profileRole').textContent = 'مستخدم';
+            document.getElementById('profileRole').className = 'badge badge-custom badge-user';
         }
 
         // دالة مساعدة لإظهار الإشعارات
@@ -952,13 +1290,38 @@
         async function logout() {
             if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
                 try {
-                    await authSystem.signOut();
+                    showLoading('جاري تسجيل الخروج...');
+                    
+                    logActivity('logout_attempt', {
+                        action: 'محاولة تسجيل الخروج'
+                    });
+                    
+                    await firebase.auth().signOut();
+                    
+                    logActivity('logout_success', {
+                        action: 'تم تسجيل الخروج بنجاح'
+                    });
+                    
+                    // تنظيف أي أعلام خاصة بوضع العرض التوضيحي
+                    try {
+                        localStorage.removeItem('archiveDemoMode');
+                        localStorage.removeItem('demo_mode');
+                    } catch (_) {}
+
+                    // تنظيف البيانات المحلية
+                    window.currentUser = null;
+                    currentUserData = null;
+                    
+                    hideLoading();
                     window.location.href = 'index.html';
+                    
                 } catch (error) {
-                    console.error('Error signing out:', error);
-                    // Log error using console instead of authSystem.logError
-                    console.error('Logout error:', { error: error.message });
-                    alert('حدث خطأ في تسجيل الخروج');
+                    console.error('❌ خطأ في تسجيل الخروج:', error);
+                    hideLoading();
+                    logActivity('logout_error', {
+                        error: error.message
+                    });
+                    showAlert('حدث خطأ في تسجيل الخروج', 'error');
                 }
             }
         }
@@ -981,7 +1344,7 @@
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label for="editEmail" class="form-label">البريد الإلكتروني</label>
-                                            <input type="email" class="form-control" id="editEmail" value="${authSystem.getCurrentUser()?.email || ''}" readonly>
+                                            <input type="email" class="form-control" id="editEmail" value="${(firebase.auth().currentUser?.email || window.currentUser?.email || '')}" readonly>
                                             <div class="form-text">لا يمكن تغيير البريد الإلكتروني</div>
                                         </div>
                                     </div>
@@ -1039,7 +1402,7 @@
                 saveBtn.disabled = true;
                 spinner.classList.remove('d-none');
                 
-                const user = authSystem.getCurrentUser();
+                const user = firebase.auth().currentUser;
                 if (!user) {
                     throw new Error('لم يتم العثور على المستخدم');
                 }
@@ -1049,7 +1412,7 @@
                     displayName: document.getElementById('editDisplayName').value.trim(),
                     phone: document.getElementById('editPhone').value.trim(),
                     bio: document.getElementById('editBio').value.trim(),
-                    updatedAt: new Date()
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
                 // رفع الصورة إذا تم اختيارها
@@ -1061,14 +1424,22 @@
                     }
                     
                     // رفع الصورة إلى Firebase Storage
-                    const storageRef = authSystem.storage.ref();
-                    const avatarRef = storageRef.child(`users/${user.uid}/avatar.jpg`);
-                    const snapshot = await avatarRef.put(avatarFile);
-                    const downloadURL = await snapshot.ref.getDownloadURL();
-                    updates.photoURL = downloadURL;
-                    
-                    // تحديث صورة المستخدم في Firebase Auth
-                    await user.updateProfile({ photoURL: downloadURL });
+                    if (firebase.storage) {
+                        const storageRef = firebase.storage().ref();
+                        const avatarRef = storageRef.child(`users/${user.uid}/avatar.jpg`);
+                        const snapshot = await avatarRef.put(avatarFile, {
+                            customMetadata: {
+                                skipThumbnail: 'true',
+                                originalName: avatarFile.name,
+                                uploadedAt: new Date().toISOString()
+                            }
+                        });
+                        const downloadURL = await snapshot.ref.getDownloadURL();
+                        updates.photoURL = downloadURL;
+                        
+                        // تحديث صورة المستخدم في Firebase Auth
+                        await user.updateProfile({ photoURL: downloadURL });
+                    }
                 }
                 
                 // تحديث اسم المستخدم في Firebase Auth إذا تغير
@@ -1077,18 +1448,16 @@
                 }
                 
                 // تحديث البيانات في Firestore
-                await authSystem.db.collection('users').doc(user.uid).update(updates);
+                await firebase.firestore().collection('users').doc(user.uid).update(updates);
                 
                 // تسجيل النشاط
-                if (activityLogger) {
-                    await activityLogger.logActivity('profile_update', {
-                        action: 'تحديث الملف الشخصي',
-                        changes: Object.keys(updates).filter(key => key !== 'updatedAt')
-                    });
-                }
+                logActivity('profile_update', {
+                    action: 'تحديث الملف الشخصي',
+                    changes: Object.keys(updates).filter(key => key !== 'updatedAt')
+                });
                 
                 // إظهار رسالة نجاح
-                showToast('تم حفظ التغييرات بنجاح', 'success');
+                showAlert('تم حفظ التغييرات بنجاح', 'success');
                 
                 // إغلاق المودال
                 bootstrap.Modal.getInstance(document.getElementById('editProfileModal')).hide();
@@ -1097,16 +1466,14 @@
                 await loadUserDetails(user);
                 
             } catch (error) {
-                console.error('Error saving profile changes:', error);
-                showToast(`حدث خطأ في حفظ التغييرات: ${error.message}`, 'danger');
+                console.error('❌ خطأ في حفظ التغييرات:', error);
+                showAlert(`حدث خطأ في حفظ التغييرات: ${error.message}`, 'error');
                 
                 // تسجيل الخطأ
-                if (activityLogger) {
-                    await activityLogger.logActivity('profile_update_error', {
-                        action: 'خطأ في تحديث الملف الشخصي',
-                        error: error.message
-                    });
-                }
+                logActivity('profile_update_error', {
+                    action: 'خطأ في تحديث الملف الشخصي',
+                    error: error.message
+                });
             } finally {
                 // إخفاء المحمل
                 saveBtn.disabled = false;
@@ -1116,41 +1483,53 @@
 
         async function changePassword() {
             try {
-                const user = authSystem.getCurrentUser();
+                const user = firebase.auth().currentUser;
                 if (user && user.email) {
                     const confirmed = confirm('سيتم إرسال رابط تغيير كلمة المرور إلى بريدك الإلكتروني. هل تريد المتابعة؟');
                     if (confirmed) {
-                        await authSystem.sendPasswordResetEmail(user.email);
-                        showToast('تم إرسال رابط تغيير كلمة المرور إلى بريدك الإلكتروني', 'success');
+                        showLoading('جاري إرسال البريد الإلكتروني...');
                         
-                        // Log password reset request using console
-                        console.log('Password reset requested for:', user.email);
+                        await firebase.auth().sendPasswordResetEmail(user.email);
+                        
+                        hideLoading();
+                        showAlert('تم إرسال رابط تغيير كلمة المرور إلى بريدك الإلكتروني', 'success');
+                        
+                        logActivity('password_reset_request', {
+                            action: 'طلب إعادة تعيين كلمة المرور',
+                            email: user.email
+                        });
                     }
                 } else {
-                    alert('لم يتم العثور على بيانات المستخدم');
+                    showAlert('لم يتم العثور على بيانات المستخدم', 'error');
                 }
             } catch (error) {
-                console.error('Error sending password reset email:', error);
-                // Log error using console instead of authSystem.logError
-                console.error('Password reset error:', { error: error.message });
-                showToast('حدث خطأ في إرسال البريد الإلكتروني. يرجى المحاولة مرة أخرى.', 'danger');
+                console.error('❌ خطأ في إرسال البريد الإلكتروني:', error);
+                hideLoading();
+                logActivity('password_reset_error', {
+                    error: error.message
+                });
+                showAlert('حدث خطأ في إرسال البريد الإلكتروني. يرجى المحاولة مرة أخرى.', 'error');
             }
         }
 
         async function viewActivity() {
             try {
-                const user = authSystem.getCurrentUser();
+                const user = firebase.auth().currentUser;
                 if (!user) {
-                    alert('لم يتم العثور على المستخدم');
+                    showAlert('لم يتم العثور على المستخدم', 'error');
                     return;
                 }
                 
-                // جلب سجل النشاط من Firestore
-                const activitiesQuery = await authSystem.db.collection('activities')
+                showLoading('جاري تحميل سجل النشاط...');
+                
+                // جلب سجل النشاط من Firestore (collection: activity_logs)
+                const activitiesQuery = await firebase.firestore().collection('activity_logs')
                     .where('userId', '==', user.uid)
                     .orderBy('timestamp', 'desc')
                     .limit(20)
                     .get();
+                
+                hideLoading();
                 
                 let activitiesHTML = '';
                 if (activitiesQuery.empty) {
@@ -1163,48 +1542,46 @@
                 } else {
                     activitiesQuery.forEach(doc => {
                         const activity = doc.data();
-                        const timestamp = activity.timestamp?.toDate() || new Date();
+                        const ts = activity.timestamp;
+                        const timestamp = typeof ts === 'number' ? new Date(ts) : (ts && typeof ts.toDate === 'function' ? ts.toDate() : new Date());
                         const timeString = timestamp.toLocaleString('ar-SA');
-                        
-                        let icon = 'fas fa-circle-notch';
-                        let color = 'text-primary';
-                        
-                        // تحديد الأيقونة واللون حسب نوع النشاط
-                        switch (activity.type) {
-                            case 'login':
-                                icon = 'fas fa-sign-in-alt';
-                                color = 'text-success';
+
+                        // تحديد الأيقونة واللون بناءً على category/action
+                        const category = activity.category || '';
+                        const action = activity.action || activity.type || '';
+                        let icon = 'fas fa-info-circle';
+                        let color = 'text-muted';
+
+                        const a = (action || '').toLowerCase();
+                        switch (category) {
+                            case 'auth':
+                                if (a.includes('login')) { icon = 'fas fa-sign-in-alt'; color = 'text-success'; }
+                                else if (a.includes('logout')) { icon = 'fas fa-sign-out-alt'; color = 'text-warning'; }
+                                else { icon = 'fas fa-user-shield'; color = 'text-secondary'; }
                                 break;
-                            case 'logout':
-                                icon = 'fas fa-sign-out-alt';
-                                color = 'text-warning';
+                            case 'file':
+                            case 'document':
+                                if (a.includes('upload')) { icon = 'fas fa-upload'; color = 'text-info'; }
+                                else if (a.includes('download')) { icon = 'fas fa-download'; color = 'text-primary'; }
+                                else { icon = 'fas fa-file-alt'; color = 'text-primary'; }
                                 break;
-                            case 'upload':
-                                icon = 'fas fa-upload';
-                                color = 'text-info';
+                            case 'profile':
+                                if (a.includes('update')) { icon = 'fas fa-user-edit'; color = 'text-purple'; }
+                                else { icon = 'fas fa-user'; color = 'text-purple'; }
                                 break;
-                            case 'download':
-                                icon = 'fas fa-download';
-                                color = 'text-primary';
-                                break;
-                            case 'profile_update':
-                                icon = 'fas fa-user-edit';
-                                color = 'text-purple';
-                                break;
-                            case 'profile_view':
-                                icon = 'fas fa-eye';
-                                color = 'text-secondary';
+                            case 'security':
+                                icon = 'fas fa-shield-alt'; color = 'text-danger';
                                 break;
                             default:
-                                icon = 'fas fa-info-circle';
-                                color = 'text-muted';
+                                if (a.includes('search')) { icon = 'fas fa-search'; color = 'text-secondary'; }
                         }
-                        
+
+                        const label = action || category || 'نشاط';
                         activitiesHTML += `
                             <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
                                 <div class="d-flex align-items-center">
                                     <i class="${icon} ${color} me-2"></i>
-                                    <span>${activity.action || activity.type}</span>
+                                    <span>${label}</span>
                                 </div>
                                 <small class="text-muted">${timeString}</small>
                             </div>
@@ -1228,10 +1605,6 @@
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                                    <button type="button" class="btn btn-primary" onclick="exportActivity()">
-                                        <i class="fas fa-download me-1"></i>
-                                        تصدير
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1249,50 +1622,9 @@
                 });
                 
             } catch (error) {
-                console.error('Error loading activity log:', error);
-                alert('حدث خطأ في تحميل سجل النشاط');
-            }
-        }
-
-        async function exportActivity() {
-            try {
-                const user = authSystem.getCurrentUser();
-                if (!user) return;
-                
-                // جلب جميع الأنشطة للتصدير
-                const activitiesQuery = await authSystem.db.collection('activities')
-                    .where('userId', '==', user.uid)
-                    .orderBy('timestamp', 'desc')
-                    .get();
-                
-                let csvContent = 'التاريخ,النوع,الوصف,التفاصيل\n';
-                
-                activitiesQuery.forEach(doc => {
-                    const activity = doc.data();
-                    const timestamp = activity.timestamp?.toDate() || new Date();
-                    const dateString = timestamp.toLocaleString('ar-SA');
-                    
-                    csvContent += `"${dateString}","${activity.type || ''}","${activity.action || ''}","${JSON.stringify(activity.details || {})}"\n`;
-                });
-                
-                // إنشاء ملف وتنزيله
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `activity_log_${user.uid}_${new Date().toISOString().split('T')[0]}.csv`;
-                link.click();
-                
-                // تسجيل نشاط التصدير
-                if (activityLogger) {
-                    await activityLogger.logActivity('activity_export', {
-                        action: 'تصدير سجل النشاط',
-                        recordCount: activitiesQuery.size
-                    });
-                }
-                
-            } catch (error) {
-                console.error('Error exporting activity:', error);
-                alert('حدث خطأ في تصدير سجل النشاط');
+                console.error('❌ خطأ في تحميل سجل النشاط:', error);
+                hideLoading();
+                showAlert('حدث خطأ في تحميل سجل النشاط', 'error');
             }
         }
 
@@ -1305,17 +1637,15 @@
                 refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحديث...';
                 refreshBtn.disabled = true;
                 
-                const user = authSystem.getCurrentUser();
+                const user = firebase.auth().currentUser;
                 if (user) {
                     await loadUserDetails(user);
                     
                     // تسجيل النشاط
-                    if (activityLogger) {
-                        await activityLogger.logActivity('profile_refresh', {
-                            action: 'تحديث بيانات الملف الشخصي',
-                            timestamp: new Date()
-                        });
-                    }
+                    logActivity('profile_refresh', {
+                        action: 'تحديث بيانات الملف الشخصي',
+                        timestamp: new Date()
+                    });
                     
                     // إظهار رسالة نجاح مؤقتة
                     refreshBtn.innerHTML = '<i class="fas fa-check me-2"></i>تم التحديث';
@@ -1328,16 +1658,20 @@
                         refreshBtn.classList.add('btn-outline-custom');
                         refreshBtn.disabled = false;
                     }, 2000);
+                    
+                    showAlert('تم تحديث البيانات بنجاح', 'success');
                 }
             } catch (error) {
-                console.error('Error refreshing profile:', error);
+                console.error('❌ خطأ في تحديث البيانات:', error);
                 const refreshBtn = document.querySelector('[onclick="refreshProfile()"]');
                 refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>تحديث البيانات';
                 refreshBtn.disabled = false;
-                alert('حدث خطأ في تحديث البيانات');
+                showAlert('حدث خطأ في تحديث البيانات', 'error');
             }
         }
     </script>
 </body>
 </html>
+
+
 

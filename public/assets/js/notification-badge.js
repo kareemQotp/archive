@@ -10,16 +10,21 @@ class NotificationBadge {
         this.maxDisplayCount = 99;
         this.isInitialized = false;
         this.checkInterval = null;
+        // Avoid re-toasting existing unread notifications on first load
+        this._feedReady = false; // becomes true after first onSnapshot callback completes
+        this._knownIds = new Set(); // track seen notification IDs to prevent duplicate toasts
         this.init();
     }
 
     async init() {
         try {
+            console.log('🔔 بدء تهيئة نظام شارة الإشعارات...');
+            
+            // إنشاء عنصر الشارة أولاً (يمكن عمله بدون Firebase)
+            this.createNotificationBadge();
+            
             // انتظار تهيئة Firebase
             await this.waitForFirebase();
-            
-            // إنشاء عنصر الشارة
-            this.createNotificationBadge();
             
             // تحميل الإشعارات غير المقروءة
             await this.loadUnreadNotifications();
@@ -29,6 +34,9 @@ class NotificationBadge {
             
             // بدء فحص دوري للإشعارات
             this.startPeriodicCheck();
+
+            // إضافة مستمع لتغيير حالة المصادقة
+            this.setupAuthStateListener();
             
             this.isInitialized = true;
             console.log('✅ نظام شارة الإشعارات جاهز');
@@ -40,28 +48,53 @@ class NotificationBadge {
     async waitForFirebase() {
         return new Promise((resolve) => {
             const checkFirebase = () => {
-                if (window.unifiedAuth && window.unifiedAuth.isInitialized && window.unifiedAuth.currentUser) {
-                    resolve();
+                // التحقق من تهيئة Firebase الأساسي
+                if (window.firebase && window.db && window.auth) {
+                    // التحقق من حالة المصادقة
+                    if (window.unifiedAuth && window.unifiedAuth.isInitialized) {
+                        // إذا كان هناك مستخدم مسجل دخول
+                        if (window.unifiedAuth.currentUser) {
+                            console.log('✅ Firebase والمصادقة جاهزان للإشعارات');
+                            resolve();
+                        } else {
+                            // إذا لم يكن هناك مستخدم، انتظر قليلاً ثم جرب مرة أخرى
+                            setTimeout(checkFirebase, 500);
+                        }
+                    } else {
+                        setTimeout(checkFirebase, 200);
+                    }
                 } else {
-                    setTimeout(checkFirebase, 100);
+                    setTimeout(checkFirebase, 300);
                 }
             };
-            checkFirebase();
+            
+            // بدء الفحص مع تأخير أولي
+            setTimeout(checkFirebase, 500);
         });
     }
 
     createNotificationBadge() {
-        // البحث عن navbar
-        const navbar = document.querySelector('.navbar .container');
+        // البحث عن navbar - دعم كلٍ من .container و .container-fluid أو العنصر نفسه
+        let navbar = document.querySelector('.navbar .container');
+        if (!navbar) navbar = document.querySelector('.navbar .container-fluid');
+        if (!navbar) navbar = document.querySelector('.navbar');
         if (!navbar) return;
 
-        // العثور على منطقة معلومات المستخدم
+        // العثور على منطقة معلومات المستخدم (يمين الشريط)
         let userInfoSection = navbar.querySelector('.navbar-nav.ms-auto');
         if (!userInfoSection) {
             userInfoSection = navbar.querySelector('#navbarContent');
         }
-        
-        if (!userInfoSection) return;
+        // إذا لم تكن موجودة، أنشئ واحدة لضمان إظهار الشارة في جميع الصفحات
+        if (!userInfoSection) {
+            try {
+                userInfoSection = document.createElement('div');
+                userInfoSection.className = 'navbar-nav ms-auto d-flex align-items-center';
+                navbar.appendChild(userInfoSection);
+            } catch (_) {
+                return;
+            }
+        }
 
         // إنشاء أيقونة الإشعارات
         const notificationIcon = document.createElement('div');
@@ -107,8 +140,8 @@ class NotificationBadge {
         `;
 
         // إضافة أيقونة الإشعارات قبل معلومات المستخدم
-        const userInfoElement = userInfoSection.querySelector('#userInfo') || 
-                               userInfoSection.querySelector('.navbar-text');
+    const userInfoElement = userInfoSection.querySelector('#userInfo') || 
+                   userInfoSection.querySelector('.navbar-text');
         
         try {
             if (userInfoElement && userInfoSection.contains(userInfoElement)) {
@@ -328,98 +361,292 @@ class NotificationBadge {
 
     async loadUnreadNotifications() {
         try {
-            if (!window.unifiedAuth?.currentUser || !window.unifiedAuth?.db) {
-                console.warn('المصادقة أو قاعدة البيانات غير متوفرة');
+            // التحقق المحسن من توفر Firebase والمصادقة
+            if (!window.db) {
+                console.warn('⚠️ Firestore غير متاح لتحميل الإشعارات');
+                return;
+            }
+
+            if (!window.unifiedAuth?.currentUser) {
+                console.warn('⚠️ لا يوجد مستخدم مسجل دخول لتحميل إشعاراته');
                 return;
             }
 
             const userId = window.unifiedAuth.currentUser.uid;
-            const notificationsRef = window.unifiedAuth.db
-                .collection('notifications')
-                .where('userId', '==', userId)
-                .where('isRead', '==', false)
-                .orderBy('createdAt', 'desc')
-                .limit(50);
+            
+            // استخدام استعلام بسيط أولاً لتجنب مشكلة الفهرس
+            let notificationsRef;
+            try {
+                // محاولة الاستعلام مع الترتيب والفلترة (يتطلب فهرس)
+                notificationsRef = window.db
+                    .collection('notifications')
+                    .where('userId', '==', userId)
+                    .where('isRead', '==', false)
+                    .orderBy('createdAt', 'desc')
+                    .limit(50);
+            } catch (indexError) {
+                // في حالة عدم وجود الفهرس، استخدم استعلام بسيط
+                console.warn('🔍 الفهرس غير متوفر، استخدام استعلام بسيط للإشعارات غير المقروءة');
+                notificationsRef = window.db
+                    .collection('notifications')
+                    .where('userId', '==', userId)
+                    .limit(50);
+            }
 
             const snapshot = await notificationsRef.get();
             
-            this.unreadCount = snapshot.size;
-            this.notifications.clear();
-
+            // فلترة النتائج محلياً إذا لم نستطع استخدام الفهرس
+            let unreadNotifications = [];
             snapshot.forEach(doc => {
                 const data = doc.data();
-                this.notifications.set(doc.id, {
-                    id: doc.id,
-                    ...data
-                });
+                if (!data.isRead) {
+                    unreadNotifications.push({
+                        id: doc.id,
+                        ...data
+                    });
+                }
+            });
+            
+            // ترتيب النتائج محلياً إذا لم نستطع استخدام الفهرس
+            unreadNotifications.sort((a, b) => {
+                if (a.createdAt && b.createdAt) {
+                    const aTime = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+                    const bTime = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+                    return bTime - aTime;
+                }
+                return 0;
+            });
+            
+            this.unreadCount = unreadNotifications.length;
+            this.notifications.clear();
+
+            unreadNotifications.forEach(notification => {
+                this.notifications.set(notification.id, notification);
             });
 
             this.updateBadge();
             this.updateDropdownContent();
 
+            console.log(`📬 تم تحميل ${this.unreadCount} إشعار غير مقروء`);
+
         } catch (error) {
             console.error('خطأ في تحميل الإشعارات:', error);
+            // في حالة الخطأ، أعد المحاولة بعد فترة
+            setTimeout(() => {
+                if (this.isInitialized && window.db && window.unifiedAuth?.currentUser) {
+                    this.loadUnreadNotifications();
+                }
+            }, 5000);
         }
     }
 
     startNotificationListener() {
-        if (!window.unifiedAuth?.currentUser || !window.unifiedAuth?.db) {
-            console.warn('المصادقة أو قاعدة البيانات غير متوفرة للمراقبة');
+        // التحقق المحسن من توفر Firebase والمصادقة
+        if (!window.db) {
+            console.warn('⚠️ Firestore غير متاح للمراقبة - سيتم إعادة المحاولة');
+            // إعادة المحاولة بعد 3 ثوان
+            setTimeout(() => {
+                if (this.isInitialized) {
+                    this.startNotificationListener();
+                }
+            }, 3000);
             return;
         }
 
-        const userId = window.unifiedAuth.currentUser.uid;
-        const notificationsRef = window.unifiedAuth.db
-            .collection('notifications')
-            .where('userId', '==', userId)
-            .orderBy('createdAt', 'desc');
+        if (!window.unifiedAuth?.currentUser) {
+            console.warn('⚠️ لا يوجد مستخدم مسجل دخول للمراقبة - سيتم إعادة المحاولة');
+            // إعادة المحاولة بعد 3 ثوان
+            setTimeout(() => {
+                if (this.isInitialized) {
+                    this.startNotificationListener();
+                }
+            }, 3000);
+            return;
+        }
 
-        this.unsubscribeListener = notificationsRef.onSnapshot((snapshot) => {
-            snapshot.docChanges().forEach((change) => {
-                if (change.type === 'added') {
-                    const notification = {
-                        id: change.doc.id,
-                        ...change.doc.data()
-                    };
-                    
-                    this.notifications.set(notification.id, notification);
-                    
-                    if (!notification.isRead) {
-                        this.unreadCount++;
-                        
-                        // عرض إشعار فوري
-                        if (window.notify) {
-                            window.notify.info(notification.title, notification.message, {
-                                desktop: true,
-                                onClick: () => this.handleNotificationClick(notification.id)
-                            });
+        try {
+            const userId = window.unifiedAuth.currentUser.uid;
+            
+            // استخدام استعلام بسيط أولاً لتجنب مشكلة الفهرس
+            let notificationsRef;
+            try {
+                // محاولة الاستعلام مع الترتيب (يتطلب فهرس)
+                notificationsRef = window.db
+                    .collection('notifications')
+                    .where('userId', '==', userId)
+                    .orderBy('createdAt', 'desc');
+            } catch (indexError) {
+                // في حالة عدم وجود الفهرس، استخدم استعلام بسيط
+                console.warn('🔍 الفهرس غير متوفر، استخدام استعلام بسيط');
+                notificationsRef = window.db
+                    .collection('notifications')
+                    .where('userId', '==', userId);
+            }
+
+            console.log(`📡 بدء مراقبة الإشعارات للمستخدم: ${userId}`);
+
+            this.unsubscribeListener = notificationsRef.onSnapshot((snapshot) => {
+                // Rebuild local map from snapshot to keep it the source of truth
+                const updatedMap = new Map();
+                const addedIds = [];
+                snapshot.forEach(doc => {
+                    const data = { id: doc.id, ...doc.data() };
+                    updatedMap.set(doc.id, data);
+                });
+
+                // Determine truly new docs since last snapshot
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        addedIds.push(change.doc.id);
+                    }
+                });
+
+                // Replace internal state
+                this.notifications = updatedMap;
+
+                // Recompute unread count
+                this.unreadCount = Array.from(this.notifications.values()).filter(n => !n.isRead).length;
+
+                // Show toasts only for new items after feed is ready (avoid initial flood)
+                if (this._feedReady && window.notify) {
+                    addedIds.forEach(id => {
+                        if (this._knownIds.has(id)) return; // already handled
+                        const n = this.notifications.get(id);
+                        if (n && !n.isRead) {
+                            try {
+                                window.notify.info(n.title, n.message, {
+                                    desktop: true,
+                                    onClick: () => this.handleNotificationClick(n.id)
+                                });
+                            } catch (e) { /* ignore toast errors */ }
                         }
-                    }
-                } else if (change.type === 'modified') {
-                    const notification = {
-                        id: change.doc.id,
-                        ...change.doc.data()
-                    };
+                        this._knownIds.add(id);
+                    });
+                } else {
+                    // First snapshot: record all as known but do not toast
+                    Array.from(this.notifications.keys()).forEach(id => this._knownIds.add(id));
+                    this._feedReady = true;
+                }
+
+                this.updateBadge();
+                this.updateDropdownContent();
+            }, (error) => {
+                console.error('خطأ في مراقبة الإشعارات:', error);
+                
+                // في حالة خطأ الفهرس، قم بإعادة المحاولة بدون ترتيب
+                if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                    console.warn('🔍 فهرس Firestore مطلوب - سيتم إعادة المحاولة بدون ترتيب');
                     
-                    const oldNotification = this.notifications.get(notification.id);
-                    if (oldNotification && !oldNotification.isRead && notification.isRead) {
-                        this.unreadCount--;
-                    }
-                    
-                    this.notifications.set(notification.id, notification);
+                    // إعادة المحاولة مع استعلام بسيط
+                    setTimeout(() => {
+                        if (this.isInitialized) {
+                            this.startSimpleNotificationListener(userId);
+                        }
+                    }, 2000);
+                } else {
+                    // إعادة المحاولة بعد 5 ثوان في حالة أخطاء أخرى
+                    setTimeout(() => {
+                        if (this.isInitialized) {
+                            this.startNotificationListener();
+                        }
+                    }, 5000);
                 }
             });
 
-            this.updateBadge();
-            this.updateDropdownContent();
-        });
+        } catch (error) {
+            console.error('خطأ في إعداد مراقبة الإشعارات:', error);
+        }
+    }
+
+    startSimpleNotificationListener(userId) {
+        console.log('🔔 بدء مراقبة الإشعارات البسيطة (بدون فهارس)');
+        
+        try {
+            // استعلام بسيط بدون ترتيب
+            const notificationsRef = window.db
+                .collection('notifications')
+                .where('userId', '==', userId);
+
+            this.unsubscribeListener = notificationsRef.onSnapshot((snapshot) => {
+                const notifications = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    notifications.push({
+                        id: doc.id,
+                        ...data
+                    });
+                });
+                
+                // ترتيب وفلترة محلياً
+                const unreadNotifications = notifications
+                    .filter(n => !n.isRead)
+                    .sort((a, b) => {
+                        if (a.createdAt && b.createdAt) {
+                            const aTime = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+                            const bTime = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+                            return bTime - aTime;
+                        }
+                        return 0;
+                    });
+
+                // تحديث البيانات المحلية
+                this.notifications.clear();
+                notifications.forEach(notification => {
+                    this.notifications.set(notification.id, notification);
+                });
+                
+                this.unreadCount = unreadNotifications.length;
+                this.updateBadge();
+                this.updateDropdownContent();
+                
+                console.log(`📬 تم تحديث الإشعارات: ${this.unreadCount} غير مقروء`);
+            }, (error) => {
+                console.error('خطأ في المراقبة البسيطة للإشعارات:', error);
+                // إعادة المحاولة بعد 10 ثوان
+                setTimeout(() => {
+                    if (this.isInitialized) {
+                        this.startSimpleNotificationListener(userId);
+                    }
+                }, 10000);
+            });
+            
+        } catch (error) {
+            console.error('خطأ في إعداد المراقبة البسيطة:', error);
+        }
     }
 
     startPeriodicCheck() {
-        // فحص دوري كل 30 ثانية
+        // فحص دوري كل دقيقة مع التحقق من الحالة
         this.checkInterval = setInterval(() => {
-            this.loadUnreadNotifications();
-        }, 30000);
+            if (window.db && window.unifiedAuth?.currentUser && this.isInitialized) {
+                this.loadUnreadNotifications();
+            } else {
+                console.log('⏳ انتظار تهيئة Firebase للفحص الدوري...');
+            }
+        }, 60000); // كل دقيقة بدلاً من 30 ثانية لتقليل التحميل
+    }
+
+    setupAuthStateListener() {
+        // مراقبة تغيير حالة المصادقة
+        if (window.auth) {
+            this.authUnsubscribe = window.auth.onAuthStateChanged((user) => {
+                if (user && this.isInitialized) {
+                    console.log('👤 تم تسجيل دخول المستخدم - إعادة تهيئة الإشعارات');
+                    // إعادة تحميل الإشعارات للمستخدم الجديد
+                    setTimeout(() => {
+                        this.loadUnreadNotifications();
+                        this.startNotificationListener();
+                    }, 1000);
+                } else if (!user) {
+                    console.log('👤 تم تسجيل خروج المستخدم - تنظيف الإشعارات');
+                    // تنظيف الإشعارات عند تسجيل الخروج
+                    this.unreadCount = 0;
+                    this.notifications.clear();
+                    this.updateBadge();
+                    this.updateDropdownContent();
+                }
+            });
+        }
     }
 
     updateBadge() {
@@ -485,33 +712,32 @@ class NotificationBadge {
     createNotificationHTML(notification) {
         const isUnread = !notification.isRead;
         const time = this.formatTime(notification.createdAt);
-        
+        const F = window.FormatUtils || {};
+        const esc = s => { if (s===undefined||s===null) return ''; if (F.escapeHtml) return F.escapeHtml(String(s)); return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); };
         return `
-            <div class="notification-item ${isUnread ? 'unread' : ''}" 
-                 data-notification-id="${notification.id}">
-                <div class="notification-title">${notification.title}</div>
-                <div class="notification-message">${notification.message}</div>
-                <div class="notification-time">${time}</div>
-            </div>
-        `;
+            <div class="notification-item ${isUnread ? 'unread' : ''}" data-notification-id="${esc(notification.id)}">
+                <div class="notification-title">${esc(notification.title)}</div>
+                <div class="notification-message">${esc(notification.message)}</div>
+                <div class="notification-time">${esc(time)}</div>
+            </div>`;
     }
 
     formatTime(timestamp) {
         if (!timestamp) return '';
-        
+        const F = window.FormatUtils || {};
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        if (F.timeAgo) return F.timeAgo(date);
+        // fallback simple Arabic relative
         const now = new Date();
         const diff = now - date;
-        const minutes = Math.floor(diff / (1000 * 60));
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
         if (minutes < 1) return 'الآن';
-        if (minutes < 60) return `منذ ${minutes} دقيقة`;
-        if (hours < 24) return `منذ ${hours} ساعة`;
-        if (days < 7) return `منذ ${days} يوم`;
-        
-        return date.toLocaleDateString('ar-SA');
+    if (minutes < 60) return `${minutes} دقيقة`;
+    if (hours < 24) return `${hours} ساعة`;
+    if (days < 7) return `${days} يوم`;
+        return F.formatArabicDate ? F.formatArabicDate(date) : date.toLocaleDateString('ar-SA');
     }
 
     async handleNotificationClick(notificationId) {
@@ -563,9 +789,12 @@ class NotificationBadge {
 
     async markAsRead(notificationId) {
         try {
-            if (!window.unifiedAuth?.currentUser) return;
+            if (!window.db || !window.unifiedAuth?.currentUser) {
+                console.warn('⚠️ لا يمكن تحديد الإشعار كمقروء - Firebase غير متاح');
+                return;
+            }
 
-            await window.unifiedAuth.db
+            await window.db
                 .collection('notifications')
                 .doc(notificationId)
                 .update({
@@ -590,14 +819,17 @@ class NotificationBadge {
 
     async markAllAsRead() {
         try {
-            if (!window.unifiedAuth?.currentUser || this.unreadCount === 0) return;
+            if (!window.db || !window.unifiedAuth?.currentUser || this.unreadCount === 0) {
+                console.warn('⚠️ لا يمكن تحديد الإشعارات كمقروءة - Firebase غير متاح أو لا توجد إشعارات');
+                return;
+            }
 
-            const batch = window.unifiedAuth.db.batch();
+            const batch = window.db.batch();
             const unreadNotifications = Array.from(this.notifications.values())
                 .filter(notification => !notification.isRead);
 
             unreadNotifications.forEach(notification => {
-                const notificationRef = window.unifiedAuth.db
+                const notificationRef = window.db
                     .collection('notifications')
                     .doc(notification.id);
                 batch.update(notificationRef, {
@@ -619,15 +851,13 @@ class NotificationBadge {
             this.updateDropdownContent();
 
             // عرض رسالة نجاح
-            if (window.notify) {
-                window.notify.success('تم بنجاح', 'تم تحديد جميع الإشعارات كمقروءة');
-            }
+            if (window.UX?.toast) { try { window.UX.toast('تم تحديد جميع الإشعارات كمقروءة','success'); } catch{} }
+            else if (window.notify?.success){ window.notify.success('تم بنجاح','تم تحديد جميع الإشعارات كمقروءة'); }
 
         } catch (error) {
             console.error('خطأ في تحديد جميع الإشعارات كمقروءة:', error);
-            if (window.notify) {
-                window.notify.error('خطأ', 'فشل في تحديد الإشعارات كمقروءة');
-            }
+            if (window.UX?.toast) { try { window.UX.toast('فشل في تحديد الإشعارات كمقروءة','error'); } catch{} }
+            else if (window.notify?.error){ window.notify.error('خطأ','فشل في تحديد الإشعارات كمقروءة'); }
         }
     }
 
@@ -640,10 +870,17 @@ class NotificationBadge {
         // تنظيف المستمعين والفواصل الزمنية
         if (this.unsubscribeListener) {
             this.unsubscribeListener();
+            this.unsubscribeListener = null;
+        }
+        
+        if (this.authUnsubscribe) {
+            this.authUnsubscribe();
+            this.authUnsubscribe = null;
         }
         
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
+            this.checkInterval = null;
         }
 
         // إزالة العناصر من DOM
@@ -656,11 +893,35 @@ class NotificationBadge {
         if (styles) {
             styles.remove();
         }
+
+        // تنظيف الحالة
+        this.isInitialized = false;
+        this.unreadCount = 0;
+        this.notifications.clear();
+        
+        console.log('🧹 تم تنظيف نظام شارة الإشعارات');
     }
 }
 
-// إنشاء المثيل العام
-const notificationBadge = new NotificationBadge();
+// إنشاء المثيل العام (مع دعم تعطيل الصفحة)
+let notificationBadge;
+try {
+    const DISABLED = !!(window.__DISABLE_NOTIFICATIONS__ || window.__DISABLE_NOTIFICATION_BADGE__ || window.__NOTIFICATIONS_QUIET_MODE__);
+    if (DISABLED) {
+        // No-op implementation to avoid errors when called
+        notificationBadge = {
+            markAllAsRead: () => {},
+            destroy: () => {},
+            updateBadge: () => {},
+            updateDropdownContent: () => {}
+        };
+        console.log('🔕 تم تعطيل نظام شارة الإشعارات لهذه الصفحة');
+    } else {
+        notificationBadge = new NotificationBadge();
+    }
+} catch (e) {
+    try { notificationBadge = new NotificationBadge(); } catch(_) {}
+}
 
 // تصدير للاستخدام العام
 if (typeof window !== 'undefined') {

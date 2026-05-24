@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <link rel="stylesheet" href="assets/css/scanner.css">
     <link rel="stylesheet" href="assets/css/permissions.css">
     <style>
@@ -39,27 +39,12 @@
             pointer-events: none;
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <div class="d-flex align-items-center">
-                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="index.html">
-                    <i class="fas fa-archive me-2"></i>
-                    نظام الأرشيف
-                </a>
-            </div>
-            <div class="navbar-nav ms-auto">
-                <button class="btn btn-outline-danger btn-sm" id="logoutBtn">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    خروج
-                </button>
-            </div>
-        </div>
-    </nav>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <!-- Unified navbar is injected by unified-ui-template.js -->
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
@@ -85,6 +70,10 @@
                         <button id="testScannerBtn" class="btn btn-info btn-lg ms-2">
                             <i class="fas fa-vial"></i> اختبار الماسح
                         </button>
+                        <div class="d-inline-flex align-items-center ms-3 mt-3 mt-md-0">
+                            <label for="cameraSelect" class="me-2 mb-0 small text-muted">الكاميرا:</label>
+                            <select id="cameraSelect" class="form-select form-select-sm"></select>
+                        </div>
                     </div>
                     
                     <!-- Video Element -->
@@ -144,76 +133,295 @@
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
     
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js" defer></script>
     
     <!-- ZXing Library for Barcode Scanning -->
-    <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
     
     <!-- Unified Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-auth.js"></script>
-    
-    <!-- Enhanced Barcode Scanner -->
-    <script src="assets/js/barcode-scanner.js"></script>
+    <!-- Activity Logger (standalone include for this page) -->
+    <script src="assets/js/activity-logger.js"></script>
     
     <script>
+        // Helper to update status alert with type: info | success | danger | secondary
+        function setStatus(html, type = 'info'){
+            const el = document.getElementById('scanStatus');
+            if (!el) return;
+            el.className = `alert alert-${type} scanner-status`;
+            el.innerHTML = html;
+        }
+
+        // Simple barcode scanner implementation
+        class SimpleBarcodeScanner {
+            constructor() {
+                this.codeReader = null;
+                this.isScanning = false;
+                this.videoElement = document.getElementById('videoElement');
+                this.selectedDeviceId = null;
+            }
+            
+            async init() {
+                try {
+                    this.codeReader = new ZXing.BrowserMultiFormatReader();
+                    console.log('✅ Simple Barcode Scanner initialized');
+                    await this.populateCameras();
+                } catch (error) {
+                    console.error('❌ خطأ في تهيئة الماسح:', error);
+                }
+            }
+            
+            async populateCameras(){
+                const select = document.getElementById('cameraSelect');
+                if (!select) return;
+                try {
+                    select.innerHTML = '<option>جاري جلب الكاميرات...</option>';
+                    let devices;
+                    try {
+                        const listFn = (ZXing.BrowserMultiFormatReader && ZXing.BrowserMultiFormatReader.listVideoInputDevices)
+                            || (ZXing.BrowserCodeReader && ZXing.BrowserCodeReader.listVideoInputDevices);
+                        if (listFn) {
+                            devices = await listFn.call(ZXing.BrowserMultiFormatReader || ZXing.BrowserCodeReader);
+                        } else if (this.codeReader && this.codeReader.listVideoInputDevices) {
+                            devices = await this.codeReader.listVideoInputDevices();
+                        } else if (navigator.mediaDevices?.enumerateDevices) {
+                            const all = await navigator.mediaDevices.enumerateDevices();
+                            devices = all.filter(d=>d.kind === 'videoinput').map(d=>({ deviceId: d.deviceId, label: d.label }));
+                        } else {
+                            devices = [];
+                        }
+                    } catch(inner){
+                        console.warn('Fallback to enumerateDevices()', inner);
+                        const all = await navigator.mediaDevices.enumerateDevices();
+                        devices = all.filter(d=>d.kind === 'videoinput').map(d=>({ deviceId: d.deviceId, label: d.label }));
+                    }
+                    if (!devices || !devices.length){
+                        select.innerHTML = '<option value="">لا توجد كاميرات متاحة</option>';
+                        select.disabled = true;
+                        return;
+                    }
+                    // Prefer back/environment camera
+                    let preferred = devices.find(d=>/back|rear|environment/i.test(d.label)) || devices[devices.length-1];
+                    select.innerHTML = devices.map(d=>`<option value="${d.deviceId}">${d.label || 'كاميرا'}</option>`).join('');
+                    select.value = preferred?.deviceId || devices[0].deviceId;
+                    this.selectedDeviceId = select.value;
+                    select.disabled = devices.length <= 1;
+                    select.onchange = ()=>{
+                        this.selectedDeviceId = select.value;
+                        if (this.isScanning){ this.stopScanning(); this.startScanning(); }
+                    };
+                } catch(err){
+                    console.warn('تعذر سرد الكاميرات، سيتم استخدام الإعداد الافتراضي', err);
+                    select.innerHTML = '<option value="">الكاميرا الافتراضية</option>';
+                    select.disabled = true;
+                }
+            }
+            
+            async startScanning() {
+                if (this.isScanning) return;
+                
+                try {
+                    this.isScanning = true;
+                    document.getElementById('startScanBtn').disabled = true;
+                    document.getElementById('stopScanBtn').disabled = false;
+                    setStatus('<i class="fas fa-search"></i> جاري المسح...', 'info');
+                    
+                    if (this.codeReader) {
+                        const startWithDevice = async () => {
+                            await this.codeReader.decodeFromVideoDevice(this.selectedDeviceId || null, this.videoElement, (result, err) => {
+                                if (result) this.onScanSuccess(result);
+                                if (err && !(err instanceof ZXing.NotFoundException)) console.error('Scan error:', err);
+                            });
+                        };
+                        const startWithConstraints = async () => {
+                            await this.codeReader.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } } }, this.videoElement, (result, err) => {
+                                if (result) this.onScanSuccess(result);
+                                if (err && !(err instanceof ZXing.NotFoundException)) console.error('Scan error:', err);
+                            });
+                        };
+                        try {
+                            await startWithDevice();
+                        } catch (e1){
+                            console.warn('فشل بدء المسح بالجهاز المحدد، سنحاول facingMode', e1);
+                            try { await startWithConstraints(); }
+                            catch(e2){
+                                console.error('تعذر تشغيل الكاميرا:', e2);
+                                this.stopScanning();
+                                setStatus('<i class="fas fa-exclamation-triangle"></i> تعذر تشغيل الكاميرا. تحقق من الأذونات، HTTPS، وإعدادات المتصفح.', 'danger');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('خطأ في بدء المسح:', error);
+                    this.stopScanning();
+                    setStatus('<i class="fas fa-exclamation-triangle"></i> فشل بدء المسح. تحقق من أذونات الكاميرا.', 'danger');
+                }
+            }
+            
+            stopScanning() {
+                try {
+                    if (this.codeReader) {
+                        this.codeReader.reset();
+                    }
+                    this.isScanning = false;
+                    document.getElementById('startScanBtn').disabled = false;
+                    document.getElementById('stopScanBtn').disabled = true;
+                    setStatus('<i class="fas fa-info-circle"></i> تم إيقاف المسح', 'secondary');
+                } catch (error) {
+                    console.error('خطأ في إيقاف المسح:', error);
+                }
+            }
+            
+            onScanSuccess(result) {
+                console.log('✅ تم مسح الرمز:', result.text);
+                document.getElementById('barcodeResult').textContent = result.text;
+                document.getElementById('barcodeFormat').textContent = result.format;
+                setStatus('<i class="fas fa-check-circle"></i> تم المسح بنجاح!', 'success');
+                // Try real lookup first; fallback to demo card on failure
+                handleScanSuccess(result).catch(()=>{ this.showDemoDocumentInfo(result.text); });
+            }
+            
+            showDemoDocumentInfo(code) {
+                const documentInfo = document.getElementById('documentInfo');
+                documentInfo.innerHTML = `
+                    <div class="card border-success mt-3">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-file-alt"></i> معلومات الوثيقة
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>رقم الوثيقة:</strong> ${code}</p>
+                                    <p><strong>العنوان:</strong> وثيقة مرقمة ${code}</p>
+                                    <p><strong>النوع:</strong> مستند PDF</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>القسم:</strong> تقنية المعلومات</p>
+                                    <p><strong>تاريخ الإنشاء:</strong> ${new Date().toLocaleDateString('ar-SA')}</p>
+                                    <p><strong>الحالة:</strong> <span class="badge bg-success">نشط</span></p>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-primary" onclick="alert('عرض الوثيقة - وضع تجريبي')">
+                                    <i class="fas fa-eye"></i> عرض الوثيقة
+                                </button>
+                                <button class="btn btn-secondary ms-2" onclick="alert('تحميل الوثيقة - وضع تجريبي')">
+                                    <i class="fas fa-download"></i> تحميل
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
         // Initialize unified auth system
         let permissionController;
-        let barcodeScanner;
+        let scannerInstance;
 
         document.addEventListener('DOMContentLoaded', async function() {
-            // Wait for unified auth to initialize
-            await new Promise(resolve => {
-                const checkAuth = () => {
-                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
-                        // Initialize permission controller if available
-                        if (window.UIPermissionController) {
-                            permissionController = new UIPermissionController(unifiedAuth);
-                        }
-                        resolve();
-                    } else {
-                        setTimeout(checkAuth, 100);
-                    }
-                };
-                checkAuth();
-            });
+            // Ensure Unified UI Template is initialized once
+            try { if (window.unifiedUI?.updateSidebar) await window.unifiedUI.updateSidebar(); } catch {}
+
+            // Wait for firebase and auth readiness
+            await waitForFirebase();
+            await waitForAuthReady();
+
+            // Initialize permission controller if available
+            if (window.UIPermissionController && window.unifiedAuth) {
+                permissionController = new UIPermissionController(unifiedAuth);
+            }
 
             // Set up auth state listener
-            unifiedAuth.onAuthStateChanged((user) => {
-                handleAuthStateChange(user);
-            });
+            if (window.unifiedAuth && typeof unifiedAuth.onAuthStateChanged === 'function'){
+                unifiedAuth.onAuthStateChanged((user) => { handleAuthStateChange(user); });
+            }
 
             // Initialize barcode scanner system
             initializeBarcodeScanner();
+
+            // Stop scanner when leaving page or hidden
+            window.addEventListener('beforeunload', ()=>{ try { scannerInstance?.stopScanning?.(); } catch{} });
+            document.addEventListener('visibilitychange', ()=>{ if (document.hidden){ try { scannerInstance?.stopScanning?.(); } catch{} } });
         });
 
+        function waitForFirebase(){
+            return new Promise(resolve=>{
+                if (window.db) return resolve();
+                const onReady = ()=>{ document.removeEventListener('firebaseReady', onReady); resolve(); };
+                document.addEventListener('firebaseReady', onReady);
+                let tries=0; const iv=setInterval(()=>{ tries++; if(window.db){ clearInterval(iv); document.removeEventListener('firebaseReady', onReady); resolve(); } if(tries>50){ clearInterval(iv); document.removeEventListener('firebaseReady', onReady); resolve(); } },100);
+            });
+        }
+        function waitForAuthReady(){
+            return new Promise(resolve=>{
+                if (window.unifiedAuth && (unifiedAuth.currentUser || unifiedAuth.isInitialized)) return resolve();
+                const onAuth = ()=>{ document.removeEventListener('firebaseAuthReady', onAuth); resolve(); };
+                document.addEventListener('firebaseAuthReady', onAuth);
+                let tries=0; const iv=setInterval(()=>{ tries++; if(window.unifiedAuth){ clearInterval(iv); document.removeEventListener('firebaseAuthReady', onAuth); resolve(); } if(tries>50){ clearInterval(iv); document.removeEventListener('firebaseAuthReady', onAuth); resolve(); } },100);
+            });
+        }
+
         async function handleAuthStateChange(user) {
-            if (!user) {
-                window.location.href = 'login.html?message=session-expired';
+            // Check for demo mode
+            const demoMode = localStorage.getItem('archiveDemoMode');
+            if (demoMode === 'enabled') {
+                console.log('🎭 Scanner في وضع العرض التوضيحي');
+                showScannerDemoNotice();
+                enableScannerDemoMode();
                 return;
+            }
+            
+            // Only redirect if not in demo mode and Firebase is properly loaded
+            const timeoutId = setTimeout(() => {
+                if (!window.firebase?.auth()?.currentUser && !unifiedAuth?.currentUser) {
+                    window.location.href = 'login.html?message=session-expired';
+                }
+            }, 1500);
+            
+            // Clear timeout if user authenticates
+            if (window.firebase?.auth()) {
+                window.firebase.auth().onAuthStateChanged((authUser) => {
+                    if (authUser) {
+                        clearTimeout(timeoutId);
+                    }
+                });
             }
 
             // Allow access for all authenticated users
-            console.log('✅ Scanner access granted for authenticated user');
+            console.log('✅ Scanner access granted for user');
 
             // Update permission-based UI
             if (permissionController) {
                 permissionController.updateUI();
             }
             
-            // Update sidebar with proper role
-            if (window.sidebarManager) {
-                const userRole = unifiedAuth.getCurrentUserRole();
-                window.sidebarManager.updateSidebarNav(true, userRole);
+            // Update sidebar/navbar after auth is available
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                try { await window.unifiedUI.updateSidebar(); } catch {}
             }
+        }
+        
+        function enableScannerDemoMode() {
+            console.log('🎭 تفعيل وضع العرض التوضيحي للماسح الضوئي');
+            
+            // Initialize demo scanner functionality
+            initializeDemoScanner();
+            
+            // Update UI for demo mode
+            setStatus('<i class="fas fa-info-circle"></i> وضع العرض التوضيحي - الماسح الضوئي جاهز', 'info');
         }
 
         // Enhanced logout function
         async function logout() {
             try {
                 // Stop scanner if running
-                if (barcodeScanner) {
-                    barcodeScanner.stopScanning();
+                if (scannerInstance && scannerInstance.stopScanning) {
+                    scannerInstance.stopScanning();
                 }
                 
                 await unifiedAuth.signOut();
@@ -227,50 +435,141 @@
         // Initialize enhanced barcode scanner
         function initializeBarcodeScanner() {
             // Set up logout button
-            document.getElementById('logoutBtn').onclick = logout;
+            const logoutEl = document.getElementById('logoutBtn');
+            if (logoutEl) logoutEl.onclick = logout;
             
-            // Initialize barcode scanner with enhanced features
-            if (window.BarcodeScanner) {
-                barcodeScanner = new BarcodeScanner({
-                    videoElement: document.getElementById('videoElement'),
-                    onScanSuccess: handleScanSuccess,
-                    onScanError: handleScanError,
-                    authSystem: unifiedAuth
-                });
-            }
+            // Initialize simple barcode scanner
+            scannerInstance = new SimpleBarcodeScanner();
+            scannerInstance.init();
+            
+            // Set up buttons
+            document.getElementById('startScanBtn').onclick = () => scannerInstance.startScanning();
+            document.getElementById('stopScanBtn').onclick = () => scannerInstance.stopScanning();
+            document.getElementById('testScannerBtn').onclick = () => simulateScanResult();
+        }
+        
+        // Initialize demo scanner for testing
+        function initializeDemoScanner() {
+            console.log('🎭 تهيئة الماسح الضوئي التجريبي');
+            
+            // Set up logout button
+            const logoutEl = document.getElementById('logoutBtn');
+            if (logoutEl) logoutEl.onclick = logout;
+            
+            // Set up demo buttons
+            const startBtn = document.getElementById('startScanBtn');
+            const stopBtn = document.getElementById('stopScanBtn');
+            const testBtn = document.getElementById('testScannerBtn');
+            
+            startBtn.onclick = () => {
+                console.log('🎭 بدء المسح التجريبي');
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                setStatus('<i class="fas fa-search"></i> جاري المسح التجريبي...', 'info');
+            };
+            
+            stopBtn.onclick = () => {
+                console.log('🎭 إيقاف المسح التجريبي');
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                setStatus('<i class="fas fa-info-circle"></i> تم إيقاف المسح', 'secondary');
+            };
+            
+            testBtn.onclick = () => {
+                console.log('🎭 اختبار الماسح الضوئي التجريبي');
+                simulateScanResult();
+            };
+        }
+        
+        // Simulate barcode scan result for demo
+        function simulateScanResult() {
+            const demoCode = 'DEMO-' + Date.now().toString().slice(-6);
+            const demoFormat = 'CODE_128';
+            
+            document.getElementById('barcodeResult').textContent = demoCode;
+            document.getElementById('barcodeFormat').textContent = demoFormat;
+            
+            setStatus('<i class="fas fa-check-circle"></i> تم مسح رمز تجريبي بنجاح!', 'success');
+            
+            // Show demo document info
+            showDemoDocumentInfo(demoCode);
+        }
+        
+        // Show demo document information
+        function showDemoDocumentInfo(code) {
+            const documentInfo = document.getElementById('documentInfo');
+            documentInfo.innerHTML = `
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-file-alt"></i> معلومات الوثيقة التجريبية
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>رقم الوثيقة:</strong> ${code}</p>
+                                <p><strong>العنوان:</strong> وثيقة تجريبية للاختبار</p>
+                                <p><strong>النوع:</strong> مستند PDF</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>القسم:</strong> تقنية المعلومات</p>
+                                <p><strong>تاريخ الإنشاء:</strong> ${new Date().toLocaleDateString('ar-SA')}</p>
+                                <p><strong>الحالة:</strong> <span class="badge bg-success">نشط</span></p>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary">
+                                <i class="fas fa-eye"></i> عرض الوثيقة
+                            </button>
+                            <button class="btn btn-secondary ms-2">
+                                <i class="fas fa-download"></i> تحميل
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
         
         // Handle successful barcode scan
         async function handleScanSuccess(result) {
             try {
-                // Log scan event
-                authSystem.logUserActivity('barcode-scan', {
-                    scannedCode: result.text,
-                    format: result.format
-                });
+                // Log scan event (if logger available)
+                if (window.activityLogger && window.activityLogger.logQRScan) {
+                    window.activityLogger.logQRScan(result.text, true, 'standalone_scanner');
+                }
                 
                 // Search for document with scanned barcode
                 await searchDocumentByBarcode(result.text);
             } catch (error) {
                 console.error('خطأ في معالجة نتيجة المسح:', error);
-                authSystem.logError('scan-processing-error', error, { scannedCode: result.text });
+                if (window.activityLogger && window.activityLogger.logError) {
+                    window.activityLogger.logError('scan-processing-error', error.message);
+                }
+                setStatus('<i class="fas fa-exclamation-triangle"></i> حدث خطأ أثناء معالجة النتيجة', 'danger');
             }
         }
         
         // Handle scan error
         function handleScanError(error) {
             console.error('خطأ في المسح:', error);
-            authSystem.logError('barcode-scan-error', error);
+            if (window.activityLogger && window.activityLogger.logError) {
+                window.activityLogger.logError('barcode-scan-error', error.message);
+            }
         }
         
         // Search for document by barcode
         async function searchDocumentByBarcode(barcode) {
             try {
-                if (!authSystem.hasPermission('document-search')) {
+                // Basic auth check; if unifiedAuth exposes permissions, use them
+                if (!window.unifiedAuth || !unifiedAuth.currentUser) {
+                    throw new Error('يرجى تسجيل الدخول للبحث في الوثائق');
+                }
+                if (typeof unifiedAuth.hasPermission === 'function' && !unifiedAuth.hasPermission('document-search')){
                     throw new Error('ليس لديك صلاحية للبحث في الوثائق');
                 }
                 
-                const querySnapshot = await authSystem.db.collection('documents')
+                const querySnapshot = await window.db.collection('documents')
                     .where('qrCode', '==', barcode)
                     .where('isActive', '==', true)
                     .get();
@@ -283,37 +582,114 @@
                     displayDocumentDetails(data);
                     
                     // Log successful search
-                    authSystem.logUserActivity('document-found-by-barcode', {
-                        documentId: doc.id,
-                        barcode: barcode
-                    });
+                    if (window.activityLogger && window.activityLogger.log){
+                        window.activityLogger.log('scanner', 'document-found-by-barcode', { documentId: doc.id, barcode });
+                    }
+                    setStatus('<i class="fas fa-check-circle"></i> تم العثور على الوثيقة المطابقة', 'success');
                 } else {
                     // No document found
                     showNoDocumentFound(barcode);
+                    setStatus('<i class="fas fa-info-circle"></i> لم يتم العثور على وثيقة بالرمز الممسوح', 'info');
                 }
             } catch (error) {
                 console.error('خطأ في البحث عن الوثيقة:', error);
-                authSystem.logError('document-search-error', error, { barcode });
+                if (window.activityLogger && window.activityLogger.logError) {
+                    window.activityLogger.logError('document-search-error', error.message);
+                }
                 showSearchError(error.message);
+                setStatus('<i class="fas fa-exclamation-triangle"></i> ' + (error?.message || 'تعذر البحث عن الوثيقة'), 'danger');
             }
         }
         
         // Display document details
         function displayDocumentDetails(data) {
-            // Implementation for displaying found document
-            console.log('تم العثور على الوثيقة:', data);
+            const documentInfo = document.getElementById('documentInfo');
+            const createdAt = (data.createdAt && data.createdAt.toDate) ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : null);
+            const createdAtStr = createdAt ? createdAt.toLocaleDateString('ar-SA') : '-';
+            const title = data.title || data.name || 'بدون عنوان';
+            const dept = data.department || data.currentDepartment || '-';
+            const status = data.currentStatus || data.status || '-';
+            const fileNumber = data.fileNumber || data.number || '-';
+            documentInfo.innerHTML = `
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-file-alt"></i> معلومات الوثيقة</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>رقم الوثيقة:</strong> ${fileNumber}</p>
+                                <p><strong>العنوان:</strong> ${title}</p>
+                                <p><strong>الحالة:</strong> <span class="badge bg-info">${status}</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>القسم:</strong> ${dept}</p>
+                                <p><strong>تاريخ الإنشاء:</strong> ${createdAtStr}</p>
+                                <p><strong>الرمز:</strong> ${data.qrCode || '-'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
         }
         
         // Show no document found message
         function showNoDocumentFound(barcode) {
-            console.log('لم يتم العثور على وثيقة بالباركود:', barcode);
+            const documentInfo = document.getElementById('documentInfo');
+            documentInfo.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle"></i>
+                    لم يتم العثور على وثيقة بالباركود: <strong>${barcode}</strong>
+                </div>`;
         }
         
         // Show search error
         function showSearchError(message) {
-            console.error('خطأ في البحث:', message);
+            const documentInfo = document.getElementById('documentInfo');
+            documentInfo.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle"></i>
+                    حدث خطأ أثناء البحث: ${message}
+                </div>`;
+        }
+        
+        function showScannerDemoNotice() {
+            setTimeout(() => {
+                const notice = document.createElement('div');
+                notice.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    max-width: 300px;
+                    font-family: 'Cairo', sans-serif;
+                `;
+                notice.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>وضع العرض التوضيحي</strong>
+                            <br><small>الماسح الضوئي في وضع المحاكاة</small>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
+                    </div>
+                `;
+                document.body.appendChild(notice);
+                
+                setTimeout(() => {
+                    if (notice.parentElement) {
+                        notice.remove();
+                    }
+                }, 8000);
+            }, 500);
         }
     </script>
 </body>
 </html>
+
+
 

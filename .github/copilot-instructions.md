@@ -13,11 +13,13 @@ Firebase-based Arabic document management system featuring advanced notification
 - **Security**: Firestore security rules, role-based permissions, activity logging
 
 ### Major Components
-- `public/`: Complete frontend application with HTML pages and assets
-- `public/assets/js/`: Modular JavaScript architecture with 25+ specialized modules
-- `functions/`: TypeScript Cloud Functions for server-side logic
-- `firestore.rules`: Comprehensive role-based security rules
-- `firebase.json`: Complete Firebase configuration for hosting, functions, firestore
+- `public/`: Complete frontend application with HTML pages and assets (40+ pages)
+- `public/assets/js/`: Modular JavaScript architecture with 40+ specialized modules
+- `functions/`: TypeScript Cloud Functions organized in `/auth`, `/firestore`, `/storage`, `/utils`
+- `firestore.rules`: Role-based security with helper functions for admin/archive_officer roles (95 lines)
+- `firebase.json`: Firebase configuration for hosting with SPA routing
+- `scripts/`: Node.js utility scripts for departments, file movements, notifications
+- PowerShell scripts: `deploy-archive-tech.ps1`, `clean-manager.ps1`, `version-manager.ps1` for Windows workflows
 
 ## Core Commands
 
@@ -59,11 +61,32 @@ firebase deploy --only hosting
 firebase deploy --only functions
 firebase deploy --only firestore:rules
 
-# Scripts
-./scripts/deploy.sh          # Production deployment
+# PowerShell scripts (Windows-specific)
+.\deploy-archive-tech.ps1    # Full Firebase deployment with project setup
+.\clean-manager.ps1          # Clean build artifacts and cache
+.\version-manager.ps1        # Version management and tagging
+
+# Node.js scripts
 node scripts/setup_departments.js
 node scripts/create_files_with_qr.js
+node scripts/fix_notifications.js
 ```
+
+## Critical Architecture Patterns
+
+### JavaScript Module System
+- **Firebase Init**: `firebase-init.js` initializes all Firebase services with fallback config
+- **Auth Layer**: `unified-auth.js` provides centralized authentication with role management
+- **Permission System**: `ui-permission-controller.js` dynamically shows/hides UI elements
+- **Activity Logging**: All user actions tracked via `activity-logger.js` with Arabic timestamps
+- **Notification Hub**: Multiple notification systems (`smart-notifications.js`, `notification-service.js`)
+- **Module Registration**: All modules register themselves on `window` object for global access
+
+### Firebase Integration Patterns
+- **Initialization Sequence**: Firebase SDK → Auth → Firestore → Storage → Functions → Messaging
+- **Error Handling**: Arabic error messages with comprehensive activity logging
+- **Auth State**: Uses `firebase.auth.Auth.Persistence.LOCAL` for session persistence
+- **Custom Events**: `firebaseReady` and `firebaseAuthReady` events coordinate module loading
 
 ## Repository-Specific Style Rules
 
@@ -84,12 +107,19 @@ node scripts/create_files_with_qr.js
 - Activity tracking via `activity-logger.js`
 
 ### Security Patterns
-- Firebase Authentication with custom user profiles
-- Firestore security rules for role-based access
-- Activity logging for all user actions
-- File upload validation and secure storage
-- CSRF protection via Firebase patterns
-- Rate limiting implemented in Cloud Functions
+- **Role-based Access**: `isAdmin()`, `isArchiveOfficer()` helper functions in Firestore rules
+- **User Permissions**: Documents readable by all authenticated users, writable by creators/admins
+- **File Movements**: Only admins and archive officers can create movement records
+- **Activity Logging**: Comprehensive tracking via `activity-logger.js` with Arabic timestamps
+- **Authentication Flow**: Unified system handles login attempts, lockouts, session persistence
+- **Permission UI**: Dynamic element visibility based on user role via `ui-permission-controller.js`
+
+### Arabic RTL Development Patterns
+- **Language Support**: Arabic comments in code, RTL CSS considerations throughout
+- **User Interface**: Bootstrap 5 RTL classes, Font Awesome icons with RTL positioning
+- **Error Messages**: User-facing alerts in Arabic with technical details in English logs
+- **Form Validation**: Arabic validation messages with proper RTL text direction
+- **Date/Time**: Arabic locale formatting for timestamps and activity logs
 
 ### Firebase Integration
 - Firestore for data storage with Arabic support
@@ -136,12 +166,23 @@ node scripts/create_files_with_qr.js
 
 ## Development Notes
 
-- Arabic interface requires RTL CSS considerations
-- PWA capabilities with service worker and manifest
-- Modular JavaScript architecture for maintainability
-- Firebase initialization must wait for DOM ready
-- Activity logging helps debug user issues
-- Permission system controls page access dynamically
+### Module Loading & Dependencies
+- **Firebase Init**: Always wait for `firebaseReady` custom event before using Firebase services
+- **Auth Dependency**: Use `firebaseAuthReady` event or check `window.auth` availability
+- **Module Pattern**: Each JS module registers itself on `window` object (e.g., `window.unifiedAuth`)
+- **Error Handling**: All modules include Arabic error messages for users, English for console logs
+
+### Key Integration Points
+- **Barcode Scanner**: Uses `barcode-scanner.js` with camera API and image upload fallbacks
+- **Notification System**: Multiple systems - `smart-notifications.js` for advanced rules, simple variants for basic alerts
+- **File Management**: `file-management-dashboard.js` handles uploads with drag-drop and Firebase Storage integration
+- **Activity Tracking**: All user actions logged via `activity-logger.js` with timestamp and user context
+
+### Windows Development Workflow
+- **PowerShell Scripts**: Primary deployment via `deploy-archive-tech.ps1` with automatic project setup
+- **Version Management**: `version-manager.ps1` handles tagging and release management
+- **Clean Builds**: `clean-manager.ps1` clears Firebase cache and build artifacts
+- **Terminal**: Use PowerShell for all commands; scripts handle Firebase CLI authentication
 
 ## Migration Status
 

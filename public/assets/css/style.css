@@ -29,6 +29,32 @@ body {
     margin: 0;
 }
 
+/* Accessible skip link (visually hidden until focus) */
+.skip-link.visually-hidden-focusable {
+    position: absolute;
+    top: -40px;
+    right: 10px;
+    background: #003566;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    z-index: 10000;
+    transition: top .2s ease, box-shadow .3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+.skip-link.visually-hidden-focusable:focus,
+.skip-link.visually-hidden-focusable:active {
+    top: 10px;
+    outline: 2px solid #fff;
+}
+
+/* Normalize main content landmark (if id="mainContent") */
+#mainContent, #main-content, main[role="main"] {
+    outline-offset: 4px;
+}
+
 /* Shared component styles inspired by ocean theme */
 .card {
     background: rgba(255, 255, 255, 0.95);

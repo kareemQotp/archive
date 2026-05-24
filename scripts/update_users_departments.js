@@ -7,6 +7,7 @@
 
 const firebase = require('firebase-admin');
 const serviceAccount = require('../archive-tech-firebase-adminsdk.json');
+const { serverTS } = require('./utils/serverTimestamp');
 
 // تهيئة Firebase Admin
 if (!firebase.apps.length) {
@@ -79,8 +80,8 @@ async function updateUsersWithDepartments() {
             const updateData = {
                 department: assignedDepartment,
                 role: assignedRole,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                departmentAssignedAt: firebase.firestore.FieldValue.serverTimestamp()
+                updatedAt: serverTS(firebase),
+                departmentAssignedAt: serverTS(firebase)
             };
 
             // إضافة التحديث للدفعة
@@ -173,7 +174,7 @@ async function createTestUsers() {
             // إنشاء بيانات المستخدم
             const userData = {
                 ...testUser,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: serverTS(firebase),
                 isActive: true,
                 permissions: getDefaultPermissions(testUser.role),
                 profileComplete: false,

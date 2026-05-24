@@ -10,9 +10,11 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-    <!-- Sidebar CSS -->
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- تطبيق الألوان الجديدة -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
     
     <style>
         * {
@@ -22,8 +24,7 @@
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding-right: 250px; /* Leave space for sidebar */
-            transition: padding-right 0.3s ease;
+            padding-top: 80px; /* For navbar */
         }
 
         .container {
@@ -130,29 +131,33 @@
             border-radius: 12px;
             margin-bottom: 1rem;
         }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+        }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <!-- Sidebar -->
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h3>نظام الأرشيف</h3>
-            <button class="btn-close-sidebar" id="closeSidebar" title="إغلاق القائمة">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <ul class="sidebar-nav" id="sidebarNav">
-            <!-- Navigation items will be loaded by sidebar.js -->
-        </ul>
-    </nav>
-
-    <!-- Overlay for mobile -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <!-- Mobile menu button -->
-    <button class="mobile-menu-btn" id="mobileMenuBtn" title="فتح القائمة">
-        <i class="fas fa-bars"></i>
-    </button>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    
 
     <div class="container">
         <h1 class="page-title">إنشاء رموز QR للملفات</h1>
@@ -548,9 +553,18 @@
             const size = parseInt(document.getElementById('qrSize').value);
 
             if (!fileNumber) {
-                alert('يرجى إدخال رقم الملف');
+                showAlert('يرجى إدخال رقم الملف', 'error');
                 return;
             }
+
+            // تسجيل النشاط
+            logActivity('qr_generation_start', {
+                action: 'بدء إنشاء رمز QR منفرد',
+                fileNumber: fileNumber,
+                fileName: fileName,
+                department: department,
+                size: size
+            });
 
             // Create QR data
             const qrData = JSON.stringify({
@@ -572,8 +586,23 @@
                     // Store canvas for download
                     window.currentCanvas = canvas;
                     window.currentFileInfo = { fileNumber, fileName, department };
+                    
+                    // تسجيل النشاط - نجح
+                    logActivity('qr_generation_success', {
+                        action: 'تم إنشاء رمز QR بنجاح',
+                        fileNumber: fileNumber,
+                        fileName: fileName,
+                        department: department
+                    });
                 } else {
                     document.getElementById('singleQrActions').classList.add('hidden');
+                    
+                    // تسجيل النشاط - فشل
+                    logActivity('qr_generation_failed', {
+                        action: 'فشل في إنشاء رمز QR',
+                        fileNumber: fileNumber,
+                        error: 'QR generation failed'
+                    });
                 }
             });
         }
@@ -584,7 +613,7 @@
             const size = parseInt(document.getElementById('bulkQrSize').value);
 
             if (!bulkText) {
-                alert('يرجى إدخال قائمة الملفات');
+                showAlert('يرجى إدخال قائمة الملفات', 'error');
                 return;
             }
 
@@ -604,9 +633,17 @@
             }
 
             if (files.length === 0) {
-                alert('لم يتم العثور على ملفات صالحة في القائمة');
+                showAlert('لم يتم العثور على ملفات صالحة في القائمة', 'error');
                 return;
             }
+
+            // تسجيل النشاط
+            logActivity('bulk_qr_generation_start', {
+                action: 'بدء إنشاء رموز QR متعددة',
+                filesCount: files.length,
+                defaultDepartment: defaultDepartment,
+                size: size
+            });
 
             // Start bulk generation
             const bulkDisplay = document.getElementById('bulkQrDisplay');
@@ -621,6 +658,7 @@
             // Store generated QR codes for batch operations
             window.bulkQRCodes = [];
             let completed = 0;
+            let successful = 0;
 
             files.forEach((file, index) => {
                 // Create container for this QR code
@@ -650,6 +688,7 @@
                         const bulkItem = document.getElementById(`bulk-item-${index}`);
                         if (success && canvas) {
                             bulkItem.classList.add('success');
+                            successful++;
                             window.bulkQRCodes.push({
                                 fileNumber: file.fileNumber,
                                 fileName: file.fileName,
@@ -660,10 +699,19 @@
                             bulkItem.classList.add('error');
                         }
 
-                        // If all completed, show download/print buttons
+                        // If all completed, show download/print buttons and log activity
                         if (completed === files.length) {
                             document.getElementById('downloadAllBtn').classList.remove('hidden');
                             document.getElementById('printAllBtn').classList.remove('hidden');
+                            
+                            // تسجيل النشاط - انتهاء
+                            logActivity('bulk_qr_generation_complete', {
+                                action: 'انتهاء إنشاء رموز QR متعددة',
+                                totalFiles: files.length,
+                                successfulFiles: successful,
+                                failedFiles: files.length - successful
+                            });
+                            
                             setTimeout(() => {
                                 progressBar.classList.add('hidden');
                             }, 1000);
@@ -942,9 +990,15 @@ FILE008|خطة الطوارئ والأزمات|archive`;
 
         function downloadAllQR() {
             if (!window.bulkQRCodes || window.bulkQRCodes.length === 0) {
-                alert('لا توجد رموز QR للتحميل');
+                showAlert('لا توجد رموز QR للتحميل', 'error');
                 return;
             }
+
+            // تسجيل النشاط
+            logActivity('bulk_qr_download', {
+                action: 'تحميل رموز QR متعددة',
+                filesCount: window.bulkQRCodes.length
+            });
 
             // Create a ZIP file using JSZip (we'll load it dynamically)
             if (typeof JSZip === 'undefined') {
@@ -978,9 +1032,15 @@ FILE008|خطة الطوارئ والأزمات|archive`;
 
         function printAllQR() {
             if (!window.bulkQRCodes || window.bulkQRCodes.length === 0) {
-                alert('لا توجد رموز QR للطباعة');
+                showAlert('لا توجد رموز QR للطباعة', 'error');
                 return;
             }
+
+            // تسجيل النشاط
+            logActivity('bulk_qr_print', {
+                action: 'طباعة رموز QR متعددة',
+                filesCount: window.bulkQRCodes.length
+            });
 
             const printWindow = window.open('', '_blank');
             let content = `
@@ -1059,9 +1119,16 @@ FILE008|خطة الطوارئ والأزمات|archive`;
 
         function downloadQR() {
             if (!window.currentCanvas) {
-                alert('لم يتم إنشاء رمز QR بعد');
+                showAlert('لم يتم إنشاء رمز QR بعد', 'error');
                 return;
             }
+
+            // تسجيل النشاط
+            logActivity('qr_download', {
+                action: 'تحميل رمز QR منفرد',
+                fileNumber: window.currentFileInfo.fileNumber,
+                fileName: window.currentFileInfo.fileName
+            });
 
             const link = document.createElement('a');
             link.download = `QR_${window.currentFileInfo.fileNumber}.png`;
@@ -1072,9 +1139,17 @@ FILE008|خطة الطوارئ والأزمات|archive`;
         function printQR() {
             const fileInfo = window.currentFileInfo;
             if (!fileInfo) {
-                alert('لم يتم إنشاء بيانات الملف بعد');
+                showAlert('لم يتم إنشاء بيانات الملف بعد', 'error');
                 return;
             }
+
+            // تسجيل النشاط
+            logActivity('qr_print', {
+                action: 'طباعة رمز QR منفرد',
+                fileNumber: fileInfo.fileNumber,
+                fileName: fileInfo.fileName,
+                hasQRImage: !!window.currentCanvas
+            });
 
             const printWindow = window.open('', '_blank');
             
@@ -1189,10 +1264,291 @@ FILE008|خطة الطوارئ والأزمات|archive`;
     <!-- Unified Authentication System -->
     <script src="assets/js/unified-auth.js"></script>
     
-    <!-- Roles Management -->
-    <script src="assets/js/roles.js"></script>
-    <!-- Sidebar -->
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Core Systems -->
+    <script src="assets/js/activity-logger.js"></script>
+    <script src="assets/js/ui-permission-controller.js"></script>
+    
+    
+    <script>
+        // متغيرات النظام العامة
+        let currentUser = null;
+        let sidebarManager = null;
+
+        // دالة مساعدة لعرض التنبيهات
+        function showAlert(message, type = 'info') {
+            const alertClass = type === 'error' ? 'danger' : type;
+            const alertHtml = `
+                <div class="alert alert-${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            const container = document.querySelector('.container');
+            container.insertAdjacentHTML('afterbegin', alertHtml);
+            
+            // إزالة التنبيه تلقائياً بعد 5 ثوانٍ
+            setTimeout(() => {
+                const alert = container.querySelector('.alert');
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        // دالة مساعدة لتسجيل الأنشطة
+        function logActivity(action, details = {}) {
+            try {
+                if (window.activityLogger && typeof window.activityLogger.logActivity === 'function') {
+                    const activityData = {
+                        ...details,
+                        page: 'qr-generator',
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    if (currentUser && currentUser.uid) {
+                        activityData.userId = currentUser.uid;
+                    }
+                    
+                    window.activityLogger.logActivity(action, activityData);
+                } else {
+                    console.log('Activity:', action, details);
+                }
+            } catch (error) {
+                console.error('خطأ في تسجيل النشاط:', error);
+            }
+        }
+
+        // دالة مساعدة لإظهار محمل الصفحة
+        function showLoading(message = 'جاري التحميل...') {
+            const loadingHtml = `
+                <div class="loading-overlay" id="pageLoader">
+                    <div class="loading-content">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <p class="mb-0">${message}</p>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', loadingHtml);
+        }
+
+        function hideLoading() {
+            const loader = document.getElementById('pageLoader');
+            if (loader) {
+                loader.remove();
+            }
+        }
+
+        // انتظار تهيئة Firebase والمصادقة
+        async function waitForFirebaseAndAuth() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkReady = () => {
+                    attempts++;
+                    
+                    if (window.firebase && 
+                        window.firebase.auth && 
+                        window.firebase.firestore &&
+                        window.unifiedAuth) {
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error('Firebase initialization timeout'));
+                    } else {
+                        setTimeout(checkReady, 100);
+                    }
+                };
+                
+                checkReady();
+            });
+        }
+
+        // دالة تسجيل الخروج
+        async function logout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                try {
+                    showLoading('جاري تسجيل الخروج...');
+                    
+                    logActivity('logout_attempt', {
+                        action: 'محاولة تسجيل الخروج'
+                    });
+                    
+                    await firebase.auth().signOut();
+                    
+                    logActivity('logout_success', {
+                        action: 'تم تسجيل الخروج بنجاح'
+                    });
+                    
+                    currentUser = null;
+                    hideLoading();
+                    window.location.href = 'index.html';
+                    
+                } catch (error) {
+                    console.error('❌ خطأ في تسجيل الخروج:', error);
+                    hideLoading();
+                    logActivity('logout_error', {
+                        error: error.message
+                    });
+                    showAlert('حدث خطأ في تسجيل الخروج', 'error');
+                }
+            }
+        }
+
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                console.log('🚀 بدء تهيئة صفحة مولد QR...');
+                
+                logActivity('page_access', {
+                    path: window.location.pathname
+                });
+
+                // إظهار محمل أثناء التحميل
+                showLoading('جاري تهيئة النظام...');
+                
+                // انتظار تهيئة Firebase والمصادقة
+                await waitForFirebaseAndAuth();
+                console.log('✅ Firebase ونظام المصادقة جاهزان');
+
+                // التحقق من المصادقة
+                const user = firebase.auth().currentUser;
+                if (!user) {
+                    // Check for demo mode
+                    const demoMode = localStorage.getItem('archiveDemoMode');
+                    if (demoMode === 'enabled') {
+                        console.log('🎭 QR Generator في وضع العرض التوضيحي');
+                        showQRDemoNotice();
+                        enableQRDemoMode();
+                        return;
+                    }
+                    
+                    console.log('❌ المستخدم غير مسجل دخول، إعادة توجيه');
+                    logActivity('auth_redirect', {
+                        reason: 'user_not_authenticated',
+                        page: 'qr-generator'
+                    });
+                    hideLoading();
+                    showAlert('يجب تسجيل الدخول أولاً للوصول إلى مولد رموز QR.', 'info');
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 2000);
+                    return;
+                }
+
+                currentUser = user;
+                console.log('✅ المستخدم مسجل دخول:', user.email);
+
+                // تحديث معلومات الشريط العلوي
+                const userInfoElement = document.getElementById('userInfo');
+                if (userInfoElement) {
+                    userInfoElement.innerHTML = `<i class="fas fa-user me-1"></i> ${user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم')}`;
+                }
+
+                // تهيئة مدير الشريط الجانبي
+                if (window.SidebarManager) {
+                    sidebarManager = new SidebarManager();
+                    console.log('✅ تم تهيئة مدير الشريط الجانبي');
+                }
+
+                logActivity('qr_generator_access', {
+                    user_email: user.email,
+                    action: 'دخول صفحة مولد رموز QR'
+                });
+
+                hideLoading();
+                console.log('🎉 تم تهيئة صفحة مولد QR بنجاح!');
+
+            } catch (error) {
+                console.error('❌ خطأ في تهيئة الصفحة:', error);
+                hideLoading();
+                logActivity('page_error', {
+                    error: error.message
+                });
+                showAlert('حدث خطأ في تحميل الصفحة. يرجى إعادة تحميل الصفحة.', 'error');
+            }
+        });
+
+        // مراقبة تغيير حالة المصادقة
+        window.addEventListener('load', function() {
+            if (firebase && firebase.auth) {
+                firebase.auth().onAuthStateChanged(function(user) {
+                    if (!user && currentUser) {
+                        // Check for demo mode before redirect
+                        const demoMode = localStorage.getItem('archiveDemoMode');
+                        if (demoMode !== 'enabled') {
+                            // المستخدم سجل خروج، إعادة توجيه
+                            setTimeout(() => {
+                                if (!firebase.auth().currentUser) {
+                                    window.location.href = '/login.html';
+                                }
+                            }, 1500);
+                        }
+                    }
+                });
+            }
+        });
+        
+        function enableQRDemoMode() {
+            // Add demo mode functionality for QR generator
+            console.log('🎭 تفعيل وضع العرض التوضيحي لمولد QR');
+            currentUser = { 
+                email: 'demo@archive-tech.com',
+                displayName: 'مستخدم تجريبي',
+                uid: 'demo-user-id'
+            };
+            
+            // تحديث معلومات الشريط العلوي
+            const userInfoElement = document.getElementById('userInfo');
+            if (userInfoElement) {
+                userInfoElement.innerHTML = `<i class="fas fa-user me-1"></i> مستخدم تجريبي`;
+            }
+            
+            // Continue with normal initialization
+            if (window.SidebarManager) {
+                sidebarManager = new SidebarManager();
+                console.log('✅ تم تهيئة مدير الشريط الجانبي');
+            }
+        }
+        
+        function showQRDemoNotice() {
+            setTimeout(() => {
+                const notice = document.createElement('div');
+                notice.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    max-width: 300px;
+                    font-family: 'Cairo', sans-serif;
+                `;
+                notice.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-qrcode"></i>
+                        <div>
+                            <strong>وضع العرض التوضيحي</strong>
+                            <br><small>مولد QR في وضع المحاكاة</small>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
+                    </div>
+                `;
+                document.body.appendChild(notice);
+                
+                setTimeout(() => {
+                    if (notice.parentElement) {
+                        notice.remove();
+                    }
+                }, 8000);
+            }, 500);
+        }
+    </script>
+    <script src="assets/js/unified-ui-template.js"></script>
 </body>
 </html>
 

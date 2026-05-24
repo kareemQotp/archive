@@ -3,6 +3,7 @@
 
 const firebase = require('firebase-admin');
 const serviceAccount = require('../archive-tech-firebase-adminsdk.json');
+const { serverTS } = require('./utils/serverTimestamp');
 
 // تهيئة Firebase Admin
 firebase.initializeApp({
@@ -31,7 +32,7 @@ const departments = [
             pendingUsers: 0,
             activeUsers: 0
         },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: serverTS(firebase)
     },
     {
         id: 'legal',
@@ -50,7 +51,7 @@ const departments = [
             pendingUsers: 0,
             activeUsers: 0
         },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: serverTS(firebase)
     },
     {
         id: 'governance',
@@ -69,7 +70,7 @@ const departments = [
             pendingUsers: 0,
             activeUsers: 0
         },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: serverTS(firebase)
     },
     {
         id: 'collection',
@@ -88,7 +89,7 @@ const departments = [
             pendingUsers: 0,
             activeUsers: 0
         },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: serverTS(firebase)
     },
     {
         id: 'securitization',
@@ -107,7 +108,7 @@ const departments = [
             pendingUsers: 0,
             activeUsers: 0
         },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: serverTS(firebase)
     },
     {
         id: 'hr',
@@ -126,7 +127,7 @@ const departments = [
             pendingUsers: 0,
             activeUsers: 0
         },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: serverTS(firebase)
     },
     {
         id: 'it',
@@ -145,7 +146,7 @@ const departments = [
             pendingUsers: 0,
             activeUsers: 0
         },
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: serverTS(firebase)
     }
 ];
 
@@ -256,7 +257,7 @@ async function setupDepartments() {
         // إضافة الأدوار
         await db.collection('system').doc('roles').set({
             departmentRoles: departmentRoles,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            lastUpdated: serverTS(firebase)
         });
 
         console.log('✅ تم إعداد جميع الإدارات والأدوار بنجاح!');

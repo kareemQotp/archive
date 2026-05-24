@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <link rel="stylesheet" href="assets/css/permissions.css">
     <style>
         .department-header {
@@ -151,28 +151,12 @@
             font-weight: bold;
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <div class="d-flex align-items-center">
-                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="index.html">
-                    <i class="fas fa-archive me-2"></i>
-                    نظام الأرشيف
-                </a>
-            </div>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3" id="userInfo"></span>
-                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    خروج
-                </button>
-            </div>
-        </div>
-    </nav>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    
 
     <!-- Department Header -->
     <div class="department-header">
@@ -328,19 +312,27 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js"></script>
+    
+    <!-- Firebase v10.7.1 - الإصدار الموحد -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
     
     <!-- Firebase Configuration -->
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
     
-    <!-- Authentication System -->
-    <script src="assets/js/ui-permission-controller.js"></script>
+    <!-- Enhanced System Components -->
     <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/activity-logger.js"></script>
+    <script src="assets/js/ui-permission-controller.js"></script>
+    
+    <!-- Role-Based Routing System -->
+    <script src="assets/js/role-based-routing.js"></script>
     
     <!-- Notification System -->
     <script src="assets/js/notifications.js"></script>
@@ -348,167 +340,404 @@
     <script src="assets/js/notification-badge.js"></script>
     
     <script>
-        let authSystem;
-        let permissionController;
+        // Modern Legal Dashboard System
+        console.log('⚖️ تحميل لوحة تحكم الشؤون القانونية...');
+        
+        // Enhanced system variables
+        let authSystem = null;
+        let permissionController = null;
+        let currentUser = null;
+        let userDepartment = null;
+        let userRole = null;
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🔧 تحميل لوحة تحكم الشؤون القانونية');
-            
-            // Wait for unified auth to initialize
-            await new Promise(resolve => {
-                const checkAuth = () => {
-                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
-                        authSystem = unifiedAuth;
-                        permissionController = new UIPermissionController(authSystem);
+        // Enhanced Firebase initialization with error handling
+        async function waitForFirebaseAndAuth() {
+            return new Promise((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkAll = () => {
+                    attempts++;
+                    console.log('🔍 فحص Firebase ' + attempts + '/' + maxAttempts + ' - Firebase: ' + !!window.firebase + ', Auth: ' + !!window.auth + ', UnifiedAuth: ' + !!window.unifiedAuth);
+                    
+                    if (window.firebase && window.auth && window.unifiedAuth) {
+                        console.log('✅ جميع مكونات Firebase جاهزة');
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        console.warn('⚠️ انتهت مهلة انتظار مكونات Firebase، المتابعة رغم ذلك');
                         resolve();
                     } else {
-                        setTimeout(checkAuth, 100);
+                        setTimeout(checkAll, 200);
                     }
                 };
-                checkAuth();
+                
+                checkAll();
             });
+        }
 
-            // Set up auth state listener
-            authSystem.onAuthStateChanged(async (user) => {
-                await handleAuthStateChange(user);
-            });
+        // Initialize dashboard when Firebase is ready
+        document.addEventListener('DOMContentLoaded', async function() {
+            // تعطيل نظام التوجيه الذكي التلقائي في هذه الصفحة
+            window.__DISABLE_AUTO_ROUTING__ = true;
+            
+            // Ensure Unified UI is not re-instantiated; refresh only if available
+            const unifiedUI = window.unifiedUI;
+            if (unifiedUI && typeof unifiedUI.updateSidebar === 'function') {
+                try { await unifiedUI.updateSidebar(); } catch (_) { /* ignore */ }
+            }
+            console.log('⚖️ Legal Dashboard - بدء التهيئة');
+            
+            try {
+                // انتظار تحميل Firebase والمصادقة
+                await waitForFirebaseAndAuth();
+                
+                // تهيئة نظام المصادقة الموحد
+                if (window.unifiedAuth) {
+                    authSystem = window.unifiedAuth;
+                } else {
+                    console.error('❌ نظام المصادقة الموحد غير متوفر');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                console.log('✅ نظام المصادقة جاهز');
+                
+                // انتظار تسجيل الدخول مع تحسينات
+                let authAttempts = 0;
+                const maxAuthAttempts = 20;
+                
+                while (!authSystem.isAuthenticated && authAttempts < maxAuthAttempts) {
+                    console.log('🔄 انتظار المصادقة...', authAttempts + 1, '/', maxAuthAttempts);
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    authAttempts++;
+                }
+                
+                if (!authSystem.isAuthenticated || !authSystem.currentUser) {
+                    console.log('❌ المستخدم غير مسجل دخول بعد', authAttempts, 'محاولة');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                console.log('✅ المستخدم مصادق عليه:', authSystem.currentUser.email);
+
+                // الحصول على بيانات المستخدم
+                let userData = null;
+                try {
+                    userData = await authSystem.getCurrentUserData();
+                } catch (error) {
+                    console.log('⚠️ خطأ في الحصول على بيانات المستخدم، استخدام بيانات أساسية');
+                    userData = {
+                        email: authSystem.currentUser.email,
+                        displayName: authSystem.currentUser.displayName || (authSystem.currentUser.email ? authSystem.currentUser.email.split('@')[0] : 'مستخدم'),
+                        role: 'viewer',
+                        department: 'legal'
+                    };
+                }
+                
+                if (!userData) {
+                    console.log('❌ تعذر الحصول على بيانات المستخدم');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                currentUser = userData;
+                const userDepartment = currentUser.department || currentUser.departmentId;
+                const userRole = currentUser.role;
+                const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin';
+                const isLegalOfficer = userRole === 'legal-officer' || userRole === 'legal_officer';
+
+                console.log('� فحص صلاحيات الوصول للشؤون القانونية:', {
+                    userDepartment,
+                    userRole,
+                    isSystemAdmin,
+                    isLegalOfficer,
+                    userEmail: currentUser.email,
+                    fullProfile: currentUser
+                });
+
+                // فحص الصلاحية للوصول لإدارة الشؤون القانونية
+                const allowedDepartments = ['legal', 'الشؤون القانونية', 'إدارة الشؤون القانونية', 'القانونية', 'قانونية'];
+                const isLegalUser = allowedDepartments.includes(userDepartment) || 
+                                   isLegalOfficer ||
+                                   isSystemAdmin ||
+                                   userRole === 'admin' || 
+                                   currentUser.email === 'admin123@example.com' ||
+                                   currentUser.email === 'admin123@aman.eg' ||
+                                   currentUser.email?.includes('admin');
+
+                if (!isLegalUser) {
+                    console.log('❌ المستخدم لا يملك صلاحية الوصول للشؤون القانونية، التوجيه للوحة العامة');
+                    console.log('تفاصيل المستخدم:', {
+                        department: userDepartment,
+                        role: userRole,
+                        email: currentUser.email
+                    });
+                    
+                    // سجل محاولة الوصول
+                    if (window.activityLogger && window.activityLogger.logAccessDenied) {
+                        window.activityLogger.logAccessDenied(currentUser.email, 'legal_dashboard', 'wrong_department');
+                    }
+                    
+                    alert('ليس لديك صلاحية للوصول إلى لوحة تحكم الشؤون القانونية. سيتم توجيهك للوحة التحكم العامة.');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 2000);
+                    return;
+                }
+
+                // تهيئة UI Permission Controller
+                if (window.UIPermissionController) {
+                    permissionController = new UIPermissionController(authSystem);
+                    console.log('✅ Permission controller جاهز');
+                }
+
+                // سجل دخول الصفحة
+                if (window.activityLogger && window.activityLogger.logPageAccess) {
+                    window.activityLogger.logPageAccess('legal_dashboard', 'department_access');
+                } else {
+                    console.log('✅ تم الوصول للوحة تحكم الشؤون القانونية');
+                }
+
+                // تحديث واجهة المستخدم
+                await updateUserInterface();
+                
+                // تحميل بيانات الإدارة
+                await loadLegalDashboardData();
+
+            } catch (error) {
+                console.error('❌ خطأ في تهيئة لوحة التحكم:', error);
+                
+                // سجل الخطأ
+                if (window.activityLogger && window.activityLogger.logError) {
+                    window.activityLogger.logError('legal_dashboard_init', error.message);
+                }
+                
+                showAlert('خطأ في تحميل لوحة التحكم، يرجى المحاولة مرة أخرى', 'danger');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 3000);
+            }
         });
 
-        async function handleAuthStateChange(user) {
-            if (!user) {
-                setTimeout(() => {
-                    if (!authSystem.currentUser && !window.auth?.currentUser) {
-                        console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
-                        window.location.href = 'login.html?message=session-expired';
-                    }
-                }, 2000);
-                return;
-            }
+        // تحديث واجهة المستخدم
+        async function updateUserInterface() {
+            try {
+                // تحديث معلومات المستخدم في الشريط العلوي
+                const displayName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'مستخدم');
+                const userInfoElement = document.getElementById('userInfo');
+                
+                if (userInfoElement) {
+                    userInfoElement.innerHTML = `
+                        <i class="fas fa-user me-1"></i> ${displayName}
+                        <span class="badge bg-warning ms-2">الشؤون القانونية</span>
+                    `;
+                }
 
-            // Check if user belongs to Legal department
-            const userDepartment = authSystem.userDepartment;
-            if (userDepartment !== 'legal' && userDepartment !== 'إدارة الشؤون القانونية') {
-                console.log('❌ المستخدم لا ينتمي للشؤون القانونية، التوجيه للوحة العامة');
-                window.location.href = 'dashboard.html?message=wrong-department';
-                return;
-            }
+                // تحديث الشريط الجانبي
+                if (window.sidebarManager) {
+                    const unifiedUI = window.unifiedUITemplate;
+            if (unifiedUI) {
+                unifiedUI.updateSidebar();
+            };
+                }
 
-            // Update user info display
-            const displayName = user.displayName || user.email.split('@')[0];
-            document.getElementById('userInfo').innerHTML = `
-                <i class="fas fa-user me-1"></i> ${displayName}
-                <span class="badge bg-warning ms-2">الشؤون القانونية</span>
-            `;
-            
-            // Update sidebar
-            if (window.sidebarManager) {
-                window.sidebarManager.updateSidebarNav(true);
-            }
+                // تحديث واجهة المستخدم حسب الصلاحيات
+                if (permissionController) {
+                    permissionController.updateUI();
+                }
 
-            // Update permission-based UI
-            if (permissionController) {
-                permissionController.updateUI();
+                console.log('✅ تم تحديث واجهة المستخدم');
+
+            } catch (error) {
+                console.error('❌ خطأ في تحديث واجهة المستخدم:', error);
             }
-            
-            // Load department-specific data
-            await loadLegalDashboardData();
         }
 
+        // تحميل بيانات لوحة تحكم الشؤون القانونية
         async function loadLegalDashboardData() {
             try {
-                // Load department statistics
+                console.log('📊 تحميل بيانات لوحة التحكم...');
+
+                // تحميل الإحصائيات
                 await loadDepartmentStats();
                 
-                // Load urgent cases
+                // تحميل القضايا العاجلة
                 await loadUrgentCases();
                 
-                // Load department user count
+                // تحميل عدد مستخدمي الإدارة
                 await loadDepartmentUserCount();
                 
+                console.log('✅ تم تحميل جميع بيانات لوحة التحكم');
+
             } catch (error) {
-                console.error('خطأ في تحميل بيانات لوحة الشؤون القانونية:', error);
+                console.error('❌ خطأ في تحميل بيانات لوحة الشؤون القانونية:', error);
+                
+                // سجل الخطأ
+                if (window.activityLogger && window.activityLogger.logError) {
+                    window.activityLogger.logError('legal_dashboard_data_load', error.message);
+                }
             }
         }
 
+        // تحميل إحصائيات الإدارة مع تحسينات
         async function loadDepartmentStats() {
             try {
-                // Active contracts count
-                const contractsQuery = authSystem.db.collection('legal_documents')
-                    .where('department', '==', 'legal')
-                    .where('type', '==', 'contract')
-                    .where('status', '==', 'active');
-                const contractsSnap = await contractsQuery.get();
-                document.getElementById('statContracts').textContent = contractsSnap.size;
+                console.log('📈 تحميل إحصائيات الإدارة...');
 
-                // Ongoing cases count
-                const casesQuery = authSystem.db.collection('legal_documents')
-                    .where('department', '==', 'legal')
-                    .where('type', '==', 'case')
-                    .where('status', 'in', ['active', 'pending']);
-                const casesSnap = await casesQuery.get();
-                document.getElementById('statCases').textContent = casesSnap.size;
+                // التأكد من وجود قاعدة البيانات
+                if (!window.db) {
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة، استخدام قيم افتراضية');
+                    setDefaultStats();
+                    return;
+                }
 
-                // Consultations count (this month)
-                const thisMonth = new Date();
-                thisMonth.setDate(1);
-                thisMonth.setHours(0, 0, 0, 0);
-                
-                const consultationsQuery = authSystem.db.collection('legal_documents')
-                    .where('department', '==', 'legal')
-                    .where('type', '==', 'consultation')
-                    .where('createdAt', '>=', thisMonth);
-                const consultationsSnap = await consultationsQuery.get();
-                document.getElementById('statConsultations').textContent = consultationsSnap.size;
+                // عدد العقود النشطة
+                try {
+                    const contractsQuery = window.db.collection('legal_documents')
+                        .where('department', '==', 'legal')
+                        .where('type', '==', 'contract')
+                        .where('status', '==', 'active');
+                    const contractsSnap = await contractsQuery.get();
+                    document.getElementById('statContracts').textContent = contractsSnap.size;
+                    
+                    // سجل تحميل البيانات
+                    if (window.activityLogger && window.activityLogger.logDataLoad) {
+                        window.activityLogger.logDataLoad('legal_contracts', contractsSnap.size);
+                    }
+                } catch (error) {
+                    console.warn('خطأ في تحميل العقود:', error);
+                    document.getElementById('statContracts').textContent = '0';
+                }
 
-                // Upcoming deadlines count
-                const nextMonth = new Date();
-                nextMonth.setMonth(nextMonth.getMonth() + 1);
-                
-                const deadlinesQuery = authSystem.db.collection('legal_documents')
-                    .where('department', '==', 'legal')
-                    .where('deadline', '<=', nextMonth)
-                    .where('deadline', '>=', new Date());
-                const deadlinesSnap = await deadlinesQuery.get();
-                document.getElementById('statDeadlines').textContent = deadlinesSnap.size;
+                // عدد القضايا الجارية
+                try {
+                    const casesQuery = window.db.collection('legal_documents')
+                        .where('department', '==', 'legal')
+                        .where('type', '==', 'case')
+                        .where('status', 'in', ['active', 'pending']);
+                    const casesSnap = await casesQuery.get();
+                    document.getElementById('statCases').textContent = casesSnap.size;
+                } catch (error) {
+                    console.warn('خطأ في تحميل القضايا:', error);
+                    document.getElementById('statCases').textContent = '0';
+                }
+
+                // عدد الاستشارات هذا الشهر
+                try {
+                    const thisMonth = new Date();
+                    thisMonth.setDate(1);
+                    thisMonth.setHours(0, 0, 0, 0);
+                    
+                    const consultationsQuery = window.db.collection('legal_documents')
+                        .where('department', '==', 'legal')
+                        .where('type', '==', 'consultation')
+                        .where('createdAt', '>=', thisMonth);
+                    const consultationsSnap = await consultationsQuery.get();
+                    document.getElementById('statConsultations').textContent = consultationsSnap.size;
+                } catch (error) {
+                    console.warn('خطأ في تحميل الاستشارات:', error);
+                    document.getElementById('statConsultations').textContent = '0';
+                }
+
+                // عدد المواعيد المقبلة
+                try {
+                    const nextMonth = new Date();
+                    nextMonth.setMonth(nextMonth.getMonth() + 1);
+                    
+                    const deadlinesQuery = window.db.collection('legal_documents')
+                        .where('department', '==', 'legal')
+                        .where('deadline', '<=', nextMonth)
+                        .where('deadline', '>=', new Date());
+                    const deadlinesSnap = await deadlinesQuery.get();
+                    document.getElementById('statDeadlines').textContent = deadlinesSnap.size;
+                } catch (error) {
+                    console.warn('خطأ في تحميل المواعيد:', error);
+                    document.getElementById('statDeadlines').textContent = '0';
+                }
+
+                console.log('✅ تم تحميل إحصائيات الإدارة');
 
             } catch (error) {
-                console.warn('لا يمكن تحميل إحصائيات الإدارة:', error);
-                // Set default values
-                document.getElementById('statContracts').textContent = '0';
-                document.getElementById('statCases').textContent = '0';
-                document.getElementById('statConsultations').textContent = '0';
-                document.getElementById('statDeadlines').textContent = '0';
+                console.error('❌ خطأ عام في تحميل إحصائيات الإدارة:', error);
+                setDefaultStats();
             }
         }
 
+        // تعيين قيم افتراضية للإحصائيات
+        function setDefaultStats() {
+            console.log('📊 تعيين قيم افتراضية للإحصائيات');
+            document.getElementById('statContracts').textContent = '0';
+            document.getElementById('statCases').textContent = '0';
+            document.getElementById('statConsultations').textContent = '0';
+            document.getElementById('statDeadlines').textContent = '0';
+        }
+
+        // تحميل عدد مستخدمي الإدارة
         async function loadDepartmentUserCount() {
             try {
-                const usersQuery = authSystem.db.collection('users')
+                console.log('👥 تحميل عدد مستخدمي الإدارة...');
+
+                if (!window.db) {
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة');
+                    document.getElementById('departmentUserCount').textContent = '0';
+                    return;
+                }
+
+                const usersQuery = window.db.collection('users')
                     .where('department', '==', 'legal');
                 const usersSnap = await usersQuery.get();
-                document.getElementById('departmentUserCount').textContent = usersSnap.size;
+                const userCount = usersSnap.size;
+                
+                document.getElementById('departmentUserCount').textContent = userCount;
+                
+                // سجل تحميل البيانات
+                if (window.activityLogger && window.activityLogger.logDataLoad) {
+                    window.activityLogger.logDataLoad('legal_users', userCount);
+                }
+
+                console.log('✅ تم تحميل عدد المستخدمين:', userCount);
+
             } catch (error) {
-                console.warn('لا يمكن تحميل عدد المستخدمين:', error);
+                console.warn('❌ خطأ في تحميل عدد المستخدمين:', error);
                 document.getElementById('departmentUserCount').textContent = '0';
             }
         }
 
+        // تحميل القضايا العاجلة مع تحسينات
         async function loadUrgentCases() {
             try {
-                // Get urgent cases with upcoming deadlines
-                const urgentQuery = authSystem.db.collection('legal_documents')
+                console.log('🚨 تحميل القضايا العاجلة...');
+
+                const urgentContainer = document.getElementById('urgentCases');
+                if (!urgentContainer) {
+                    console.error('❌ عنصر القضايا العاجلة غير موجود');
+                    return;
+                }
+
+                if (!window.db) {
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة');
+                    urgentContainer.innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-database me-2"></i>
+                            قاعدة البيانات غير متوفرة حالياً
+                        </div>
+                    `;
+                    return;
+                }
+
+                // البحث عن القضايا العاجلة مع مواعيد قريبة
+                const urgentQuery = window.db.collection('legal_documents')
                     .where('department', '==', 'legal')
                     .where('priority', '==', 'high')
                     .orderBy('deadline', 'asc')
                     .limit(5);
                 
                 const urgentSnap = await urgentQuery.get();
-                const urgentContainer = document.getElementById('urgentCases');
                 
                 if (urgentSnap.empty) {
                     urgentContainer.innerHTML = `
                         <div class="text-center text-muted">
-                            <i class="fas fa-check-circle me-2"></i>
+                            <i class="fas fa-check-circle me-2 text-success"></i>
                             لا توجد قضايا عاجلة حالياً
                         </div>
                     `;
@@ -516,6 +745,8 @@
                 }
 
                 let casesHTML = '';
+                let urgentCount = 0;
+                
                 urgentSnap.forEach(doc => {
                     const caseData = doc.data();
                     const deadline = caseData.deadline?.toDate();
@@ -530,10 +761,22 @@
                         Math.ceil((deadline - new Date()) / (1000 * 60 * 60 * 24)) : null;
                     
                     let priorityClass = 'priority-medium';
+                    let priorityText = '';
+                    
                     if (daysLeft !== null) {
-                        if (daysLeft <= 3) priorityClass = 'priority-high';
-                        else if (daysLeft <= 7) priorityClass = 'priority-medium';
-                        else priorityClass = 'priority-low';
+                        if (daysLeft <= 0) {
+                            priorityClass = 'priority-high';
+                            priorityText = 'متأخر';
+                        } else if (daysLeft <= 3) {
+                            priorityClass = 'priority-high';
+                            priorityText = `${daysLeft} أيام متبقية`;
+                        } else if (daysLeft <= 7) {
+                            priorityClass = 'priority-medium';
+                            priorityText = `${daysLeft} أيام متبقية`;
+                        } else {
+                            priorityClass = 'priority-low';
+                            priorityText = `${daysLeft} أيام متبقية`;
+                        }
                     }
 
                     casesHTML += `
@@ -541,7 +784,7 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
                                     <h6 class="mb-1">${caseData.title || 'قضية بدون عنوان'}</h6>
-                                    <p class="mb-1 text-muted small">${caseData.description || 'لا يوجد وصف'}</p>
+                                    <p class="mb-1 text-muted small">${caseData.description?.substring(0, 100) || 'لا يوجد وصف'}${caseData.description?.length > 100 ? '...' : ''}</p>
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="case-status ${caseData.status || 'pending'}">${getStatusText(caseData.status)}</span>
                                         <small class="text-muted">
@@ -551,51 +794,158 @@
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    ${daysLeft !== null ? `
+                                    ${priorityText ? `
                                         <div class="${priorityClass}">
-                                            ${daysLeft > 0 ? `${daysLeft} أيام` : 'متأخر'}
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            ${priorityText}
                                         </div>
                                     ` : ''}
                                 </div>
                             </div>
                         </div>
                     `;
+                    urgentCount++;
                 });
 
                 urgentContainer.innerHTML = casesHTML;
+                
+                // سجل تحميل البيانات
+                if (window.activityLogger && window.activityLogger.logDataLoad) {
+                    window.activityLogger.logDataLoad('urgent_cases', urgentCount);
+                }
+
+                console.log('✅ تم تحميل', urgentCount, 'قضية عاجلة');
 
             } catch (error) {
-                console.warn('لا يمكن تحميل القضايا العاجلة:', error);
+                console.error('❌ خطأ في تحميل القضايا العاجلة:', error);
+                
+                // سجل الخطأ
+                if (window.activityLogger && window.activityLogger.logError) {
+                    window.activityLogger.logError('load_urgent_cases', error.message);
+                }
+                
                 document.getElementById('urgentCases').innerHTML = `
                     <div class="text-center text-muted">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
                         خطأ في تحميل القضايا العاجلة
+                        <br>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadUrgentCases()">
+                            <i class="fas fa-sync me-1"></i>
+                            إعادة المحاولة
+                        </button>
                     </div>
                 `;
             }
         }
 
+        // الحصول على نص حالة القضية
         function getStatusText(status) {
             const statusTexts = {
                 'active': 'نشط',
                 'pending': 'قيد الانتظار',
                 'closed': 'مغلق',
                 'cancelled': 'ملغي',
-                'completed': 'مكتمل'
+                'completed': 'مكتمل',
+                'draft': 'مسودة',
+                'review': 'قيد المراجعة',
+                'approved': 'معتمد'
             };
-            return statusTexts[status] || status;
+            return statusTexts[status] || status || 'غير محدد';
         }
 
+        // عرض رسالة تنبيه محسنة
+        function showAlert(message, type = 'info') {
+            // إنشاء عنصر التنبيه
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            
+            const iconClass = {
+                'success': 'fas fa-check-circle',
+                'danger': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'info': 'fas fa-info-circle'
+            }[type] || 'fas fa-info-circle';
+            
+            alertDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="${iconClass} me-2"></i>
+                    <span>${message}</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+                </div>
+            `;
+            
+            // إضافة إلى الصفحة
+            document.body.appendChild(alertDiv);
+            
+            // إزالة تلقائية بعد 5 ثوان
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // تسجيل الخروج مع تحسينات
         async function logout() {
             try {
-                await authSystem.signOut();
+                console.log('🚪 بدء تسجيل الخروج...');
+                
+                // سجل النشاط
+                if (window.activityLogger && window.activityLogger.logUserLogout) {
+                    window.activityLogger.logUserLogout(currentUser?.email || 'unknown', 'success');
+                } else {
+                    console.log('✅ تسجيل خروج المستخدم');
+                }
+                
+                // تسجيل الخروج باستخدام النظام الموحد
+                if (authSystem && authSystem.signOut) {
+                    await authSystem.signOut();
+                } else if (window.firebase && firebase.auth) {
+                    await firebase.auth().signOut();
+                }
+                
+                // التوجيه للصفحة الرئيسية
                 window.location.href = 'index.html';
+                
             } catch (error) {
-                console.error('خطأ في تسجيل الخروج:', error);
-                alert('حدث خطأ أثناء تسجيل الخروج');
+                console.error('❌ خطأ في تسجيل الخروج:', error);
+                
+                // سجل الخطأ
+                if (window.activityLogger && window.activityLogger.logError) {
+                    window.activityLogger.logError('logout_error', error.message);
+                }
+                
+                showAlert('حدث خطأ أثناء تسجيل الخروج', 'danger');
             }
         }
+
+        // Enhanced error handling
+        window.addEventListener('error', function(event) {
+            console.error('❌ JavaScript Error:', event.error);
+            
+            if (window.activityLogger && window.activityLogger.logError) {
+                window.activityLogger.logError('javascript_error', event.error.message);
+            }
+        });
+
+        // Enhanced unhandled promise rejection handling
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('❌ Unhandled Promise Rejection:', event.reason);
+            
+            if (window.activityLogger && window.activityLogger.logError) {
+                window.activityLogger.logError('promise_rejection', event.reason);
+            }
+        });
+
+        console.log('✅ نظام لوحة تحكم الشؤون القانونية جاهز للعمل');
     </script>
 </body>
 </html>
+
+
+
 

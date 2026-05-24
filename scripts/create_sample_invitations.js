@@ -1,5 +1,6 @@
 // إنشاء دعوات تجريبية في Firestore
 const admin = require('firebase-admin');
+const { serverTS } = require('./utils/serverTimestamp');
 
 // Initialize Firebase Admin SDK (reuse existing initialization)
 if (!admin.apps.length) {
@@ -26,7 +27,7 @@ const sampleInvitations = [
         autoApprove: false,
         maxUses: 5,
         currentUses: 0,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTS(admin),
         expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) // 30 days
     },
     {
@@ -41,7 +42,7 @@ const sampleInvitations = [
         autoApprove: false,
         maxUses: 3,
         currentUses: 0,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTS(admin),
         expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
     },
     {
@@ -56,7 +57,7 @@ const sampleInvitations = [
         autoApprove: true, // IT department auto-approves
         maxUses: 10,
         currentUses: 0,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTS(admin),
         expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)) // 60 days
     },
     {
@@ -71,7 +72,7 @@ const sampleInvitations = [
         autoApprove: false,
         maxUses: 5,
         currentUses: 0,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTS(admin),
         expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 45 * 24 * 60 * 60 * 1000)) // 45 days
     },
     {
@@ -86,7 +87,7 @@ const sampleInvitations = [
         autoApprove: false,
         maxUses: 3,
         currentUses: 0,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTS(admin),
         expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
     }
 ];

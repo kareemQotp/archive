@@ -13,7 +13,8 @@
     "functions:deploy": "firebase deploy --only functions",
     "setup:departments": "node scripts/setup_departments.js",
     "update:users": "node scripts/update_users_departments.js",
-    "fix:notifications": "node scripts/fix_notifications.js"
+    "fix:notifications": "node scripts/fix_notifications.js",
+    "update:html": "node scripts/update-html-pages.js"
   },
   "keywords": [
     "archive",

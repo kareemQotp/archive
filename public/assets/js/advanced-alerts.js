@@ -10,6 +10,10 @@ class AdvancedAlertSystem {
         this.notificationCenter = null;
         this.badgeCount = 0;
         this.isInitialized = false;
+        // Client-side state for center list
+        this.currentFilter = 'all';
+        this.initialLoaded = false;
+        this.lastFetchedDoc = null; // for pagination
         this.settings = {
             enableSound: true,
             enableDesktop: true,
@@ -120,7 +124,7 @@ class AdvancedAlertSystem {
             .notification-center {
                 position: fixed;
                 top: 20px;
-                left: 20px;
+                right: 20px;
                 width: 400px;
                 max-height: 600px;
                 background: white;
@@ -299,7 +303,7 @@ class AdvancedAlertSystem {
             .notification-trigger {
                 position: fixed;
                 top: 20px;
-                left: 20px;
+                right: 20px;
                 width: 50px;
                 height: 50px;
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -312,7 +316,8 @@ class AdvancedAlertSystem {
                 z-index: 9998;
                 box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
                 transition: all 0.3s;
-                position: relative;
+                /* إبقاء الزر مثبتاً أعلى يمين الشاشة */
+                bottom: auto;
             }
 
             .notification-trigger:hover {
@@ -397,14 +402,14 @@ class AdvancedAlertSystem {
 
             @media (max-width: 768px) {
                 .notification-center {
-                    left: 10px;
                     right: 10px;
+                    left: 10px;
                     width: auto;
                     top: 10px;
                 }
 
                 .notification-trigger {
-                    left: 10px;
+                    right: 10px;
                     top: 10px;
                 }
             }
@@ -491,19 +496,39 @@ class AdvancedAlertSystem {
         const userId = auth.currentUser.uid;
 
         // استمع للإشعارات الجديدة
-        const notificationsRef = db.collection('notifications')
-            .where('userId', '==', userId)
-            .where('isRead', '==', false)
-            .orderBy('createdAt', 'desc');
+        try {
+            const notificationsRef = db.collection('notifications')
+                .where('userId', '==', userId)
+                .where('isRead', '==', false)
+                .orderBy('createdAt', 'desc');
 
-        notificationsRef.onSnapshot((snapshot) => {
-            snapshot.docChanges().forEach((change) => {
-                if (change.type === 'added') {
-                    const notification = { id: change.doc.id, ...change.doc.data() };
-                    this.processNewAlert(notification);
-                }
+            notificationsRef.onSnapshot((snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added') {
+                        const notification = { id: change.doc.id, ...change.doc.data() };
+                        this.processNewAlert(notification);
+                    }
+                });
+            }, (err) => {
+                console.warn('onSnapshot فشل، سيتم استخدام استعلام أبسط بدون ترتيب:', err?.message || err);
+                // Fallback: poll periodically with simple query (no composite index required)
+                this._simpleUnreadInterval && clearInterval(this._simpleUnreadInterval);
+                const poll = async () => {
+                    try {
+                        const snap = await db.collection('notifications')
+                            .where('userId', '==', userId)
+                            .where('isRead', '==', false)
+                            .limit(20)
+                            .get();
+                        snap.forEach(doc => this.processNewAlert({ id: doc.id, ...doc.data() }));
+                    } catch (e) { /* ignore */ }
+                };
+                poll();
+                this._simpleUnreadInterval = setInterval(poll, 20000);
             });
-        });
+        } catch (e) {
+            console.warn('فشل إعداد مستمع الإشعارات، التراجع لاستعلام بسيط:', e?.message || e);
+        }
 
         // استمع لحركات الملفات
         const movementsRef = db.collection('file_movements')
@@ -555,13 +580,21 @@ class AdvancedAlertSystem {
     }
 
     createMovementAlert(movement) {
+        // استخرج الحقول بأسماء متنوعة مع بدائل آمنة
+        const fileNumber = movement.fileNumber || movement.file_no || movement.fileId || movement?.data?.fileNumber || '';
+        const fromRaw = movement.fromDepartmentName || movement.fromDepartment || movement.fromLocation || movement.from || movement.sourceDepartment || '';
+        const toRaw = movement.toDepartmentName || movement.toDepartment || movement.toLocation || movement.to || movement.destinationDepartment || '';
+
+        const fromLabel = this.resolveDepartmentName(fromRaw) || 'قسم غير معروف';
+        const toLabel = this.resolveDepartmentName(toRaw) || 'قسم غير معروف';
+
         const alert = this.createAlert({
             id: `movement_${movement.id}`,
             title: 'حركة ملف جديدة',
-            message: `تم نقل الملف ${movement.fileNumber} من ${movement.fromLocation} إلى ${movement.toLocation}`,
+            message: `تم نقل الملف ${fileNumber} من ${fromLabel} إلى ${toLabel}`,
             type: 'info',
-            priority: 'normal',
-            timestamp: movement.timestamp?.toDate() || new Date(),
+            priority: movement.priority || 'normal',
+            timestamp: movement.timestamp?.toDate?.() || movement.timestamp || new Date(),
             source: 'movement',
             read: false,
             data: movement
@@ -679,12 +712,24 @@ class AdvancedAlertSystem {
             'info': 'fas fa-info-circle text-info'
         };
 
+        // عالج نص الرسالة لمنع undefined خاصةً لتنبيهات الحركة
+        let displayMessage = alert.message || '';
+        if ((!displayMessage || /undefined/i.test(String(displayMessage))) && (alert.source === 'movement' || alert?.data?.fromDepartment || alert?.data?.toDepartment)) {
+            const m = alert.data || {};
+            const fileNumber = m.fileNumber || m.file_no || m.fileId || '';
+            const fromRaw = m.fromDepartmentName || m.fromDepartment || m.fromLocation || m.from || '';
+            const toRaw = m.toDepartmentName || m.toDepartment || m.toLocation || m.to || '';
+            const fromLabel = this.resolveDepartmentName(fromRaw) || 'قسم غير معروف';
+            const toLabel = this.resolveDepartmentName(toRaw) || 'قسم غير معروف';
+            displayMessage = `تم نقل الملف ${fileNumber} من ${fromLabel} إلى ${toLabel}`;
+        }
+
         element.innerHTML = `
             <div class="alert-header">
                 <h6 class="alert-title">${alert.title}</h6>
                 <span class="alert-time">${this.formatTime(alert.timestamp)}</span>
             </div>
-            <div class="alert-message">${alert.message}</div>
+            <div class="alert-message">${displayMessage}</div>
             <div class="alert-meta">
                 <div class="alert-type">
                     <i class="${typeIcons[alert.type] || typeIcons.info}"></i>
@@ -736,6 +781,99 @@ class AdvancedAlertSystem {
         }
     }
 
+    // عرض تفاصيل التنبيه داخل نافذة منبثقة بسيطة
+    showAlertDetails(alert) {
+        try {
+            // أنشئ عنصر المودال إن لم يكن موجوداً
+            let modal = document.getElementById('alertDetailsModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'alertDetailsModal';
+                modal.className = 'modal fade';
+                modal.tabIndex = -1;
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">تفاصيل التنبيه</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                            </div>
+                            <div class="modal-body">
+                                <h6 id="alertDetailsTitle" class="mb-2"></h6>
+                                <p id="alertDetailsMessage" class="mb-3"></p>
+                                <div class="small text-muted">
+                                    <span id="alertDetailsMeta"></span>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                            </div>
+                        </div>
+                    </div>`;
+                document.body.appendChild(modal);
+            }
+
+            // تعبئة البيانات
+            const titleEl = modal.querySelector('#alertDetailsTitle');
+            const msgEl = modal.querySelector('#alertDetailsMessage');
+            const metaEl = modal.querySelector('#alertDetailsMeta');
+            if (titleEl) titleEl.textContent = alert.title || 'تنبيه';
+            // إعادة صياغة الرسالة إذا احتوت على undefined أو كانت فارغة خاصة لتنبيهات الحركة
+            let safeMessage = alert.message || '';
+            if ((!safeMessage || /undefined/i.test(String(safeMessage))) && (alert.source === 'movement' || alert?.data?.fromDepartment || alert?.data?.toDepartment)) {
+                const m = alert.data || {};
+                const fileNumber = m.fileNumber || m.file_no || m.fileId || '';
+                const fromRaw = m.fromDepartmentName || m.fromDepartment || m.fromLocation || m.from || '';
+                const toRaw = m.toDepartmentName || m.toDepartment || m.toLocation || m.to || '';
+                const fromLabel = this.resolveDepartmentName(fromRaw) || 'قسم غير معروف';
+                const toLabel = this.resolveDepartmentName(toRaw) || 'قسم غير معروف';
+                safeMessage = `تم نقل الملف ${fileNumber} من ${fromLabel} إلى ${toLabel}`;
+            }
+            if (msgEl) msgEl.textContent = safeMessage;
+            if (metaEl) metaEl.textContent = `${this.getSourceLabel(alert.source || 'system')} • ${this.formatTime(alert.timestamp)} • ${alert.priority || 'normal'}`;
+
+            // عرض المودال باستخدام Bootstrap إن توفر
+            try {
+                if (window.bootstrap && window.bootstrap.Modal) {
+                    const bsModal = window.bootstrap.Modal.getOrCreateInstance(modal);
+                    bsModal.show();
+                } else {
+                    // بديل بسيط إن لم تتوفر Bootstrap Modal
+                    modal.style.display = 'block';
+                    modal.classList.add('show');
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            modal.classList.remove('show');
+                            modal.style.display = 'none';
+                        }
+                    }, { once: true });
+                }
+            } catch (e) {
+                console.warn('تعذر عرض تفاصيل التنبيه:', e);
+            }
+        } catch (e) {
+            console.warn('showAlertDetails فشل:', e);
+        }
+    }
+
+    // تحويل معرف القسم لاسم عربي قابل للعرض
+    resolveDepartmentName(value) {
+        if (!value || typeof value !== 'string') return value;
+        const key = value.trim().toLowerCase();
+        const map = {
+            'archive': 'الأرشيف',
+            'legal': 'الشؤون القانونية',
+            'governance': 'الحوكمة',
+            'collection': 'التحصيل',
+            'securitization': 'التوريق',
+            'finance': 'المالية',
+            'hr': 'الموارد البشرية',
+            'it': 'تقنية المعلومات'
+        };
+        // إذا كانت القيمة بالفعل عربية أو غير معرفة بالخريطة، أعِدها كما هي
+        return map[key] || value;
+    }
+
     toggleNotificationCenter() {
         if (this.notificationCenter.classList.contains('show')) {
             this.hideNotificationCenter();
@@ -744,8 +882,21 @@ class AdvancedAlertSystem {
         }
     }
 
-    showNotificationCenter() {
+    async showNotificationCenter() {
         this.notificationCenter.classList.add('show');
+        // Default to 'all' filter on open for better UX
+        this.currentFilter = 'all';
+        try {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            const allBtn = Array.from(document.querySelectorAll('.filter-btn')).find(b => b.dataset.filter === 'all');
+            allBtn && allBtn.classList.add('active');
+        } catch (_) { /* ignore */ }
+        // Load initial batch if needed
+        try {
+            await this.ensureInitialLoaded();
+        } catch (e) {
+            console.warn('تعذر تحميل التنبيهات الأولية:', e?.message || e);
+        }
         this.refreshAlertsList();
     }
 
@@ -761,8 +912,10 @@ class AdvancedAlertSystem {
         alertsList.innerHTML = '';
 
         // إضافة التنبيهات
-        const sortedAlerts = Array.from(this.alerts.values())
-            .sort((a, b) => b.timestamp - a.timestamp);
+        let source = Array.from(this.alerts.values());
+        // Apply filter
+        source = this.applyFilter(source, this.currentFilter);
+        const sortedAlerts = source.sort((a, b) => b.timestamp - a.timestamp);
 
         if (sortedAlerts.length === 0) {
             alertsList.innerHTML = `
@@ -775,6 +928,11 @@ class AdvancedAlertSystem {
             sortedAlerts.forEach(alert => {
                 const element = this.createAlertElement(alert);
                 alertsList.appendChild(element);
+                // Apply fade-in like renderAlert()
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateX(0)';
+                }, 50);
             });
         }
     }
@@ -1003,6 +1161,130 @@ class AdvancedAlertSystem {
         const alert = this.createAlert(options);
         this.addAlert(alert);
         return alert.id;
+    }
+
+    // New: Ensure we have an initial batch for the center
+    async ensureInitialLoaded() {
+        if (this.initialLoaded || !window.auth?.currentUser || !window.db) return;
+        const userId = auth.currentUser.uid;
+        try {
+            let snapshot;
+            try {
+                const baseQuery = db.collection('notifications')
+                    .where('userId', '==', userId)
+                    .orderBy('createdAt', 'desc')
+                    .limit(20);
+                snapshot = await baseQuery.get();
+                this._paginationEnabled = true;
+            } catch (err) {
+                // Likely missing composite index; fallback to simple query with client sort
+                console.warn('الاستعلام يتطلب فهرس مركب، سيتم استخدام بديل بدون ترتيب:', err?.message || err);
+                snapshot = await db.collection('notifications')
+                    .where('userId', '==', userId)
+                    .limit(50)
+                    .get();
+                this._paginationEnabled = false;
+            }
+            if (!snapshot.empty) {
+                snapshot.forEach(doc => {
+                    const n = doc.data();
+                    const alert = this.createAlert({
+                        id: doc.id,
+                        title: n.title,
+                        message: n.message,
+                        type: n.type || 'info',
+                        priority: n.priority || 'normal',
+                        timestamp: n.createdAt?.toDate?.() || new Date(),
+                        source: 'notification',
+                        read: !!n.isRead,
+                        data: n.data
+                    });
+                    // Avoid overriding a newer in-memory alert with older one
+                    if (!this.alerts.has(alert.id)) {
+                        this.alerts.set(alert.id, alert);
+                    }
+                });
+                // Track pagination cursor only when pagination is enabled
+                this.lastFetchedDoc = this._paginationEnabled ? (snapshot.docs[snapshot.docs.length - 1] || null) : null;
+                this.updateBadgeCount();
+            }
+        } catch (e) {
+            console.warn('فشل تحميل الدفعة الأولى من التنبيهات:', e?.message || e);
+        } finally {
+            this.initialLoaded = true;
+        }
+    }
+
+    // New: Load next page
+    async loadMoreAlerts() {
+        if (!window.auth?.currentUser || !window.db) return;
+        if (!this._paginationEnabled) {
+            window.notify?.info('مركز التنبيهات', 'لا يدعم التحميل المتتابع بدون فهرس، تم تحميل أحدث العناصر فقط', { duration: 3000, sound: false });
+            return;
+        }
+        if (!this.lastFetchedDoc) {
+            // If never loaded, fetch initial instead
+            await this.ensureInitialLoaded();
+            this.refreshAlertsList();
+            return;
+        }
+        const userId = auth.currentUser.uid;
+        try {
+            let query = db.collection('notifications')
+                .where('userId', '==', userId)
+                .orderBy('createdAt', 'desc')
+                .startAfter(this.lastFetchedDoc)
+                .limit(20);
+            const snapshot = await query.get();
+            if (!snapshot.empty) {
+                snapshot.forEach(doc => {
+                    const n = doc.data();
+                    const alert = this.createAlert({
+                        id: doc.id,
+                        title: n.title,
+                        message: n.message,
+                        type: n.type || 'info',
+                        priority: n.priority || 'normal',
+                        timestamp: n.createdAt?.toDate?.() || new Date(),
+                        source: 'notification',
+                        read: !!n.isRead,
+                        data: n.data
+                    });
+                    if (!this.alerts.has(alert.id)) {
+                        this.alerts.set(alert.id, alert);
+                    }
+                });
+                this.lastFetchedDoc = snapshot.docs[snapshot.docs.length - 1];
+                this.refreshAlertsList();
+            } else {
+                // No more; provide feedback
+                window.notify?.info('مركز التنبيهات', 'لا توجد تنبيهات إضافية للتحميل', { duration: 2500, sound: false });
+            }
+        } catch (e) {
+            console.warn('فشل تحميل المزيد من التنبيهات:', e?.message || e);
+        }
+    }
+
+    // New: Filtering support
+    filterAlerts(filter) {
+        this.currentFilter = filter || 'all';
+        this.refreshAlertsList();
+    }
+
+    applyFilter(alerts, filter) {
+        switch (filter) {
+            case 'unread':
+                return alerts.filter(a => !a.read);
+            case 'urgent':
+                return alerts.filter(a => a.priority === 'urgent');
+            case 'system':
+                return alerts.filter(a => a.source === 'system' || a.type === 'system');
+            case 'user':
+                return alerts.filter(a => a.source === 'user');
+            case 'all':
+            default:
+                return alerts;
+        }
     }
 
     // تحديث الإعدادات

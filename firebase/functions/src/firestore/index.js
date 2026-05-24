@@ -561,3 +561,6 @@ function getChanges(before, after) {
     
     return changes;
 }
+
+// DEPRECATED legacy firestore index
+throw new Error('Deprecated legacy firestore index. Use functions/src/firestore');

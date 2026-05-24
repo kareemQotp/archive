@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار انتهاء الجلسة - نظام الأرشيف</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, var(--ocean-light) 0%, var(--wave-foam) 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            -webkit-backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+        
+        .status-success {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        
+        .status-warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+        
+        .status-danger {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        
+        .test-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+        }
+        
+        .log-success { color: #28a745; }
+        .log-warning { color: #ffc107; }
+        .log-error { color: #dc3545; }
+        .log-info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-vial me-2"></i>
+            اختبار إدارة انتهاء الجلسة
+        </h1>
+        
+        <!-- Auth Status -->
+        <div class="test-section">
+            <h3>
+                <i class="fas fa-user-shield me-2"></i>
+                حالة المصادقة
+            </h3>
+            <div class="d-flex align-items-center mb-3">
+                <span>حالة النظام:</span>
+                <span id="authStatus" class="status-indicator status-warning">
+                    <i class="fas fa-spinner fa-spin me-1"></i>
+                    جاري التحقق...
+                </span>
+            </div>
+            <div class="d-flex align-items-center mb-3">
+                <span>المستخدم الحالي:</span>
+                <span id="currentUser" class="ms-2 fw-bold">غير محدد</span>
+            </div>
+            <div class="d-flex align-items-center">
+                <span>صلاحية الرمز المميز:</span>
+                <span id="tokenStatus" class="status-indicator status-warning">
+                    <i class="fas fa-question me-1"></i>
+                    غير محدد
+                </span>
+            </div>
+        </div>
+        
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h3>
+                <i class="fas fa-play-circle me-2"></i>
+                أدوات الاختبار
+            </h3>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <button class="btn btn-primary w-100" onclick="testTokenValidity()">
+                        <i class="fas fa-check-circle me-2"></i>
+                        فحص صلاحية الرمز المميز
+                    </button>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <button class="btn btn-warning w-100" onclick="testTokenRefresh()">
+                        <i class="fas fa-sync me-2"></i>
+                        تحديث الرمز المميز
+                    </button>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <button class="btn btn-danger w-100" onclick="simulateSessionExpiration()">
+                        <i class="fas fa-clock me-2"></i>
+                        محاكاة انتهاء الجلسة
+                    </button>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <button class="btn btn-info w-100" onclick="testRedirectWithExpiration()">
+                        <i class="fas fa-share me-2"></i>
+                        اختبار إعادة التوجيه
+                    </button>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <button class="btn btn-success w-100" onclick="startTokenMonitoring()">
+                        <i class="fas fa-eye me-2"></i>
+                        بدء مراقبة الرمز المميز
+                    </button>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <button class="btn btn-secondary w-100" onclick="clearLog()">
+                        <i class="fas fa-trash me-2"></i>
+                        مسح السجل
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Log -->
+        <div class="test-section">
+            <h3>
+                <i class="fas fa-list-alt me-2"></i>
+                سجل الاختبار
+            </h3>
+            <div id="testLog" class="test-log">
+                <div class="log-entry log-info">
+                    [<span class="timestamp"></span>] بدء اختبار إدارة انتهاء الجلسة...
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Results -->
+        <div class="test-section">
+            <h3>
+                <i class="fas fa-chart-bar me-2"></i>
+                نتائج الاختبار
+            </h3>
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <div class="card border-success">
+                        <div class="card-body">
+                            <h5 class="card-title text-success">
+                                <i class="fas fa-check-circle"></i>
+                            </h5>
+                            <h3 id="successCount" class="text-success">0</h3>
+                            <p class="card-text">اختبارات نجحت</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="card border-warning">
+                        <div class="card-body">
+                            <h5 class="card-title text-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </h5>
+                            <h3 id="warningCount" class="text-warning">0</h3>
+                            <p class="card-text">تحذيرات</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="card border-danger">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger">
+                                <i class="fas fa-times-circle"></i>
+                            </h5>
+                            <h3 id="errorCount" class="text-danger">0</h3>
+                            <p class="card-text">أخطاء</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Back to System -->
+        <div class="text-center">
+            <a href="login.html" class="btn btn-outline-primary me-2">
+                <i class="fas fa-sign-in-alt me-2"></i>
+                تسجيل الدخول
+            </a>
+            <a href="index.html" class="btn btn-outline-secondary">
+                <i class="fas fa-home me-2"></i>
+                العودة للرئيسية
+            </a>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Core Systems -->
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    
+    <script>
+        let testResults = {
+            success: 0,
+            warning: 0,
+            error: 0
+        };
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            log('🚀 بدء تهيئة اختبار انتهاء الجلسة...', 'info');
+            
+            // Wait for Firebase and auth to initialize
+            await waitForAuthInit();
+            
+            // Update initial status
+            updateAuthStatus();
+            
+            log('✅ تم تهيئة نظام الاختبار بنجاح', 'success');
+        });
+
+        async function waitForAuthInit() {
+            return new Promise((resolve) => {
+                const checkInit = () => {
+                    if (window.unifiedAuth && window.unifiedAuth.isInitialized) {
+                        resolve();
+                    } else {
+                        setTimeout(checkInit, 100);
+                    }
+                };
+                checkInit();
+            });
+        }
+
+        function updateAuthStatus() {
+            const authStatusEl = document.getElementById('authStatus');
+            const currentUserEl = document.getElementById('currentUser');
+            const tokenStatusEl = document.getElementById('tokenStatus');
+
+            if (!window.unifiedAuth) {
+                authStatusEl.innerHTML = '<i class="fas fa-times me-1"></i>غير متاح';
+                authStatusEl.className = 'status-indicator status-danger';
+                return;
+            }
+
+            if (window.unifiedAuth.isAuthenticated && window.unifiedAuth.currentUser) {
+                authStatusEl.innerHTML = '<i class="fas fa-check me-1"></i>مصادق عليه';
+                authStatusEl.className = 'status-indicator status-success';
+                
+                currentUserEl.textContent = window.unifiedAuth.currentUser.email || 'مستخدم مجهول';
+                
+                tokenStatusEl.innerHTML = '<i class="fas fa-check me-1"></i>صالح';
+                tokenStatusEl.className = 'status-indicator status-success';
+            } else {
+                authStatusEl.innerHTML = '<i class="fas fa-user-times me-1"></i>غير مصادق عليه';
+                authStatusEl.className = 'status-indicator status-warning';
+                
+                currentUserEl.textContent = 'لا يوجد مستخدم';
+                
+                tokenStatusEl.innerHTML = '<i class="fas fa-exclamation me-1"></i>غير متاح';
+                tokenStatusEl.className = 'status-indicator status-warning';
+            }
+        }
+
+        async function testTokenValidity() {
+            log('🔍 بدء فحص صلاحية الرمز المميز...', 'info');
+            
+            if (!window.unifiedAuth || !window.unifiedAuth.isAuthenticated) {
+                log('❌ لا يوجد مستخدم مصادق عليه للاختبار', 'error');
+                incrementCount('error');
+                return;
+            }
+
+            try {
+                const isValid = await window.unifiedAuth.checkTokenValidity();
+                
+                if (isValid) {
+                    log('✅ الرمز المميز صالح', 'success');
+                    incrementCount('success');
+                    
+                    const tokenStatusEl = document.getElementById('tokenStatus');
+                    tokenStatusEl.innerHTML = '<i class="fas fa-check me-1"></i>صالح';
+                    tokenStatusEl.className = 'status-indicator status-success';
+                } else {
+                    log('⚠️ الرمز المميز غير صالح أو انتهت صلاحيته', 'warning');
+                    incrementCount('warning');
+                    
+                    const tokenStatusEl = document.getElementById('tokenStatus');
+                    tokenStatusEl.innerHTML = '<i class="fas fa-exclamation me-1"></i>منتهي الصلاحية';
+                    tokenStatusEl.className = 'status-indicator status-danger';
+                }
+            } catch (error) {
+                log(`❌ خطأ في فحص الرمز المميز: ${error.message}`, 'error');
+                incrementCount('error');
+            }
+        }
+
+        async function testTokenRefresh() {
+            log('🔄 بدء اختبار تحديث الرمز المميز...', 'info');
+            
+            if (!window.unifiedAuth || !window.unifiedAuth.isAuthenticated) {
+                log('❌ لا يوجد مستخدم مصادق عليه للاختبار', 'error');
+                incrementCount('error');
+                return;
+            }
+
+            try {
+                const token = await window.unifiedAuth.refreshUserToken();
+                log('✅ تم تحديث الرمز المميز بنجاح', 'success');
+                log(`🔑 طول الرمز المميز: ${token.length} حرف`, 'info');
+                incrementCount('success');
+                
+                updateAuthStatus();
+            } catch (error) {
+                log(`❌ فشل في تحديث الرمز المميز: ${error.message}`, 'error');
+                incrementCount('error');
+            }
+        }
+
+        function simulateSessionExpiration() {
+            log('⏰ محاكاة انتهاء الجلسة...', 'warning');
+            
+            if (!window.unifiedAuth) {
+                log('❌ نظام المصادقة غير متاح', 'error');
+                incrementCount('error');
+                return;
+            }
+
+            try {
+                window.unifiedAuth.handleSessionExpiration();
+                log('✅ تم تشغيل معالج انتهاء الجلسة', 'success');
+                incrementCount('success');
+            } catch (error) {
+                log(`❌ خطأ في محاكاة انتهاء الجلسة: ${error.message}`, 'error');
+                incrementCount('error');
+            }
+        }
+
+        function testRedirectWithExpiration() {
+            log('🔗 اختبار إعادة التوجيه مع انتهاء الجلسة...', 'info');
+            
+            if (!window.unifiedAuth) {
+                log('❌ نظام المصادقة غير متاح', 'error');
+                incrementCount('error');
+                return;
+            }
+
+            try {
+                // Generate test URL
+                const testUrl = `login.html?message=session-expired&redirect=${encodeURIComponent(window.location.href)}`;
+                log(`📍 رابط الاختبار: ${testUrl}`, 'info');
+                
+                // Show URL instead of actually redirecting for testing
+                log('ℹ️ لن يتم إعادة التوجيه الفعلي في وضع الاختبار', 'info');
+                log('✅ اختبار إعادة التوجيه نجح (محاكاة)', 'success');
+                incrementCount('success');
+                
+                // Uncomment to actually test redirect
+                // window.unifiedAuth.redirectToLoginWithSessionExpired();
+            } catch (error) {
+                log(`❌ خطأ في اختبار إعادة التوجيه: ${error.message}`, 'error');
+                incrementCount('error');
+            }
+        }
+
+        function startTokenMonitoring() {
+            log('👁️ بدء مراقبة الرمز المميز...', 'info');
+            
+            if (!window.unifiedAuth) {
+                log('❌ نظام المصادقة غير متاح', 'error');
+                incrementCount('error');
+                return;
+            }
+
+            if (!window.unifiedAuth.currentUser) {
+                log('⚠️ لا يوجد مستخدم مصادق عليه لبدء المراقبة', 'warning');
+                incrementCount('warning');
+                return;
+            }
+
+            try {
+                window.unifiedAuth.setupTokenMonitoring();
+                log('✅ تم بدء مراقبة الرمز المميز (فحص كل 30 دقيقة)', 'success');
+                incrementCount('success');
+            } catch (error) {
+                log(`❌ خطأ في بدء مراقبة الرمز المميز: ${error.message}`, 'error');
+                incrementCount('error');
+            }
+        }
+
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString('ar-SA');
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[<span class="timestamp">${timestamp}</span>] ${message}`;
+            
+            logEl.appendChild(logEntry);
+            logEl.scrollTop = logEl.scrollHeight;
+            
+            // Update timestamp for existing entries if needed
+            document.querySelectorAll('.timestamp').forEach(el => {
+                if (el.textContent === '') {
+                    el.textContent = timestamp;
+                }
+            });
+        }
+
+        function incrementCount(type) {
+            testResults[type]++;
+            document.getElementById(`${type}Count`).textContent = testResults[type];
+        }
+
+        function clearLog() {
+            const logEl = document.getElementById('testLog');
+            logEl.innerHTML = `
+                <div class="log-entry log-info">
+                    [<span class="timestamp">${new Date().toLocaleTimeString('ar-SA')}</span>] تم مسح السجل - بدء جلسة اختبار جديدة...
+                </div>
+            `;
+            
+            // Reset counters
+            testResults = { success: 0, warning: 0, error: 0 };
+            document.getElementById('successCount').textContent = '0';
+            document.getElementById('warningCount').textContent = '0';
+            document.getElementById('errorCount').textContent = '0';
+        }
+
+        // Global error handler for session expiration testing
+        window.addEventListener('error', function(event) {
+            if (event.error && event.error.code && 
+                (event.error.code.includes('auth/user-token-expired') || 
+                 event.error.code.includes('auth/invalid-user-token'))) {
+                log(`🔥 تم اكتشاف خطأ انتهاء الجلسة: ${event.error.message}`, 'warning');
+            }
+        });
+
+        // Listen for custom events
+        window.addEventListener('userAuthenticated', function(event) {
+            log('🎉 تم تسجيل دخول المستخدم بنجاح', 'success');
+            updateAuthStatus();
+        });
+
+        window.addEventListener('userSignedOut', function(event) {
+            log('👋 تم تسجيل خروج المستخدم', 'info');
+            updateAuthStatus();
+        });
+    </script>
+</body>
+</html>

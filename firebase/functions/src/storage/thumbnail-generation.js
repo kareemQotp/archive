@@ -1,1 +1,2 @@
-// Thumbnail generation Cloud Function skeleton
+// Deprecated legacy thumbnail generation stub.
+module.exports = {};

@@ -243,6 +243,14 @@
             display: none;
         }
 
+        .current-user-info {
+            display: none;
+        }
+
+        .current-user-info.show {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .admin-creation-container {
                 margin: 1rem;
@@ -254,9 +262,12 @@
             }
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <div class="container">
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <div class="container" id="mainContent" role="main" tabindex="-1">
         <div class="admin-creation-container">
             <a href="index.html" class="back-link">
                 <i class="fas fa-arrow-right me-2"></i>
@@ -272,6 +283,11 @@
                     قم بإنشاء حساب مدير النظام للحصول على صلاحيات كاملة<br>
                     لإدارة المستخدمين والوثائق والإعدادات
                 </p>
+                <div id="currentUserInfo" class="text-muted small mt-2 current-user-info">
+                    <i class="fas fa-user me-1"></i>
+                    <span>المستخدم الحالي: </span>
+                    <span id="currentUserName"></span>
+                </div>
             </div>
 
             <div id="alertContainer"></div>
@@ -389,6 +405,8 @@
         let permissionController;
 
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔧 تحميل صفحة إنشاء المدير');
+            
             // Wait for unified auth to initialize
             await new Promise(resolve => {
                 const checkAuth = () => {
@@ -406,16 +424,38 @@
             });
 
             // Check authentication and permissions
-            if (!unifiedAuth.isAuthenticated) {
+            if (!unifiedAuth.currentUser) {
+                console.log('❌ المستخدم غير مسجل الدخول، التوجيه لصفحة تسجيل الدخول');
                 window.location.href = 'login.html?message=session-expired';
                 return;
             }
 
-            // Allow access for admins only (simplified check)
-            const userRole = unifiedAuth.getCurrentUserRole();
-            if (userRole !== 'admin') {
+            // Allow access for system admins and specific admin roles
+            const userRole = unifiedAuth.userProfile?.role;
+            const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin';
+            const userEmail = unifiedAuth.currentUser?.email;
+            
+            console.log('🔍 فحص صلاحيات إنشاء المدير:', {
+                userRole,
+                isSystemAdmin,
+                userEmail
+            });
+
+            if (!isSystemAdmin && !userEmail?.includes('admin')) {
+                console.log('❌ المستخدم لا يملك صلاحية إنشاء مدير، التوجيه للصفحة الرئيسية');
                 window.location.href = 'index.html?message=permission-denied';
                 return;
+            }
+
+            console.log('✅ تم منح صلاحية إنشاء المدير');
+
+            // Display current user info
+            const currentUserInfo = document.getElementById('currentUserInfo');
+            const currentUserName = document.getElementById('currentUserName');
+            if (unifiedAuth.currentUser) {
+                const displayName = unifiedAuth.currentUser.displayName || unifiedAuth.currentUser.email;
+                currentUserName.textContent = displayName;
+                currentUserInfo.classList.add('show');
             }
 
             // Update permission-based UI
@@ -441,9 +481,6 @@
         const strengthBar = document.querySelector('.strength-bar');
         const strengthFill = document.querySelector('.strength-fill');
         const strengthText = document.querySelector('.strength-text');
-
-        // Check if admin already exists
-        checkExistingAdmin();
 
         // Password strength checker
         passwordInput.addEventListener('input', function() {
@@ -556,8 +593,13 @@
 
         // Initialize admin creation functionality
         function initializeAdminCreation() {
-            // Form submission handling will be added here
+            // Form submission handling
             form.addEventListener('submit', handleAdminCreation);
+            
+            // Check existing admins after Firebase is ready
+            setTimeout(() => {
+                checkExistingAdmin();
+            }, 1000);
         }
 
         async function handleAdminCreation(e) {
@@ -582,46 +624,78 @@
                 submitBtn.classList.add('loading');
                 submitBtn.disabled = true;
 
-                // Use unified auth system for admin creation
-                const adminData = {
+                console.log('🔧 بدء إنشاء حساب المدير:', { email, fullName });
+
+                // Check if user is authenticated and has proper permissions
+                if (!unifiedAuth.currentUser) {
+                    throw new Error('يجب تسجيل الدخول أولاً');
+                }
+
+                if (!window.auth || !window.db) {
+                    throw new Error('Firebase غير متاح');
+                }
+
+                // Create user with Firebase Auth
+                const userCredential = await window.auth.createUserWithEmailAndPassword(email, password);
+                const newUser = userCredential.user;
+
+                console.log('✅ تم إنشاء حساب Firebase:', newUser.uid);
+
+                // Update user profile
+                await newUser.updateProfile({
+                    displayName: fullName
+                });
+
+                // Create user profile in Firestore
+                const userProfile = {
+                    uid: newUser.uid,
                     email: email,
-                    password: password,
+                    displayName: fullName,
                     firstName: fullName.split(' ')[0] || fullName,
                     lastName: fullName.split(' ').slice(1).join(' ') || '',
                     phone: phone || null,
                     role: 'admin',
+                    department: 'administration',
                     isActive: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdBy: unifiedAuth.currentUser.uid,
                     permissions: {
                         isAdmin: true,
                         canManageUsers: true,
                         canManageSystem: true,
                         canViewAllDocuments: true,
-                        canManageDocuments: true
+                        canManageDocuments: true,
+                        canAccessAllDepartments: true
                     }
                 };
 
-                // Create admin account through unified auth
-                const result = await unifiedAuth.createAdminAccount(adminData);
+                await window.db.collection('users').doc(newUser.uid).set(userProfile);
+                console.log('✅ تم حفظ بيانات المستخدم في Firestore');
 
                 // Log the admin creation
-                await firebase.firestore().collection('audit_logs').add({
+                await window.db.collection('activity_logs').add({
                     action: 'admin_created',
+                    description: `تم إنشاء حساب مدير جديد: ${fullName} (${email})`,
                     targetType: 'user',
-                    targetId: result.user.uid,
+                    targetId: newUser.uid,
+                    userId: unifiedAuth.currentUser.uid,
+                    userName: unifiedAuth.currentUser.displayName || unifiedAuth.currentUser.email,
+                    userEmail: unifiedAuth.currentUser.email,
                     details: {
                         email: email,
                         displayName: fullName,
                         role: 'admin'
                     },
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    performedBy: user.uid
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
+
+                console.log('✅ تم تسجيل عملية إنشاء المدير في السجلات');
 
                 showAlert('تم إنشاء حساب المدير بنجاح! سيتم توجيهك للوحة التحكم...', 'success');
 
                 // Redirect after 2 seconds
                 setTimeout(() => {
-                    window.location.href = 'dashboard.html';
+                    window.location.href = 'admin-management.html';
                 }, 2000);
 
             } catch (error) {
@@ -629,21 +703,25 @@
                 
                 let errorMessage = 'حدث خطأ في إنشاء الحساب';
                 
-                switch (error.code) {
-                    case 'auth/email-already-in-use':
-                        errorMessage = 'البريد الإلكتروني مستخدم بالفعل';
-                        break;
-                    case 'auth/invalid-email':
-                        errorMessage = 'البريد الإلكتروني غير صحيح';
-                        break;
-                    case 'auth/weak-password':
-                        errorMessage = 'كلمة المرور ضعيفة جداً';
-                        break;
-                    case 'auth/operation-not-allowed':
-                        errorMessage = 'عملية إنشاء الحساب غير مسموحة';
-                        break;
-                    default:
-                        errorMessage = error.message || 'حدث خطأ غير متوقع';
+                if (error.code) {
+                    switch (error.code) {
+                        case 'auth/email-already-in-use':
+                            errorMessage = 'البريد الإلكتروني مستخدم بالفعل';
+                            break;
+                        case 'auth/invalid-email':
+                            errorMessage = 'البريد الإلكتروني غير صحيح';
+                            break;
+                        case 'auth/weak-password':
+                            errorMessage = 'كلمة المرور ضعيفة جداً';
+                            break;
+                        case 'auth/operation-not-allowed':
+                            errorMessage = 'عملية إنشاء الحساب غير مسموحة';
+                            break;
+                        default:
+                            errorMessage = error.message || 'حدث خطأ غير متوقع';
+                    }
+                } else {
+                    errorMessage = error.message || 'حدث خطأ غير متوقع';
                 }
 
                 showAlert(errorMessage, 'danger');
@@ -656,17 +734,33 @@
 
         async function checkExistingAdmin() {
             try {
-                const adminsQuery = await db.collection('users')
+                if (!window.db) {
+                    console.warn('Firestore غير متاح للتحقق من المدراء الموجودين');
+                    return;
+                }
+
+                const adminsQuery = await window.db.collection('users')
                     .where('role', '==', 'admin')
                     .where('isActive', '==', true)
-                    .limit(1)
+                    .limit(5)
                     .get();
 
                 if (!adminsQuery.empty) {
-                    showAlert('يوجد بالفعل حساب مدير في النظام. هذه الصفحة لإنشاء مدير إضافي.', 'info');
+                    const adminCount = adminsQuery.size;
+                    const adminNames = [];
+                    
+                    adminsQuery.forEach(doc => {
+                        const admin = doc.data();
+                        adminNames.push(admin.displayName || admin.email);
+                    });
+
+                    showAlert(
+                        `يوجد ${adminCount} مدير${adminCount > 1 ? 'اء' : ''} في النظام حالياً: ${adminNames.join(', ')}. يمكنك إضافة مدير جديد.`, 
+                        'info'
+                    );
                 }
             } catch (error) {
-                console.log('تعذر التحقق من وجود مدير:', error);
+                console.warn('تعذر التحقق من وجود مدراء:', error);
             }
         }
 

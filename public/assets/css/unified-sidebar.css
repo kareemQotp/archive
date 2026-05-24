@@ -1,0 +1,498 @@
+/**
+ * Unified Sidebar Styles
+ * أنماط القائمة الجانبية الموحدة
+ */
+
+/* CSS Variables for consistent theming */
+:root {
+    --sidebar-width: 280px;
+    --sidebar-bg: #ffffff;
+    --sidebar-header-bg: linear-gradient(135deg, #007bff 0%, #6f42c1 100%);
+    --sidebar-text: #333333;
+    --sidebar-text-muted: #666666;
+    --sidebar-hover-bg: #f8f9fa;
+    --sidebar-active-bg: rgba(0, 123, 255, 0.1);
+    --sidebar-active-border: #007bff;
+    --sidebar-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --sidebar-transition: all 0.3s ease;
+    --navbar-bg: rgba(255, 255, 255, 0.95);
+    --navbar-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Reset and base styles */
+* {
+    box-sizing: border-box;
+}
+
+/* Navbar unified styles */
+.navbar {
+    background: var(--navbar-bg);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--navbar-shadow);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 0.75rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--primary, #007bff) !important;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.navbar-brand:hover {
+    color: var(--primary, #007bff) !important;
+    opacity: 0.8;
+}
+
+.menu-toggle {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--primary, #007bff);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: var(--sidebar-transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-toggle:hover {
+    background: rgba(0, 123, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.menu-toggle:focus {
+    outline: 2px solid var(--primary, #007bff);
+    outline-offset: 2px;
+}
+
+/* Sidebar base styles */
+.sidebar {
+    position: fixed;
+    right: calc(-1 * var(--sidebar-width));
+    top: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--sidebar-bg);
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    transition: right 0.3s ease;
+    z-index: 1050;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar.active {
+    right: 0;
+}
+
+/* Sidebar overlay */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--sidebar-transition);
+    cursor: pointer;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Sidebar header */
+.sidebar-header {
+    padding: 1.5rem;
+    background: var(--sidebar-header-bg);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header .logo {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-left: 0.75rem;
+}
+
+.sidebar-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.sidebar-header small {
+    opacity: 0.8;
+    font-size: 0.8rem;
+}
+
+.sidebar-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-close:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
+
+/* User info section */
+.user-info {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+    flex-shrink: 0;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--primary, #007bff);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    margin-left: 0.75rem;
+    flex-shrink: 0;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 0.2rem;
+    line-height: 1.2;
+}
+
+.user-role {
+    font-size: 0.8rem;
+    color: #666;
+    line-height: 1.2;
+}
+
+/* Sidebar navigation */
+.sidebar-nav {
+    padding: 1rem 0;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 1.5rem;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    transition: var(--sidebar-transition);
+    border-right: 3px solid transparent;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    position: relative;
+}
+
+.sidebar-item:hover {
+    background: var(--sidebar-hover-bg);
+    color: var(--primary, #007bff);
+    text-decoration: none;
+    transform: translateX(-2px);
+}
+
+.sidebar-item.active {
+    background: var(--sidebar-active-bg);
+    color: var(--primary, #007bff);
+    border-right-color: var(--sidebar-active-border);
+    font-weight: 600;
+}
+
+.sidebar-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    background: var(--primary, #007bff);
+    border-radius: 0 2px 2px 0;
+}
+
+.sidebar-item i {
+    width: 20px;
+    margin-left: 0.8rem;
+    text-align: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.sidebar-item span {
+    flex: 1;
+}
+
+/* Sidebar separator */
+.sidebar-separator {
+    padding: 1rem 1.5rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--sidebar-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* Department-specific colors */
+.sidebar-item[style*="--item-color"] {
+    --dept-color: var(--item-color);
+}
+
+.sidebar-item[style*="--item-color"]:hover {
+    color: var(--dept-color);
+    border-right-color: var(--dept-color);
+}
+
+.sidebar-item[style*="--item-color"].active {
+    color: var(--dept-color);
+    border-right-color: var(--dept-color);
+    background: color-mix(in srgb, var(--dept-color) 10%, transparent);
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid #e9ecef;
+    background: #f8f9fa;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.sidebar-footer small {
+    color: var(--sidebar-text-muted);
+    font-size: 0.75rem;
+}
+
+/* Notification styles */
+.notification-container {
+    position: relative;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.notification-badge.hidden {
+    display: none;
+}
+
+.notification-container .btn {
+    border: none;
+    background: none;
+    color: var(--sidebar-text);
+    transition: var(--sidebar-transition);
+}
+
+.notification-container .btn:hover {
+    color: var(--primary, #007bff);
+    background: rgba(0, 123, 255, 0.1);
+}
+
+/* Body adjustments */
+body.sidebar-open {
+    overflow: hidden;
+}
+
+/* Responsive design */
+@media (max-width: 992px) {
+    :root {
+        --sidebar-width: 260px;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --sidebar-width: 250px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .menu-toggle {
+        font-size: 1.1rem;
+        padding: 0.4rem;
+    }
+    
+    .sidebar-header {
+        padding: 1.2rem;
+    }
+    
+    .sidebar-header .logo {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    
+    .sidebar-item {
+        padding: 0.7rem 1.2rem;
+        font-size: 0.85rem;
+    }
+    
+    .user-info {
+        padding: 0.8rem 1.2rem;
+    }
+}
+
+@media (max-width: 576px) {
+    :root {
+        --sidebar-width: 240px;
+    }
+    
+    .navbar {
+        padding: 0.5rem 0;
+    }
+    
+    .navbar-brand {
+        font-size: 1rem;
+    }
+    
+    .sidebar-header h5 {
+        font-size: 1rem;
+    }
+    
+    .sidebar-header small {
+        font-size: 0.75rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .sidebar,
+    .sidebar-overlay,
+    .menu-toggle {
+        display: none !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .sidebar {
+        border-left: 2px solid #000;
+    }
+    
+    .sidebar-item {
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .sidebar-item:hover,
+    .sidebar-item.active {
+        background: #000;
+        color: #fff;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .sidebar-overlay,
+    .sidebar-item,
+    .menu-toggle,
+    .sidebar-close {
+        transition: none;
+    }
+}
+
+/* Focus management for accessibility */
+.sidebar-item:focus,
+.menu-toggle:focus,
+.sidebar-close:focus {
+    outline: 2px solid var(--primary, #007bff);
+    outline-offset: 2px;
+}
+
+/* Ensure sidebar content is accessible */
+.sidebar[aria-hidden="true"] {
+    visibility: hidden;
+}
+
+.sidebar[aria-hidden="false"] {
+    visibility: visible;
+}
+
+/* Animation for smooth entry */
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.sidebar.active .sidebar-item {
+    animation: slideIn 0.3s ease forwards;
+}
+
+.sidebar.active .sidebar-item:nth-child(1) { animation-delay: 0.05s; }
+.sidebar.active .sidebar-item:nth-child(2) { animation-delay: 0.1s; }
+.sidebar.active .sidebar-item:nth-child(3) { animation-delay: 0.15s; }
+.sidebar.active .sidebar-item:nth-child(4) { animation-delay: 0.2s; }
+.sidebar.active .sidebar-item:nth-child(5) { animation-delay: 0.25s; }
+.sidebar.active .sidebar-item:nth-child(6) { animation-delay: 0.3s; }
+.sidebar.active .sidebar-item:nth-child(7) { animation-delay: 0.35s; }
+.sidebar.active .sidebar-item:nth-child(8) { animation-delay: 0.4s; }

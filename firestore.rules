@@ -2,70 +2,289 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+    /************************************************************
+     * وظائف مساعدة عامة (Helper Functions)
+     * يتم التركيز هنا على:
+     * - التحقق من حالة التسجيل
+     * - جلب الدور (role) للمستخدم الحالي
+     * - أدوار النظام (admin / archive_officer)
+     * - منع ترقية الصلاحيات غير المصرح بها
+     ************************************************************/
+
+    // التحقق من أن المستخدم مسجل دخول
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
+    // جلب مستند المستخدم الحالي بصورة آمنة (قد يرجع null لو غير موجود)
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // الدور الحالي للمستخدم
     function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return currentUserDoc().data.role;
     }
-    
+
+    // هل المستخدم إداري؟ (يدعم admin و system_admin)
     function isAdmin() {
-      return isAuthenticated() && getUserRole() == 'admin';
+      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'system_admin');
     }
-    
+
+    // السماح بترقية ذاتية محدودة لحسابات إدارية موثوقة (bootstrap)
+    function isTrustedAdminBootstrap() {
+      return isAuthenticated() &&
+        request.auth.token.email != null &&
+        (request.auth.token.email == 'admin@aman.eg' || request.auth.token.email == 'admin123@aman.eg');
+    }
+
+    // هل المستخدم موظف أرشيف؟ (يدعم الكتابة بالشرطة أو الشرطة السفلية)
     function isArchiveOfficer() {
-      return isAuthenticated() && getUserRole() == 'archive_officer';
+      return isAuthenticated() && (getUserRole() == 'archive_officer' || getUserRole() == 'archive-officer');
     }
-    
+
+    // هل هو المالك أو إداري؟
     function isOwnerOrAdmin(userId) {
       return isAuthenticated() && (request.auth.uid == userId || isAdmin());
     }
 
+    // السماح فقط للأدوار المحددة (توسيع لدعم أدوار الواجهة)
+    function isAllowedRole(role) {
+      return role in [
+        'admin', 'system_admin',
+        'archive_officer', 'archive-officer',
+        'legal', 'governance', 'collection', 'securitization',
+        'user', 'viewer'
+      ];
+    }
+
+    // التحقق من عدم تغيير الدور من قبل مستخدم ليس إداري
+    function roleNotElevatedOnUserUpdate() {
+      return !('role' in request.resource.data) ||
+             ((isAdmin() || isTrustedAdminBootstrap()) && isAllowedRole(request.resource.data.role)) ||
+             request.resource.data.role == resource.data.role ||
+             // السماح بترقية أولية من viewer/user إلى admin لحساب موثوق فقط مرة واحدة
+             (
+               isTrustedAdminBootstrap() &&
+               resource.data.role in ['viewer','user'] &&
+               request.resource.data.role == 'admin'
+             );
+    }
+
+    /************************************************************
+     * دوال التحقق من الحقول (Field Validation)
+     ************************************************************/
+    // التحقق من الحقول المسموحة في مستند المستخدم عند الإنشاء/التحديث
+  function userAllowedKeys(keys) {
+      // السماح بحقول الملف الشخصي الشائعة والتتبع الذاتي (آخر دخول وعدد الدخول)
+      // بالإضافة إلى الحقول المستخدمة من واجهة الإدارة الحالية
+      return keys.hasOnly([
+        'uid',
+        'displayName', 'firstName', 'lastName', 'fullName',
+        'email', 'emailVerified',
+        'role', // محمي عبر roleNotElevatedOnUserUpdate
+        'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
+        'department', 'departmentId', 'departmentName',
+        'disabled', 'isActive',
+        'photoURL', 'profilePicture', 'phone', 'bio',
+        'settings', 'permissions',
+        'registrationType', 'joinReason', 'inviteCode', 'invitedBy',
+        'lastLogin', 'loginCount', 'lastActivity',
+        // دعم مفاتيح إضافية يستخدمها لوحة الإدارة
+        'status', // متروك للتوافق مع سجلات قديمة، لن يُستخدم مستقبلاً
+        'archived', 'isArchived', 'archivedAt',
+        'phoneNumber',
+        // تواريخ/حقول سير العمل الإداري
+        'approvedAt', 'approvedBy', 'rejectedAt', 'rejectedBy',
+        'roleAssignedAt', 'roleAssignedBy',
+        // حقول المزامنة والإضافة السريعة
+        'syncedFromAuth', 'syncedAt', 'syncedBy',
+        'manuallyAdded', 'quickAdded', 'addedAt', 'addedBy'
+      ]);
+    }
+
+    // الحقول المسموحة في مستند الوثيقة
+    function documentAllowedKeys(keys) {
+      return keys.hasOnly([
+        // وصف عام
+        'title', 'description', 'status', 'tags', 'category', 'isActive',
+        // التعريف بالقسم
+        'department', 'departmentId', 'currentDepartment',
+        // بيانات الإنشاء والتتبع
+        'createdBy', 'createdAt', 'updatedAt',
+        // ربط التخزين والتحميل
+        'fileName', 'filePath', 'downloadURL', 'fileSize', 'contentType', 'uploadedAt',
+        // مصغرات الصور
+        'hasThumbnail', 'thumbnailPath'
+      ]);
+    }
+
+    // الحقول المسموحة في حركة الملف (مطابقة لما يتم إرساله من الواجهة)
+    function movementAllowedKeys(keys) {
+      return keys.hasOnly([
+        'fileNumber',
+        'fileName',
+        'fromDepartment',
+        'toDepartment',
+        'action',
+        'status',
+        'priority',
+        'condition',
+        'scanMethod',
+        'notes',
+        'userId',
+        'userEmail',
+        'userDisplayName',
+        'timestamp'
+      ]);
+    }
+
+    // الحقول المسموحة في سجل النشاط
+    function activityAllowedKeys(keys) {
+      // السماح بالحقلـات المستخدمة فعلياً بواسطة نظام التسجيل الأمامي
+      // ActivityLogger يرسل: id, timestamp, sessionId, userId, userEmail, userDisplayName,
+      // category, action, details, priority, synced, syncedAt
+      // كما أن بعض عمليات اللوحة تستخدم الحقول: targetType, targetId, performedBy
+      return keys.hasOnly([
+        'id',
+        'timestamp',
+        'sessionId',
+        'userId',
+        'userEmail',
+        'userDisplayName',
+        'category',
+        'action',
+        'details',
+        'priority',
+        'synced',
+        'syncedAt',
+        'targetType',
+        'targetId',
+        'performedBy'
+      ]);
+    }
+
+    // الحقول المسموحة في الإشعار
+    function notificationAllowedKeys(keys) {
+      return keys.hasOnly(['userId', 'title', 'body', 'createdAt', 'read', 'type']);
+    }
+
+    // الحقول المسموحة في تفضيلات المستخدم (مستوى علوي فقط)
+    function userPreferencesAllowedKeys(keys) {
+      return keys.hasOnly(['channels', 'frequency', 'types', 'quietHours']);
+    }
+
+    // منع تعديل createdAt بعد الإنشاء وحماية المالك
+    function createdAtImmutableOnUpdate() {
+      return !(('createdAt' in request.resource.data) && (request.resource.data.createdAt != resource.data.createdAt));
+    }
+
+    // الحفاظ على createdBy ثابتة
+    function createdByImmutableOnUpdate() {
+      return !(('createdBy' in request.resource.data) && (request.resource.data.createdBy != resource.data.createdBy));
+    }
+
     // Users collection
     match /users/{userId} {
+      // قراءة جميع المستخدمين للمصادقين فقط (قد تفكر لاحقاً بتقييد أكثر)
       allow read: if isAuthenticated();
-      allow create: if isAdmin();
-      allow update: if isOwnerOrAdmin(userId);
+
+      // إنشاء مستخدم
+      // 1) إداري يمكنه الإنشاء
+      // 2) تمكين إنشاء ذاتي مبدئي لمستند المستخدم (Bootstrap) للبريد الموثوق من نطاق المؤسسة
+      allow create: if (
+        (
+          isAdmin() &&
+          userAllowedKeys(request.resource.data.keys()) &&
+          isAllowedRole(request.resource.data.role)
+        )
+        ||
+        (
+          isAuthenticated() &&
+          request.auth.uid == userId &&
+          // السماح للمستخدم بإنشاء مستنده الأول بذاته إذا كان بريده من نطاق المؤسسة
+          // ملاحظة: يمكن ضبط النطاق حسب الحاجة
+          request.auth.token.email.matches('.*@aman\\.eg') &&
+          userAllowedKeys(request.resource.data.keys()) &&
+          // الدور اختياري عند الإنشاء الذاتي؛ إن وُجد يجب أن يكون مسموحاً
+          (!('role' in request.resource.data) || isAllowedRole(request.resource.data.role))
+        )
+      );
+
+      // تحديث: المالك يمكنه تعديل بياناته (باستثناء الدور)؛ الإداري حر ضمن الحدود
+      allow update: if isOwnerOrAdmin(userId) &&
+        userAllowedKeys(request.resource.data.keys()) &&
+        roleNotElevatedOnUserUpdate() &&
+        createdAtImmutableOnUpdate() &&
+        createdByImmutableOnUpdate();
+
+      // حذف: إداري فقط
       allow delete: if isAdmin();
     }
 
     // Documents collection
     match /documents/{documentId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && 
-        (isAdmin() || isArchiveOfficer() || 
-         resource.data.createdBy == request.auth.uid);
-      allow update: if isAuthenticated() && 
-        (isAdmin() || isArchiveOfficer() || 
-         resource.data.createdBy == request.auth.uid);
-      allow delete: if isAdmin() || 
+      allow read: if isAuthenticated() && (
+        // إداري أو موظف أرشيف
+        isAdmin() || isArchiveOfficer() ||
+        // المنشئ يمكنه القراءة دائماً
+        resource.data.createdBy == request.auth.uid ||
+        // تقييد القراءة حسب القسم الحالي للوثيقة
+        (
+          // تطبيع اسم قسم المستخدم إلى معرف (فرضاً مخزن في users.department أو users.departmentId)
+          // ملاحظة: لا يمكننا استدعاء دالة تطبيع معقدة هنا؛ نفترض أن القيمة مخزنة بشكل متسق
+          resource.data.currentDepartment == currentUserDoc().data.department ||
+          resource.data.currentDepartment == currentUserDoc().data.departmentId ||
+          // دعم قديم: بعض الوثائق تستخدم الحقل department فقط
+          resource.data.department == currentUserDoc().data.department ||
+          resource.data.department == currentUserDoc().data.departmentId
+        )
+      );
+
+      // ملاحظة: في create يجب استخدام request.resource وليس resource
+      allow create: if isAuthenticated() &&
+        documentAllowedKeys(request.resource.data.keys()) &&
+        request.resource.data.createdBy == request.auth.uid &&
+        (isAdmin() || isArchiveOfficer() || true); // السماح للمستخدم بإنشاء مستند يخصه
+
+      allow update: if isAuthenticated() &&
+        documentAllowedKeys(request.resource.data.keys()) &&
+        (isAdmin() || isArchiveOfficer() || resource.data.createdBy == request.auth.uid) &&
+        createdAtImmutableOnUpdate() &&
+        createdByImmutableOnUpdate();
+
+      allow delete: if isAdmin() ||
         (isAuthenticated() && resource.data.createdBy == request.auth.uid);
     }
 
     // File movements collection
     match /file_movements/{movementId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && 
-        (isAdmin() || isArchiveOfficer());
-      allow update: if isAuthenticated() && 
-        (isAdmin() || isArchiveOfficer());
+      // إنشاء حركة ملف: يسمح لأي مستخدم مصادق بإنشاء سجل حركة يخصه (أو إداري)
+      allow create: if isAuthenticated() &&
+        movementAllowedKeys(request.resource.data.keys()) &&
+        (request.resource.data.userId == request.auth.uid || isAdmin() || isArchiveOfficer());
+      // غالباً لا نحتاج تحديث حركة بعد إنشائها؛ السماح فقط للإداري
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     // Activity logs collection
     match /activity_logs/{logId} {
-      allow read: if isAuthenticated() && 
+      allow read: if isAuthenticated() &&
         (isAdmin() || resource.data.userId == request.auth.uid);
-      allow create: if isAuthenticated();
-      allow update: if false; // Logs should not be updated
+      // إنشاء سجل نشاط: يجب أن يكون userId هو نفس المستخدم (أو إداري يكتب عن مستخدم آخر)
+      allow create: if isAuthenticated() &&
+        activityAllowedKeys(request.resource.data.keys()) &&
+        (request.resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if false; // لا يسمح بتعديل السجلات
       allow delete: if isAdmin();
     }
 
     // Departments collection
     match /departments/{departmentId} {
-      allow read: if isAuthenticated();
+      // Allow public read so unauthenticated users (registration page) can load departments list
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
@@ -77,19 +296,67 @@ service cloud.firestore {
 
     // Invitations collection
     match /invitations/{invitationId} {
-      allow read: if isAuthenticated();
+      // Allow read for active, non-expired invitations to enable public invite code verification
+      allow read: if isAuthenticated() || (
+        resource.data.status == 'active' &&
+        resource.data.expiresAt != null &&
+        resource.data.expiresAt > request.time
+      );
       allow create, update, delete: if isAdmin();
     }
 
     // Notifications collection
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && 
+      allow read: if isAuthenticated() &&
         resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && 
-        resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && 
+      // إنشاء إشعار: لا يُسمح لمستخدم عادي بإنشاء إشعار لغيره
+      allow create: if isAuthenticated() &&
+        notificationAllowedKeys(request.resource.data.keys()) &&
+        (request.resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        // السماح للمستخدم بتحديث حقل read فقط
+        request.resource.data.keys().hasOnly(['userId','title','body','createdAt','read','type']) &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.title == resource.data.title &&
+        request.resource.data.body == resource.data.body &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.type == resource.data.type;
+      allow delete: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // User preferences collection: يسمح لكل مستخدم بقراءة/حفظ تفضيلاته الخاصة فقط
+    match /user_preferences/{userId} {
+      allow read: if isAuthenticated() && userId == request.auth.uid;
+      allow create, update: if isAuthenticated() &&
+        userId == request.auth.uid &&
+        userPreferencesAllowedKeys(request.resource.data.keys());
+      // حذف التفضيلات: المالك أو إداري
+      allow delete: if isAuthenticated() && (userId == request.auth.uid || isAdmin());
+    }
+
+    // Notification queue: إنشاء فقط من العملاء المصادقين، وإدارة كاملة للإداري
+    match /notification_queue/{queueId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Sent notifications: إنشاء من العميل/الخدمة، قراءة للمالك أو إداري
+    match /sent_notifications/{sentId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated() &&
+        (resource.data.recipientId == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // User page permissions overrides collection
+    match /user_page_permissions/{userId} {
+      // القراءة: المالك أو إداري
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isTrustedAdminBootstrap());
+      // الإنشاء/التحديث/الحذف: إداري فقط (منع المستخدم من تعديل تخصيصه مباشرة)
+      // السماح أيضاً لمدراء التمهيد الموثوقين (bootstrap) بالكتابة لتجاوز مشكلة تهيئة الدور الأولى
+      allow create, update, delete: if isAdmin() || isTrustedAdminBootstrap();
     }
   }
 }

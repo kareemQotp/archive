@@ -6,13 +6,31 @@
 class CloudFunctionService {
     constructor() {
         try {
-            this.functions = window.functions || (firebase ? firebase.functions() : null);
-            this.auth = window.auth || (firebase ? firebase.auth() : null);
-            this.isEmulator = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            
-            // Connect to emulator if in development
+            // Wait for Firebase to be ready before initializing
+            if (!window.firebase || !firebase.apps || firebase.apps.length === 0) {
+                console.warn('⚠️ Firebase غير مهيأ بعد، سيتم إعادة المحاولة لاحقاً');
+                this.functions = null;
+                this.auth = null;
+                return;
+            }
+
+            // Use properly initialized Firebase app instance
+            const app = firebase.apps[0]; // Get the default Firebase app
+            this.functions = window.functions || firebase.app(app.name).functions('us-central1');
+            this.auth = window.auth || firebase.app(app.name).auth();
+            // Determine whether to use emulator: must be local host AND explicit opt-in flag
+            const hostLocal = ['localhost','127.0.0.1'].includes(window.location.hostname);
+            const forced = !!(window.__USE_FUNCTIONS_EMULATOR || localStorage.getItem('useFunctionsEmulator') === 'true');
+            this.isEmulator = hostLocal && forced;
+
             if (this.functions && this.isEmulator) {
-                this.functions.useEmulator('localhost', 5001);
+                try {
+                    this.functions.useEmulator('localhost', 5001);
+                    console.info('✅ Using Functions Emulator (localhost:5001)');
+                } catch (emuErr) {
+                    console.warn('⚠️ Failed to connect emulator, will fallback to production:', emuErr);
+                    this.isEmulator = false;
+                }
             }
         } catch (error) {
             console.warn('تعذر تهيئة خدمات السحابة:', error);
@@ -31,8 +49,29 @@ class CloudFunctionService {
             }
             
             const callable = this.functions.httpsCallable(functionName);
-            const result = await callable(data);
-            return result.data;
+            try {
+                const result = await callable(data);
+                return result.data;
+            } catch (primaryError) {
+                // If emulator connection refused, retry once against production by reinitializing without emulator.
+                const connRefused = primaryError?.message && primaryError.message.includes('net::ERR_CONNECTION_REFUSED');
+                if (this.isEmulator && connRefused) {
+                    console.warn(`🚧 Emulator call failed for ${functionName}, retrying against production...`);
+                    try {
+                        // Recreate functions instance without emulator flag
+                        const app = firebase.apps[0];
+                        this.functions = firebase.app(app.name).functions('us-central1');
+                        this.isEmulator = false;
+                        const retryCallable = this.functions.httpsCallable(functionName);
+                        const retryResult = await retryCallable(data);
+                        return retryResult.data;
+                    } catch (retryErr) {
+                        console.error('Retry against production failed:', retryErr);
+                        throw primaryError; // preserve original error semantics
+                    }
+                }
+                throw primaryError;
+            }
         } catch (error) {
             console.error(`Error calling ${functionName}:`, error);
             
@@ -61,10 +100,11 @@ class CloudFunctionService {
         });
     }
 
-    async updateUserRole(userId, newRole) {
+    async updateUserRole(userId, role, department = undefined) {
         return await this.callFunction('updateUserRole', {
             userId,
-            newRole
+            role,
+            department
         });
     }
 
@@ -132,6 +172,12 @@ class CloudFunctionService {
         });
     }
 
+    // Thumbnail/Storage maintenance
+    async cleanupThumbnails() {
+        // No parameters required; server will target standard thumbnails paths
+        return await this.callFunction('cleanupThumbnails', {});
+    }
+
     // Notification Services
     async sendNotification(userId, title, message, type = 'info', data = {}) {
         return await this.callFunction('sendNotification', {
@@ -195,13 +241,15 @@ class DocumentUploadService {
 
             // Upload to Firebase Storage
             const storageRef = this.storage.ref(filePath);
-            const uploadTask = storageRef.put(file, {
-                customMetadata: {
-                    originalName: file.name,
-                    uploadedAt: new Date().toISOString(),
-                    ...metadata
-                }
-            });
+                const uploadTask = storageRef.put(file, {
+                    customMetadata: {
+                        // Prevent Cloud Function from generating thumbnails for images
+                        skipThumbnail: 'true',
+                        originalName: file.name,
+                        uploadedAt: new Date().toISOString(),
+                        ...metadata
+                    }
+                });
 
             // Monitor upload progress
             return new Promise((resolve, reject) => {
@@ -215,28 +263,32 @@ class DocumentUploadService {
                         reject(new Error('فشل في رفع الملف'));
                     },
                     async () => {
+                        // Try to process file with Cloud Function, but don't treat failure as fatal
+                        let result = {};
                         try {
-                            // Process file with Cloud Function
-                            const result = await this.cloudService.processFileUpload(
+                            result = await this.cloudService.processFileUpload(
                                 file.name,
                                 filePath,
                                 {
                                     contentType: file.type,
                                     size: file.size,
-                                    ...metadata
+                                        // Also pass flag through callable in case metadata is overwritten
+                                        skipThumbnail: 'true',
+                                        ...metadata
                                 }
                             );
-
-                            resolve({
-                                filePath,
-                                fileName: file.name,
-                                size: file.size,
-                                contentType: file.type,
-                                ...result
-                            });
                         } catch (error) {
-                            reject(error);
+                            console.warn('processFileUpload failed, continuing without processing:', error?.message || error);
+                            result = { processed: false, processingError: error?.message || 'failed' };
                         }
+
+                        resolve({
+                            filePath,
+                            fileName: file.name,
+                            size: file.size,
+                            contentType: file.type,
+                            ...result
+                        });
                     }
                 );
             });
@@ -386,22 +438,48 @@ class AnalyticsService {
     }
 }
 
-// Initialize services
-const cloudFunctionService = new CloudFunctionService();
-const documentUploadService = new DocumentUploadService();
-const notificationService = new NotificationService();
-const analyticsService = new AnalyticsService();
+// Initialize services after Firebase is ready
+async function initializeCloudServices() {
+    // Wait for Firebase to be fully initialized
+    await new Promise((resolve) => {
+        if (window.firebase && firebase.apps && firebase.apps.length > 0) {
+            resolve();
+        } else {
+            // Listen for firebaseReady event
+            document.addEventListener('firebaseReady', resolve, { once: true });
+        }
+    });
 
-// Export services globally
-window.cloudFunctionService = cloudFunctionService;
-window.documentUploadService = documentUploadService;
-window.notificationService = notificationService;
-window.analyticsService = analyticsService;
+    try {
+        const cloudFunctionService = new CloudFunctionService();
+        const documentUploadService = new DocumentUploadService();
+        const notificationService = new NotificationService();
+        const analyticsService = new AnalyticsService();
+
+        // Export services globally
+        window.cloudFunctionService = cloudFunctionService;
+        window.documentUploadService = documentUploadService;
+        window.notificationService = notificationService;
+        window.analyticsService = analyticsService;
+
+        console.log('✅ تم تحميل خدمات السحابة بنجاح');
+    } catch (error) {
+        console.error('❌ خطأ في تهيئة خدمات السحابة:', error);
+    }
+}
+
+// Initialize when DOM is ready or Firebase is ready (whichever comes last)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeCloudServices);
+} else {
+    initializeCloudServices();
+}
 
 // Export classes
 window.CloudFunctionService = CloudFunctionService;
 window.DocumentUploadService = DocumentUploadService;
 window.NotificationService = NotificationService;
+window.AnalyticsService = AnalyticsService;
 window.AnalyticsService = AnalyticsService;
 
 console.log('✅ تم تحميل خدمات السحابة بنجاح');

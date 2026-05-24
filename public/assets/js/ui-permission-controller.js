@@ -9,14 +9,35 @@ class UIPermissionController {
         this.protectedElements = new Map();
         this.permissionGroups = new Map();
         
-        // Auto-initialize when auth state changes
-        this.auth.onAuthStateChange(() => {
-            this.updateUI();
-        });
+        // Ensure auth system is properly initialized before attaching listeners
+        if (!this.auth || typeof this.auth !== 'object') {
+            console.warn('UIPermissionController: Invalid auth system provided');
+            return;
+        }
         
-        this.auth.onPermissionChange(() => {
-            this.updateUI();
-        });
+        // Auto-initialize when auth/permission state changes (API-agnostic)
+        try {
+            // Ensure correct `this` binding for methods captured by reference
+            const onAuthChanged = this.auth.onAuthStateChanged || this.auth.onAuthStateChange;
+            if (typeof onAuthChanged === 'function') {
+                (onAuthChanged.bind(this.auth))(() => {
+                    try { this.updateUI(); } catch (e) { console.warn('UIPermissionController.updateUI failed on auth change', e); }
+                });
+            }
+        } catch (e) {
+            console.warn('UIPermissionController: unable to attach auth state listener', e);
+        }
+
+        try {
+            const onPermChanged = this.auth.onPermissionChange || this.auth.onPermissionsChanged;
+            if (typeof onPermChanged === 'function') {
+                (onPermChanged.bind(this.auth))(() => {
+                    try { this.updateUI(); } catch (e) { console.warn('UIPermissionController.updateUI failed on permission change', e); }
+                });
+            }
+        } catch (e) {
+            console.warn('UIPermissionController: unable to attach permission change listener', e);
+        }
     }
 
     // Register elements that require specific permissions
@@ -60,8 +81,14 @@ class UIPermissionController {
     // Update UI based on current permissions
     updateUI() {
         this.protectedElements.forEach((config, element) => {
-            const hasPermission = this.auth.hasPermission(config.permission);
-            
+            let hasPermission = true;
+            try {
+                if (typeof this.auth.hasPermission === 'function') {
+                    hasPermission = this.auth.hasPermission(config.permission);
+                }
+            } catch (e) {
+                console.warn('UIPermissionController.hasPermission error', e);
+            }
             if (hasPermission) {
                 this.showElement(config);
             } else {
@@ -143,7 +170,7 @@ class UIPermissionController {
 
     // Update content based on user role
     updateRoleBasedContent() {
-        const userRole = this.auth.userRole;
+        const userRole = this.auth.userRole || (typeof this.auth.getCurrentUserRole === 'function' ? this.auth.getCurrentUserRole() : 'viewer') || 'viewer';
         
         // Show/hide role-specific content
         document.querySelectorAll('[data-role]').forEach(element => {
@@ -155,17 +182,19 @@ class UIPermissionController {
 
         // Update role-specific text content
         document.querySelectorAll('[data-role-text]').forEach(element => {
-            const roleTexts = JSON.parse(element.dataset.roleText);
-            if (roleTexts[userRole]) {
-                element.textContent = roleTexts[userRole];
-            }
+            try {
+                const roleTexts = JSON.parse(element.dataset.roleText);
+                if (roleTexts[userRole]) {
+                    element.textContent = roleTexts[userRole];
+                }
+            } catch (_) { /* ignore invalid JSON */ }
         });
     }
 
     // Update user information in UI
     updateUserInfo() {
-        const profile = this.auth.profile;
-        const user = this.auth.user;
+        const profile = this.auth.profile || this.auth.getProfile?.();
+        const user = this.auth.user || this.auth.currentUser || this.auth.getCurrentUser?.();
         
         if (!profile || !user) return;
 
@@ -181,7 +210,8 @@ class UIPermissionController {
 
         // Update user role displays
         document.querySelectorAll('[data-user-role]').forEach(element => {
-            element.textContent = this.getRoleDisplayName(this.auth.userRole);
+            const role = this.auth.userRole || this.auth.getCurrentUserRole?.();
+            element.textContent = this.getRoleDisplayName(role);
         });
 
         // Update user department displays
@@ -309,7 +339,7 @@ class UIPermissionController {
         this.setupButtonPermissions();
         
         // Initial UI update
-        if (this.auth.isAuthenticated) {
+    if (this.auth.isAuthenticated || this.auth.currentUser) {
             this.updateUI();
         }
 
@@ -324,10 +354,25 @@ class UIPermissionController {
 }
 
 // Auto-initialize when unified auth is available
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.unifiedAuth) {
-        window.uiPermissionController = new UIPermissionController(window.unifiedAuth);
-        window.uiPermissionController.initialize();
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        if (window.unifiedAuth) {
+            // Wait for unified auth to be fully initialized
+            let attempts = 0;
+            while (!window.unifiedAuth.isInitialized && attempts < 50) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (window.unifiedAuth.isInitialized || attempts >= 50) {
+                window.uiPermissionController = new UIPermissionController(window.unifiedAuth);
+                window.uiPermissionController.initialize();
+            } else {
+                console.warn('UIPermissionController: UnifiedAuth not initialized after 5 seconds');
+            }
+        }
+    } catch (e) {
+        console.error('Failed to initialize UI Permission Controller', e);
     }
 });
 

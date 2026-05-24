@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار القائمة الجانبية - صفحة المستخدمين</title>
+    
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Sidebar CSS -->
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
+    <link rel="stylesheet" href="assets/css/sidebar-enhancements.css">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            min-height: 100vh;
+        }
+        
+        .main-content {
+            margin-right: 300px;
+            padding: 2rem;
+            transition: margin-right 0.3s ease;
+        }
+        
+        .test-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+        
+        .status-success { background: #4caf50; }
+        .status-error { background: #f44336; }
+        .status-warning { background: #ff9800; }
+        
+        .debug-log {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #f093fb 100%);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin: 0.25rem;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                margin-right: 0;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- القائمة الجانبية -->
+    <div id="sidebar" class="sidebar">
+        <!-- سيتم ملء المحتوى بواسطة JavaScript -->
+    </div>
+    
+    <!-- زر تبديل القائمة الجانبية -->
+    <button id="sidebarToggle" class="sidebar-toggle" aria-label="تبديل القائمة الجانبية">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- طبقة التغطية -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+    
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+        <div class="container-fluid">
+            <h1 class="mb-4">تشخيص القائمة الجانبية - صفحة المستخدمين</h1>
+            
+            <!-- حالة النظام -->
+            <div class="test-card">
+                <h3><i class="fas fa-heartbeat me-2"></i>حالة النظام</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>JavaScript:</strong> <span id="jsStatus">🔄 جاري التحقق...</span></p>
+                        <p><strong>SidebarManager:</strong> <span id="sidebarManagerStatus">🔄 جاري التحقق...</span></p>
+                        <p><strong>sidebarManager Instance:</strong> <span id="sidebarInstanceStatus">🔄 جاري التحقق...</span></p>
+                        <p><strong>عنصر القائمة الجانبية:</strong> <span id="sidebarElementStatus">🔄 جاري التحقق...</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>زر التبديل:</strong> <span id="toggleButtonStatus">🔄 جاري التحقق...</span></p>
+                        <p><strong>CSS:</strong> <span id="cssStatus">🔄 جاري التحقق...</span></p>
+                        <p><strong>نظام المصادقة:</strong> <span id="authStatus">🔄 جاري التحقق...</span></p>
+                        <p><strong>وضع العرض التوضيحي:</strong> <span id="demoModeStatus">🔄 جاري التحقق...</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- الإجراءات السريعة -->
+            <div class="test-card">
+                <h3><i class="fas fa-tools me-2"></i>الإجراءات السريعة</h3>
+                <div class="mb-3">
+                    <button class="test-button" onclick="testSidebarInit()">
+                        <i class="fas fa-play me-1"></i>
+                        تهيئة القائمة الجانبية
+                    </button>
+                    <button class="test-button" onclick="testSidebarToggle()">
+                        <i class="fas fa-exchange-alt me-1"></i>
+                        اختبار التبديل
+                    </button>
+                    <button class="test-button" onclick="enableDemoMode()">
+                        <i class="fas fa-user me-1"></i>
+                        تفعيل وضع العرض التوضيحي
+                    </button>
+                    <button class="test-button" onclick="runFullDiagnostic()">
+                        <i class="fas fa-stethoscope me-1"></i>
+                        تشخيص شامل
+                    </button>
+                </div>
+            </div>
+            
+            <!-- سجل التشخيص -->
+            <div class="test-card">
+                <h3><i class="fas fa-list me-2"></i>سجل التشخيص</h3>
+                <div id="debugLog" class="debug-log">
+                    جاري تحميل النظام...
+                </div>
+                <button class="test-button" onclick="clearLog()">
+                    <i class="fas fa-trash me-1"></i>
+                    مسح السجل
+                </button>
+            </div>
+        </div>
+    </main>
+    
+    <!-- البرامج النصية -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- محاكاة نظام المصادقة -->
+    <script>
+        // محاكاة نظام المصادقة الموحد
+        window.unifiedAuth = {
+            isAuthenticated: true,
+            currentUser: { uid: 'test-admin', email: 'admin@test.com' },
+            getCurrentUserRole: () => 'admin'
+        };
+        
+        // تفعيل وضع العرض التوضيحي
+        localStorage.setItem('demo_mode', 'true');
+    </script>
+    
+    <!-- ملفات القائمة الجانبية (تم إزالة legacy sidebar.js لتجنب التعارض) -->
+    <script src="assets/js/sidebar-enhancements.js"></script>
+    <script src="assets/js/users-page-sidebar-fix.js"></script>
+    
+    <!-- سكريبت التشخيص -->
+    <script>
+        let logElement;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString('ar-SA');
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            const logMessage = `[${timestamp}] ${icon} ${message}\n`;
+            
+            if (logElement) {
+                logElement.textContent += logMessage;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+            
+            console.log(logMessage);
+        }
+        
+        function clearLog() {
+            if (logElement) {
+                logElement.textContent = '';
+            }
+        }
+        
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+                element.innerHTML = `${icon} ${message}`;
+            }
+        }
+        
+        function checkSystemStatus() {
+            log('بدء فحص حالة النظام...');
+            
+            // فحص JavaScript
+            try {
+                updateStatus('jsStatus', 'يعمل بشكل صحيح', 'success');
+                log('JavaScript يعمل بشكل صحيح', 'success');
+            } catch (e) {
+                updateStatus('jsStatus', 'خطأ في JavaScript', 'error');
+                log('خطأ في JavaScript: ' + e.message, 'error');
+            }
+            
+            // فحص SidebarManager
+            if (window.SidebarManager) {
+                updateStatus('sidebarManagerStatus', 'محمل بنجاح', 'success');
+                log('SidebarManager محمل بنجاح', 'success');
+            } else {
+                updateStatus('sidebarManagerStatus', 'غير محمل', 'error');
+                log('SidebarManager غير محمل', 'error');
+            }
+            
+            // فحص instance
+            if (window.sidebarManager) {
+                updateStatus('sidebarInstanceStatus', 'موجود', 'success');
+                log('sidebarManager instance موجود', 'success');
+            } else {
+                updateStatus('sidebarInstanceStatus', 'غير موجود', 'warning');
+                log('sidebarManager instance غير موجود', 'warning');
+            }
+            
+            // فحص عنصر القائمة الجانبية
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                const hasContent = sidebar.children.length > 0;
+                updateStatus('sidebarElementStatus', hasContent ? 'موجود ومملوء' : 'موجود لكن فارغ', hasContent ? 'success' : 'warning');
+                log(`عنصر القائمة الجانبية: موجود، العناصر الفرعية: ${sidebar.children.length}`, hasContent ? 'success' : 'warning');
+            } else {
+                updateStatus('sidebarElementStatus', 'غير موجود', 'error');
+                log('عنصر القائمة الجانبية غير موجود', 'error');
+            }
+            
+            // فحص زر التبديل
+            const toggleBtn = document.getElementById('sidebarToggle');
+            if (toggleBtn) {
+                updateStatus('toggleButtonStatus', 'موجود', 'success');
+                log('زر تبديل القائمة الجانبية موجود', 'success');
+            } else {
+                updateStatus('toggleButtonStatus', 'غير موجود', 'error');
+                log('زر تبديل القائمة الجانبية غير موجود', 'error');
+            }
+            
+            // فحص CSS
+            const sidebarStyles = getComputedStyle(document.body);
+            if (sidebarStyles.marginRight && sidebarStyles.marginRight !== '0px') {
+                updateStatus('cssStatus', 'محمل بشكل صحيح', 'success');
+                log('CSS القائمة الجانبية محمل بشكل صحيح', 'success');
+            } else {
+                updateStatus('cssStatus', 'لم يتم تحميله أو غير صحيح', 'warning');
+                log('CSS القائمة الجانبية قد لا يكون محمل بشكل صحيح', 'warning');
+            }
+            
+            // فحص نظام المصادقة
+            if (window.unifiedAuth) {
+                updateStatus('authStatus', 'متاح', 'success');
+                log('نظام المصادقة الموحد متاح', 'success');
+            } else {
+                updateStatus('authStatus', 'غير متاح', 'warning');
+                log('نظام المصادقة الموحد غير متاح', 'warning');
+            }
+            
+            // فحص وضع العرض التوضيحي
+            const demoMode = localStorage.getItem('demo_mode');
+            if (demoMode === 'true') {
+                updateStatus('demoModeStatus', 'مفعل', 'success');
+                log('وضع العرض التوضيحي مفعل', 'success');
+            } else {
+                updateStatus('demoModeStatus', 'غير مفعل', 'warning');
+                log('وضع العرض التوضيحي غير مفعل', 'warning');
+            }
+        }
+        
+        function testSidebarInit() {
+            log('بدء اختبار تهيئة القائمة الجانبية...');
+            
+            try {
+                if (window.SidebarManager) {
+                    window.sidebarManager = new window.SidebarManager();
+                    log('تم إنشاء instance جديد للقائمة الجانبية', 'success');
+                    
+                    setTimeout(() => {
+                        if (window.sidebarManager) {
+                            window.sidebarManager.updateSidebarNav(true, 'admin');
+                            log('تم تحديث محتوى القائمة الجانبية', 'success');
+                            checkSystemStatus();
+                        }
+                    }, 1000);
+                } else {
+                    log('SidebarManager غير متاح', 'error');
+                }
+            } catch (error) {
+                log('خطأ في تهيئة القائمة الجانبية: ' + error.message, 'error');
+            }
+        }
+        
+        function testSidebarToggle() {
+            log('اختبار تبديل القائمة الجانبية...');
+            
+            if (window.sidebarManager && typeof window.sidebarManager.toggleSidebar === 'function') {
+                window.sidebarManager.toggleSidebar();
+                log('تم استدعاء toggleSidebar بنجاح', 'success');
+            } else {
+                log('دالة toggleSidebar غير متاحة', 'error');
+            }
+        }
+        
+        function enableDemoMode() {
+            localStorage.setItem('demo_mode', 'true');
+            log('تم تفعيل وضع العرض التوضيحي', 'success');
+            checkSystemStatus();
+            testSidebarInit();
+        }
+        
+        function runFullDiagnostic() {
+            log('═══════════════════════════════════════');
+            log('بدء التشخيص الشامل للقائمة الجانبية');
+            log('═══════════════════════════════════════');
+            
+            checkSystemStatus();
+            
+            setTimeout(() => {
+                log('اختبار تهيئة القائمة الجانبية...');
+                testSidebarInit();
+            }, 1000);
+            
+            setTimeout(() => {
+                log('═══════════════════════════════════════');
+                log('انتهاء التشخيص الشامل');
+                log('═══════════════════════════════════════');
+            }, 3000);
+        }
+        
+        // بدء النظام عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            logElement = document.getElementById('debugLog');
+            log('تم تحميل صفحة التشخيص');
+            
+            setTimeout(checkSystemStatus, 500);
+            setTimeout(checkSystemStatus, 2000);
+            setTimeout(runFullDiagnostic, 3000);
+        });
+    </script>
+    <script src="assets/js/unified-ui-template.js"></script>
+</body>
+</html>

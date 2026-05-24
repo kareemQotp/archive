@@ -12,7 +12,6 @@ class ScriptLoader {
             'roles.js': ['app-config.js'],
             'analytics.js': ['app-config.js'],
             'data-manager.js': ['app-config.js', 'notifications.js'],
-            'sidebar.js': ['roles.js'],
             'performance-tester.js': [],
             'final-integration-test.js': ['notifications.js', 'analytics.js', 'data-manager.js'],
             'auto-test-reporter.js': ['notifications.js', 'analytics.js']
@@ -87,8 +86,7 @@ class ScriptLoader {
             'roles.js', 
             'notifications.js',
             'data-manager.js',
-            'analytics.js',
-            'sidebar.js'
+            'analytics.js'
         ];
 
         const optionalScripts = [
@@ -125,8 +123,7 @@ class ScriptLoader {
             USER_ROLES: 'window.USER_ROLES', 
             notify: 'window.notify',
             analytics: 'window.analytics',
-            dataManager: 'window.dataManager',
-            sidebarManager: 'window.sidebarManager'
+            dataManager: 'window.dataManager'
         };
 
         const verification = {};
@@ -226,15 +223,7 @@ class ScriptLoader {
             };
         }
 
-        // Create fallback sidebar manager
-        if (!window.sidebarManager) {
-            console.log('🔧 إنشاء مدير شريط جانبي احتياطي');
-            window.sidebarManager = {
-                updateSidebarNav: (isAuthenticated, userRole) => {
-                    console.log('🗂️ تحديث الشريط الجانبي:', { isAuthenticated, userRole });
-                }
-            };
-        }
+        // Unified UI handles sidebar; no legacy sidebarManager fallback needed
     }
 
     showFallbackNotification(type, title, message) {

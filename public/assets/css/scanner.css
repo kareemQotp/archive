@@ -196,3 +196,9 @@
         padding: 20px;
     }
 }
+
+/* Camera selector dropdown */
+#cameraSelect {
+    width: auto;
+    min-width: 220px;
+}

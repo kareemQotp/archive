@@ -1,0 +1,274 @@
+/* 
+ * CSS خاص بالقائمة الجانبية لصفحة المستخدمين
+ * Users Page Sidebar CSS
+ */
+
+/* تأكيد عرض القائمة الجانبية */
+.sidebar {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* تحسين تصميم الهيدر */
+.sidebar-header {
+    background: linear-gradient(135deg, #667eea 0%, #f093fb 100%);
+    color: white;
+    border-radius: 0 0 15px 15px;
+    margin-bottom: 1rem;
+}
+
+.sidebar-brand .brand-text h4 {
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.sidebar-brand .brand-icon {
+    background: rgba(255, 255, 255, 0.2);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* تحسين عناصر التنقل */
+.sidebar-nav-item {
+    margin-bottom: 8px;
+}
+
+.sidebar-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    color: #4a5568;
+    text-decoration: none;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar-nav-link:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(240, 147, 251, 0.1) 100%);
+    color: #667eea;
+    text-decoration: none;
+    transform: translateX(-3px);
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
+}
+
+.sidebar-nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #f093fb 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.sidebar-nav-link i {
+    width: 20px;
+    text-align: center;
+    margin-left: 12px;
+    font-size: 1.1rem;
+}
+
+.nav-text {
+    flex: 1;
+    font-size: 0.95rem;
+}
+
+/* تحسين المحتوى */
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sidebar-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: #5a67d8;
+}
+
+/* تحسين الفوتر */
+.sidebar-footer {
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 15px 15px 0 0;
+}
+
+.sidebar-footer .btn {
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.sidebar-footer .btn:hover {
+    background: #667eea;
+    color: white;
+    transform: scale(1.1);
+}
+
+/* تأثيرات حركة متقدمة */
+.sidebar-nav-item {
+    animation: slideInRight 0.4s ease-out;
+    animation-fill-mode: both;
+}
+
+.sidebar-nav-item:nth-child(1) { animation-delay: 0.1s; }
+.sidebar-nav-item:nth-child(2) { animation-delay: 0.2s; }
+.sidebar-nav-item:nth-child(3) { animation-delay: 0.3s; }
+.sidebar-nav-item:nth-child(4) { animation-delay: 0.4s; }
+.sidebar-nav-item:nth-child(5) { animation-delay: 0.5s; }
+.sidebar-nav-item:nth-child(6) { animation-delay: 0.6s; }
+.sidebar-nav-item:nth-child(7) { animation-delay: 0.7s; }
+.sidebar-nav-item:nth-child(8) { animation-delay: 0.8s; }
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* تأثير ripple عند النقر */
+.sidebar-nav-link::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transition: width 0.3s ease, height 0.3s ease;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.sidebar-nav-link:active::before {
+    width: 100px;
+    height: 100px;
+}
+
+/* حالة التحميل */
+.sidebar-loading {
+    position: relative;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* تحسينات للشاشات الصغيرة */
+@media (max-width: 768px) {
+    .sidebar-nav-link {
+        padding: 15px 20px;
+        font-size: 1rem;
+    }
+    
+    .sidebar-nav-link i {
+        font-size: 1.2rem;
+        margin-left: 15px;
+    }
+    
+    .sidebar-header {
+        padding: 1.5rem !important;
+    }
+    
+    .sidebar-brand .brand-text h4 {
+        font-size: 1.1rem;
+    }
+}
+
+/* إضافات للوضع المظلم (إذا كان مفعلاً) */
+[data-theme="dark"] .sidebar {
+    background: rgba(26, 32, 44, 0.95);
+    border-left: 1px solid #4a5568;
+}
+
+[data-theme="dark"] .sidebar-nav-link {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .sidebar-nav-link:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(240, 147, 251, 0.3) 100%);
+    color: #90cdf4;
+}
+
+[data-theme="dark"] .sidebar-footer {
+    background: #2d3748;
+    border-top-color: #4a5568;
+}
+
+/* تأكيد الظهور في جميع الحالات */
+#sidebar:not(.hidden) {
+    right: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* إخفاء مؤقت للمحتوى الفارغ */
+#sidebar:empty::before {
+    content: 'جاري التحميل...';
+    display: block;
+    text-align: center;
+    padding: 2rem;
+    color: #718096;
+    font-style: italic;
+}
+
+/* إصلاح مشكلة المحتوى الفارغ */
+#sidebar .sidebar-content:empty::before {
+    content: 'لا توجد عناصر للعرض';
+    display: block;
+    text-align: center;
+    padding: 2rem;
+    color: #a0aec0;
+    font-size: 0.9rem;
+}
+
+/* تحسين التركيز للوصول */
+.sidebar-nav-link:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* إضافة مؤشر بصري للصفحة النشطة */
+.sidebar-nav-link.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: white;
+    border-radius: 0 2px 2px 0;
+}

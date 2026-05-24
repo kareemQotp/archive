@@ -6,6 +6,7 @@
 const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {onObjectFinalized, onObjectDeleted} = require('firebase-functions/v2/storage');
 const {logger} = require('firebase-functions');
+const functionsLib = require('firebase-functions');
 const admin = require('firebase-admin');
 const sharp = require('sharp');
 const path = require('path');
@@ -84,6 +85,8 @@ exports.generateThumbnail = onObjectFinalized(async (event) => {
     try {
         const filePath = event.data.name;
         const contentType = event.data.contentType;
+        const meta = event.data.metadata || {};
+        const cfg = (functionsLib && typeof functionsLib.config === 'function') ? functionsLib.config() : {};
 
         // Only process images
         if (!contentType || !contentType.startsWith('image/')) {
@@ -92,18 +95,33 @@ exports.generateThumbnail = onObjectFinalized(async (event) => {
         }
 
         // Skip if already a thumbnail
-        if (filePath.includes('_thumb_')) {
+        if (filePath.includes('_thumb_') || filePath.includes('/thumbnails/')) {
             logger.info(`Already a thumbnail: ${filePath}`);
+            return;
+        }
+
+        // Default: Disabled unless explicitly enabled (to eliminate unexpected costs)
+        const enabledByEnv = process.env.ENABLE_THUMBNAILS === 'true';
+        const enabledByConfig = !!(cfg.app && (cfg.app.enable_thumbnails === true || cfg.app.enable_thumbnails === 'true'));
+        const enabledByMeta = meta.generateThumbnail === 'true';
+        const disabledByEnv = process.env.DISABLE_THUMBNAILS === 'true';
+        const disabledByConfig = !!(cfg.app && (cfg.app.disable_thumbnails === true || cfg.app.disable_thumbnails === 'true'));
+        const disabledByMeta = meta.skipThumbnail === 'true';
+        const thumbnailsAllowed = (enabledByEnv || enabledByConfig || enabledByMeta) && !(disabledByEnv || disabledByConfig || disabledByMeta);
+        if (!thumbnailsAllowed) {
+            logger.info(`Thumbnail generation disabled (default or config/meta) for: ${filePath}`);
             return;
         }
 
         const fileName = path.basename(filePath);
         const fileDir = path.dirname(filePath);
-        const fileExtension = path.extname(fileName);
-        const fileNameWithoutExt = path.basename(fileName, fileExtension);
+    const fileExtension = path.extname(fileName);
+    const fileNameWithoutExt = path.basename(fileName, fileExtension);
 
-        const thumbFileName = `${fileNameWithoutExt}_thumb_200x200${fileExtension}`;
-        const thumbFilePath = path.join(fileDir, thumbFileName);
+    // Use a predictable thumbnails/ subfolder and always JPEG thumbnails
+    const thumbFileName = `${fileNameWithoutExt}_thumb_200x200.jpeg`;
+    const thumbDir = path.join(fileDir, 'thumbnails');
+    const thumbFilePath = path.join(thumbDir, thumbFileName);
 
         const sourceFile = bucket.file(filePath);
         const thumbFile = bucket.file(thumbFilePath);
@@ -415,3 +433,6 @@ exports.getFileInfo = onCall({
         throw new HttpsError('internal', error.message);
     }
 });
+
+// DEPRECATED legacy storage index
+throw new Error('Deprecated legacy storage index. Use functions/src/storage');

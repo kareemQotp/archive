@@ -156,8 +156,9 @@ class ActivityAnalytics {
         }
 
         const sortedDates = Object.keys(timeline).sort();
-        const labels = sortedDates.map(date => new Date(date).toLocaleDateString('ar-SA'));
-        const data = sortedDates.map(date => timeline[date]);
+    const F = window.FormatUtils || {};
+    const labels = sortedDates.map(date => F.formatArabicDate ? F.formatArabicDate(date) : new Date(date).toLocaleDateString('ar-SA'));
+    const data = sortedDates.map(date => timeline[date]);
 
         this.chartInstances.timeline = new Chart(ctx, {
             type: 'line',
@@ -313,10 +314,10 @@ class ActivityAnalytics {
 
     updateInsights(report) {
         // Update insights cards
-        this.updateInsightCard('total-activities-insight', report.totalActivities, 'إجمالي العمليات');
-        this.updateInsightCard('active-users-insight', Object.keys(report.users).length, 'المستخدمون النشطون');
-        this.updateInsightCard('security-events-insight', report.securityEvents.length, 'الأحداث الأمنية');
-        this.updateInsightCard('critical-events-insight', report.criticalEvents.length, 'الأحداث الحرجة');
+    this.updateInsightCard('total-activities-insight', report.totalActivities, 'إجمالي العمليات');
+    this.updateInsightCard('active-users-insight', Object.keys(report.users).length, 'المستخدمون النشطون');
+    this.updateInsightCard('security-events-insight', report.securityEvents.length, 'الأحداث الأمنية');
+    this.updateInsightCard('critical-events-insight', report.criticalEvents.length, 'الأحداث الحرجة');
 
         // Update trends
         this.updateTrends(report);
@@ -327,9 +328,11 @@ class ActivityAnalytics {
 
     updateInsightCard(elementId, value, label) {
         const element = document.getElementById(elementId);
+        const F = window.FormatUtils || {};
         if (element) {
+            const val = F.formatArabicNumber ? F.formatArabicNumber(value) : (value?.toLocaleString ? value.toLocaleString('ar-SA') : value);
             element.innerHTML = `
-                <div class="insight-value">${value.toLocaleString('ar-SA')}</div>
+                <div class="insight-value">${val}</div>
                 <div class="insight-label">${label}</div>
             `;
         }
@@ -466,7 +469,9 @@ class ActivityAnalytics {
         const categoryElement = document.querySelector(`[data-category="${category}"] .stat-number`);
         if (categoryElement) {
             const currentValue = parseInt(categoryElement.textContent) || 0;
-            categoryElement.textContent = (currentValue + 1).toLocaleString('ar-SA');
+            const F = window.FormatUtils || {};
+            const newVal = currentValue + 1;
+            categoryElement.textContent = F.formatArabicNumber ? F.formatArabicNumber(newVal) : newVal.toLocaleString('ar-SA');
         }
     }
 

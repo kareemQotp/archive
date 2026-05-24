@@ -530,13 +530,18 @@ class AutoTestReporter {
     }
 
     generateHTMLReport(report) {
+        const F = window.FormatUtils || {};
+        const esc = t => (F && F.escapeHtml ? F.escapeHtml(t) : (t? String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])):''));
+        const fmtDT = d => (F.formatArabicDateTime? F.formatArabicDateTime(d): new Date(d).toLocaleString('ar-SA'));
+        const fmtDate = d => (F.formatArabicDate? F.formatArabicDate(d): new Date(d).toLocaleDateString('ar-SA'));
+        const fmtNum = n => (F.formatArabicNumber? F.formatArabicNumber(n): (n?.toLocaleString? n.toLocaleString('ar-SA'): n));
         return `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تقرير اختبار النظام - ${new Date(report.metadata.generated).toLocaleDateString('ar-SA')}</title>
+    <title>تقرير اختبار النظام - ${fmtDate(report.metadata.generated)}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -555,31 +560,31 @@ class AutoTestReporter {
                 <div class="card">
                     <div class="card-header bg-primary text-white">
                         <h1 class="h3 mb-0">تقرير اختبار النظام الشامل</h1>
-                        <small>تاريخ الإنشاء: ${new Date(report.metadata.generated).toLocaleString('ar-SA')}</small>
+                        <small>تاريخ الإنشاء: ${fmtDT(report.metadata.generated)}</small>
                     </div>
                     <div class="card-body">
                         <div class="row mb-4">
                             <div class="col-md-3">
-                                <div class="metric-card p-3 text-center status-${report.summary.status}">
-                                    <h4 class="text-white">${report.summary.overallScore.toFixed(1)}%</h4>
+                                <div class="metric-card p-3 text-center status-${esc(report.summary.status)}">
+                                    <h4 class="text-white">${esc(report.summary.overallScore.toFixed(1))}%</h4>
                                     <p class="text-white mb-0">النتيجة العامة</p>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="metric-card p-3 text-center bg-success">
-                                    <h4 class="text-white">${report.summary.passedTests}</h4>
+                                    <h4 class="text-white">${fmtNum(report.summary.passedTests)}</h4>
                                     <p class="text-white mb-0">اختبارات ناجحة</p>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="metric-card p-3 text-center bg-danger">
-                                    <h4 class="text-white">${report.summary.failedTests}</h4>
+                                    <h4 class="text-white">${fmtNum(report.summary.failedTests)}</h4>
                                     <p class="text-white mb-0">اختبارات فاشلة</p>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="metric-card p-3 text-center bg-warning">
-                                    <h4 class="text-white">${report.summary.warnings}</h4>
+                                    <h4 class="text-white">${fmtNum(report.summary.warnings)}</h4>
                                     <p class="text-white mb-0">تحذيرات</p>
                                 </div>
                             </div>
@@ -589,18 +594,18 @@ class AutoTestReporter {
                             <div class="col-md-6">
                                 <h5>المقاييس التفصيلية</h5>
                                 <table class="table table-striped">
-                                    <tr><td>الموثوقية</td><td>${report.metrics.reliability.toFixed(1)}%</td></tr>
-                                    <tr><td>الأداء</td><td>${report.metrics.performance.toFixed(1)}%</td></tr>
-                                    <tr><td>الأمان</td><td>${report.metrics.security.toFixed(1)}%</td></tr>
-                                    <tr><td>سهولة الاستخدام</td><td>${report.metrics.usability.toFixed(1)}%</td></tr>
+                                    <tr><td>الموثوقية</td><td>${esc(report.metrics.reliability.toFixed(1))}%</td></tr>
+                                    <tr><td>الأداء</td><td>${esc(report.metrics.performance.toFixed(1))}%</td></tr>
+                                    <tr><td>الأمان</td><td>${esc(report.metrics.security.toFixed(1))}%</td></tr>
+                                    <tr><td>سهولة الاستخدام</td><td>${esc(report.metrics.usability.toFixed(1))}%</td></tr>
                                 </table>
                             </div>
                             <div class="col-md-6">
                                 <h5>معلومات البيئة</h5>
                                 <table class="table table-striped">
-                                    <tr><td>المتصفح</td><td>${report.environment.browser.name} ${report.environment.browser.version}</td></tr>
-                                    <tr><td>نظام التشغيل</td><td>${report.environment.system.platform}</td></tr>
-                                    <tr><td>مدة الاختبار</td><td>${(report.metadata.duration / 1000).toFixed(1)} ثانية</td></tr>
+                                    <tr><td>المتصفح</td><td>${esc(report.environment.browser.name)} ${esc(report.environment.browser.version)}</td></tr>
+                                    <tr><td>نظام التشغيل</td><td>${esc(report.environment.system.platform)}</td></tr>
+                                    <tr><td>مدة الاختبار</td><td>${esc((report.metadata.duration / 1000).toFixed(1))} ثانية</td></tr>
                                 </table>
                             </div>
                         </div>
@@ -609,10 +614,10 @@ class AutoTestReporter {
                             <h5>التوصيات</h5>
                             ${report.recommendations.map(rec => `
                                 <div class="alert alert-${rec.priority === 'critical' ? 'danger' : rec.priority === 'high' ? 'warning' : 'info'}">
-                                    <h6>${rec.title}</h6>
-                                    <p>${rec.description}</p>
+                                    <h6>${esc(rec.title)}</h6>
+                                    <p>${esc(rec.description)}</p>
                                     <ul>
-                                        ${rec.actions.map(action => `<li>${action}</li>`).join('')}
+                                        ${rec.actions.map(action => `<li>${esc(action)}</li>`).join('')}
                                     </ul>
                                 </div>
                             `).join('')}

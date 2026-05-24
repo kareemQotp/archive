@@ -12,14 +12,12 @@ class DepartmentRouter {
             'collection': 'collection-dashboard.html',
             'governance': 'governance-dashboard.html',
             'securitization': 'securitization-dashboard.html',
-            'hr': 'hr-dashboard.html',
             'it': 'it-dashboard.html',
             'إدارة الأرشيف العام': 'archive-dashboard.html',
             'إدارة الشؤون القانونية': 'legal-dashboard.html',
             'إدارة التحصيل': 'collection-dashboard.html',
             'إدارة الحوكمة والامتثال': 'governance-dashboard.html',
             'التوريق': 'securitization-dashboard.html',
-            'إدارة الموارد البشرية': 'hr-dashboard.html',
             'إدارة تقنية المعلومات': 'it-dashboard.html'
         };
         
@@ -29,7 +27,6 @@ class DepartmentRouter {
             'collection': '#DC143C',
             'governance': '#4682B4',
             'securitization': '#8B4513',
-            'hr': '#9932CC',
             'it': '#2F4F4F'
         };
     }
@@ -47,7 +44,13 @@ class DepartmentRouter {
         const currentPage = window.location.pathname.split('/').pop();
         
         // تحقق من وجود لوحة تحكم خاصة بالإدارة
-        const departmentDashboard = this.departmentDashboards[userDepartment];
+        let departmentDashboard = this.departmentDashboards[userDepartment];
+        
+        // Fallback by normalization (lowercase key)
+        if (!departmentDashboard && typeof userDepartment === 'string') {
+            const key = userDepartment.toLowerCase();
+            departmentDashboard = this.departmentDashboards[key];
+        }
         
         if (departmentDashboard && currentPage !== departmentDashboard) {
             console.log(`🔄 توجيه المستخدم من ${userDepartment} إلى ${departmentDashboard}`);
@@ -99,7 +102,6 @@ class DepartmentRouter {
             'collection': 'إدارة التحصيل',
             'governance': 'إدارة الحوكمة والامتثال',
             'securitization': 'التوريق',
-            'hr': 'إدارة الموارد البشرية',
             'it': 'إدارة تقنية المعلومات'
         };
 
@@ -109,7 +111,6 @@ class DepartmentRouter {
             'collection': 'متابعة وتحصيل المستحقات والديون',
             'governance': 'ضمان الامتثال للقوانين واللوائح',
             'securitization': 'إدارة عمليات التوريق والأصول المالية',
-            'hr': 'إدارة شؤون الموظفين والتوظيف',
             'it': 'تطوير وصيانة الأنظمة التقنية'
         };
 
@@ -119,7 +120,6 @@ class DepartmentRouter {
             'collection': 'fas fa-money-bill-wave',
             'governance': 'fas fa-shield-alt',
             'securitization': 'fas fa-coins',
-            'hr': 'fas fa-users',
             'it': 'fas fa-laptop-code'
         };
 

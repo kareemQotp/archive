@@ -3,866 +3,835 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة المستخدمين - نظام الأرشيف</title>
-    
-    <!-- Bootstrap RTL -->
+    <title>إدارة المستخدمين</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <!-- تطبيق الألوان الجديدة -->
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
-    
+    <!-- تحميل مبكر لحزم Firebase لضمان جاهزية المصادقة قبل رسم واجهة الموحد -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
     <style>
-        .main-content {
-            margin-right: 280px;
-            padding: 2rem;
-            min-height: 100vh;
-            background: linear-gradient(135deg, var(--ocean-light) 0%, var(--wave-foam) 100%);
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        .page-header {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 180, 216, 0.1);
-            border-left: 4px solid var(--primary);
-        }
-
-        .stats-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
+        
+        .loading-screen {
+            position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--ocean-deep));
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 180, 216, 0.2);
-        }
-
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
+            z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            color: white;
-            margin-bottom: 1rem;
         }
-
-        .users-table-container {
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 180, 216, 0.1);
+        
+        .main-content {
+            padding: 2rem;
+            min-height: 100vh;
+            display: none; /* Hidden until ready */
         }
-
-        .table-header {
-            background: linear-gradient(135deg, var(--primary), var(--ocean-deep));
-            color: white;
-            padding: 1.5rem;
-        }
-
-        .table {
-            margin-bottom: 0;
-        }
-
-        .table thead th {
-            background: var(--ocean-light);
-            color: var(--ocean-deep);
+        
+        .card {
             border: none;
-            font-weight: 600;
-            padding: 1rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
         }
-
-        .table tbody td {
-            padding: 1rem;
-            vertical-align: middle;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .table tbody tr:hover {
-            background: var(--wave-foam);
-        }
-
-        .status-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-pending {
-            background: linear-gradient(135deg, #fef3c7, #fde68a);
-            color: #92400e;
-        }
-
-        .status-approved {
-            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-            color: #065f46;
-        }
-
-        .status-rejected {
-            background: linear-gradient(135deg, #fee2e2, #fecaca);
-            color: #991b1b;
-        }
-
-        .role-badge {
-            padding: 0.4rem 0.8rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
+        
+        .btn {
+            border-radius: 8px;
             font-weight: 500;
         }
-
-        .role-admin {
-            background: linear-gradient(135deg, #7c3aed, #5b21b6);
-            color: white;
+        
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            margin: 0.25rem 0;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            margin: 0.25rem 0;
         }
 
-        .role-archive-officer {
-            background: linear-gradient(135deg, var(--primary), var(--ocean-deep));
-            color: white;
+        /* Utility classes to avoid inline styles */
+        .spinner-lg {
+            width: 3rem;
+            height: 3rem;
         }
-
-        .role-viewer {
-            background: linear-gradient(135deg, #6b7280, #4b5563);
-            color: white;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-sm {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.8rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-approve {
-            background: linear-gradient(135deg, #10b981, #059669);
-            border: none;
-            color: white;
-        }
-
-        .btn-approve:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-reject {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            border: none;
-            color: white;
-        }
-
-        .btn-reject:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-        }
-
-        .btn-edit {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            border: none;
-            color: white;
-        }
-
-        .btn-edit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-        }
-
-        .filters-section {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .loading-spinner {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 3rem;
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                margin-right: 0;
-                padding: 1rem;
-            }
-
-            .stats-cards {
-                grid-template-columns: 1fr;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .table-responsive {
-                font-size: 0.9rem;
-            }
-        }
-
-        /* Statistics card specific styles */
-        .stat-icon-pending {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-
-        .stat-icon-approved {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .stat-icon-rejected {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        .stat-icon-total {
-            background: linear-gradient(135deg, var(--primary), var(--ocean-deep));
-        }
-
-        /* Avatar initial style */
-        .avatar-initial {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Modal header style */
-        .modal-header-primary {
-            background: linear-gradient(135deg, var(--primary), var(--ocean-deep));
-            color: white;
-        }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <!-- Include Sidebar -->
-    <div id="sidebar" class="sidebar">
-        <!-- Sidebar content will be loaded here -->
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="text-center text-white">
+            <div class="spinner-border mb-3 spinner-lg">
+                <span class="visually-hidden">جاري التحميل...</span>
+            </div>
+            <h4>إدارة المستخدمين</h4>
+            <div id="loadingStatus">جاري تحميل النظام...</div>
+            <div id="progressSteps" class="mt-3"></div>
+        </div>
     </div>
 
-    <div id="sidebarOverlay" class="sidebar-overlay"></div>
-
     <!-- Main Content -->
-    <div class="main-content">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h2 mb-1">
-                        <i class="fas fa-users-cog text-primary me-3"></i>
-                        إدارة المستخدمين
-                    </h1>
-                    <p class="text-muted mb-0">إدارة حسابات المستخدمين وصلاحياتهم</p>
+    <div id="mainContent" class="main-content">
+        <!-- Header Card -->
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="h3 mb-2">
+                            <i class="fas fa-users text-primary me-3"></i>
+                            إدارة المستخدمين
+                        </h1>
+                        <p class="text-muted mb-0">إدارة حسابات المستخدمين والصلاحيات في النظام</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="input-group mb-2">
+                            <input id="searchInput" type="text" class="form-control" placeholder="بحث بالاسم أو البريد..." aria-label="بحث">
+                            <button class="btn btn-outline-secondary" id="clearSearchBtn" title="مسح البحث"><i class="fas fa-times"></i></button>
+                        </div>
+                        <button class="btn btn-success" id="addUserBtn" disabled>
+                            <i class="fas fa-plus me-2"></i>
+                            إضافة مستخدم جديد
+                        </button>
+                    </div>
                 </div>
-                <button class="btn btn-primary" onclick="refreshUsers()">
-                    <i class="fas fa-sync-alt me-2"></i>
-                    تحديث
-                </button>
             </div>
         </div>
 
-        <!-- Statistics Cards -->
-        <div class="stats-cards">
-            <div class="stat-card">
-                <div class="stat-icon stat-icon-pending">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <h3 class="mb-1" id="pendingCount">0</h3>
-                <p class="text-muted mb-0">في انتظار الموافقة</p>
+        <!-- Status Card -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">حالة النظام</h5>
             </div>
-
-            <div class="stat-card">
-                <div class="stat-icon stat-icon-approved">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <h3 class="mb-1" id="approvedCount">0</h3>
-                <p class="text-muted mb-0">مستخدمين مفعلين</p>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon stat-icon-rejected">
-                    <i class="fas fa-times-circle"></i>
-                </div>
-                <h3 class="mb-1" id="rejectedCount">0</h3>
-                <p class="text-muted mb-0">طلبات مرفوضة</p>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon stat-icon-total">
-                    <i class="fas fa-users"></i>
-                </div>
-                <h3 class="mb-1" id="totalCount">0</h3>
-                <p class="text-muted mb-0">إجمالي المستخدمين</p>
-            </div>
-        </div>
-
-        <!-- Filters Section -->
-        <div class="filters-section">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label" for="departmentFilter">تصفية حسب الإدارة:</label>
-                    <select class="form-select" id="departmentFilter" onchange="filterUsers()" title="تصفية المستخدمين حسب الإدارة" aria-label="تصفية حسب الإدارة">
-                        <option value="">جميع الإدارات</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label" for="statusFilter">تصفية حسب الحالة:</label>
-                    <select class="form-select" id="statusFilter" onchange="filterUsers()" title="تصفية المستخدمين حسب الحالة" aria-label="تصفية حسب الحالة">
-                        <option value="">جميع الحالات</option>
-                        <option value="pending">في انتظار الموافقة</option>
-                        <option value="approved">مفعل</option>
-                        <option value="rejected">مرفوض</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label" for="roleFilter">تصفية حسب الدور:</label>
-                    <select class="form-select" id="roleFilter" onchange="filterUsers()" title="تصفية المستخدمين حسب الدور" aria-label="تصفية حسب الدور">
-                        <option value="">جميع الأدوار</option>
-                        <option value="admin">مدير النظام</option>
-                        <option value="archive-officer">موظف أرشيف</option>
-                        <option value="viewer">مستخدم عام</option>
-                        <option value="pending-approval">في انتظار تحديد الدور</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">البحث:</label>
-                    <input type="text" class="form-control" id="searchInput" placeholder="البحث بالاسم أو البريد الإلكتروني..." onkeyup="filterUsers()">
-                </div>
-                <div class="col-md-1">
-                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
-                        <i class="fas fa-times me-2"></i>
-                        مسح
-                    </button>
+            <div class="card-body">
+                <div id="systemStatus">
+                    <div class="status-error">⏳ جاري فحص النظام...</div>
                 </div>
             </div>
         </div>
 
         <!-- Users Table -->
-        <div class="users-table-container">
-            <div class="table-header">
-                <h4 class="mb-0">
-                    <i class="fas fa-list me-2"></i>
-                    قائمة المستخدمين
-                </h4>
+        <div class="card hidden" id="usersCard">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-table me-2"></i>
+                    قائمة المستخدمين (<span id="userCount">0</span>)
+                </h5>
             </div>
-            
-            <div class="table-responsive">
-                <div id="loadingSpinner" class="loading-spinner">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">جاري التحميل...</span>
-                    </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>الاسم</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>الدور</th>
+                                <th>الإدارة</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
+            </div>
+        </div>
 
-                <table class="table d-none" id="usersTable">
-                    <thead>
-                        <tr>
-                            <th>الاسم</th>
-                            <th>البريد الإلكتروني</th>
-                            <th>الإدارة</th>
-                            <th>الدور</th>
-                            <th>الحالة</th>
-                            <th>تاريخ التسجيل</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody">
-                        <!-- Users will be loaded here -->
-                    </tbody>
-                </table>
+        <!-- Debug Info -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">معلومات التشخيص</h5>
+            </div>
+            <div class="card-body">
+                <div id="debugInfo">جاري جمع معلومات التشخيص...</div>
             </div>
         </div>
     </div>
 
-    <!-- Role Assignment Modal -->
-    <div class="modal fade" id="roleModal" tabindex="-1">
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header modal-header-primary">
-                    <h5 class="modal-title">
-                        <i class="fas fa-user-tag me-2"></i>
-                        تحديد دور المستخدم
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق" title="إغلاق النافذة"></button>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createUserLabel">إضافة مستخدم جديد</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">المستخدم:</label>
-                        <div class="alert alert-info">
-                            <strong id="selectedUserName">اسم المستخدم</strong><br>
-                            <small id="selectedUserEmail">البريد الإلكتروني</small>
+                    <form id="createUserForm">
+                        <div class="mb-3">
+                            <label class="form-label">الاسم</label>
+                            <input type="text" class="form-control" id="cu_displayName" placeholder="الاسم الكامل">
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">اختر الدور:</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="userRole" id="roleAdmin" value="admin">
-                            <label class="form-check-label" for="roleAdmin">
-                                <strong>مدير النظام</strong>
-                                <br><small class="text-muted">صلاحيات كاملة لإدارة النظام والمستخدمين</small>
-                            </label>
+                        <div class="mb-3">
+                            <label class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="cu_email" required>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="userRole" id="roleArchiveOfficer" value="archive-officer">
-                            <label class="form-check-label" for="roleArchiveOfficer">
-                                <strong>موظف أرشيف</strong>
-                                <br><small class="text-muted">إدارة الوثائق والملفات والبحث في الأرشيف</small>
-                            </label>
+                        <div class="mb-3">
+                            <label class="form-label">رقم الهاتف</label>
+                            <input type="tel" class="form-control" id="cu_phone" placeholder="مثال: 01012345678">
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="userRole" id="roleViewer" value="viewer">
-                            <label class="form-check-label" for="roleViewer">
-                                <strong>مستخدم عام</strong>
-                                <br><small class="text-muted">عرض وتصفح الوثائق المتاحة فقط</small>
-                            </label>
+                        <div class="mb-3">
+                            <label class="form-label">كلمة مرور مؤقتة</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="cu_password" placeholder="كلمة مرور مؤقتة" required>
+                                <button class="btn btn-outline-secondary" type="button" id="btnGenPass"><i class="fas fa-magic"></i></button>
+                                <button class="btn btn-outline-secondary" type="button" id="btnCopyPass"><i class="fas fa-copy"></i></button>
+                            </div>
+                            <div class="form-text">سيتم مطالبة المستخدم بتغييرها بعد تسجيل الدخول.</div>
                         </div>
-                    </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">الدور</label>
+                                <select class="form-select" id="cu_role" required>
+                                    <option value="admin">مدير النظام</option>
+                                    <option value="manager">مدراء الإدارات</option>
+                                    <option value="employee" selected>الموظفين</option>
+                                    <option value="viewer">المستعرضين</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">الإدارة</label>
+                                <select class="form-select" id="cu_department" required>
+                                    <option value="">اختر الإدارة</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">المنصب</label>
+                                <input type="text" class="form-control" id="cu_position" placeholder="مثال: مسؤول أرشيف / مدير">
+                            </div>
+                            <div class="col-md-6 mb-3 d-flex align-items-end">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="cu_isActive" checked>
+                                    <label class="form-check-label" for="cu_isActive">الحساب نشط</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="cu_permissions_section">
+                            <label class="form-label">الصلاحيات الإضافية (للدور: مدير)</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cu_canManageSystem" checked>
+                                        <label class="form-check-label" for="cu_canManageSystem">إدارة النظام</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cu_canManageUsers" checked>
+                                        <label class="form-check-label" for="cu_canManageUsers">إدارة المستخدمين</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cu_canViewAllDocuments" checked>
+                                        <label class="form-check-label" for="cu_canViewAllDocuments">عرض جميع الوثائق</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cu_canManageDocuments" checked>
+                                        <label class="form-check-label" for="cu_canManageDocuments">إدارة الوثائق</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">اللغة المفضلة</label>
+                                <select class="form-select" id="cu_language">
+                                    <option value="ar" selected>العربية</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">المظهر</label>
+                                <select class="form-select" id="cu_theme">
+                                    <option value="light" selected>فاتح</option>
+                                    <option value="dark">داكن</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="createUserAlert"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-primary" onclick="assignRole()">
-                        <i class="fas fa-save me-2"></i>
-                        حفظ الدور
+                    <button type="button" class="btn btn-primary" id="confirmCreateUserBtn">
+                        <span class="create-text">إنشاء</span>
+                        <span class="spinner-border spinner-border-sm d-none create-spinner" role="status" aria-hidden="true"></span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/sidebar.js"></script>
-    
-    <!-- Firebase v10.7.1 - الإصدار الموحد -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
-    <!-- Firebase Configuration -->
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserLabel">تعديل المستخدم</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="eu_userId">
+                        <div class="mb-3">
+                            <label class="form-label">البريد الإلكتروني</label>
+                            <input type="email" class="form-control" id="eu_email" disabled>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">الدور</label>
+                                <select class="form-select" id="eu_role" required>
+                                    <option value="admin">مدير النظام</option>
+                                    <option value="manager">مدراء الإدارات</option>
+                                    <option value="employee">الموظفين</option>
+                                    <option value="viewer">المستعرضين</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">الإدارة</label>
+                                <select class="form-select" id="eu_department">
+                                    <option value="">اختر الإدارة</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="editUserAlert"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary" id="confirmEditUserBtn">
+                        <span class="edit-text">حفظ</span>
+                        <span class="spinner-border spinner-border-sm d-none edit-spinner" role="status" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credentials Modal -->
+    <div class="modal fade" id="credentialsModal" tabindex="-1" aria-labelledby="credLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="credLabel">بيانات الدخول المؤقتة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2"><strong>البريد:</strong> <span id="cred_email"></span></div>
+                    <div class="mb-2"><strong>كلمة المرور:</strong> <span id="cred_password"></span></div>
+                    <button class="btn btn-outline-secondary me-2" id="copyCredEmail"><i class="fas fa-copy me-1"></i>نسخ البريد</button>
+                    <button class="btn btn-outline-secondary" id="copyCredAll"><i class="fas fa-copy me-1"></i>نسخ الكل</button>
+                    <div class="form-text mt-2">يرجى إرسال هذه البيانات للمستخدم وتأكيد تغيير كلمة المرور بعد الدخول.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">تم</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Firebase Config & Init -->
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
-    
-    <!-- Unified Authentication System -->
+    <!-- الأنظمة الموحدة -->
     <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-ui-template.js"></script>
+    <!-- Bootstrap Bundle (استبدال التحميل الديناميكي) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBn9zLcodNLKWlUPfqsnEGoA1z7QZw_Ezk",
-            authDomain: "archive-tech.firebaseapp.com",
-            projectId: "archive-tech",
-            storageBucket: "archive-tech.firebasestorage.app",
-            messagingSenderId: "911076711034",
-            appId: "1:911076711034:web:7f190eed397becfe6779c3",
-            measurementId: "G-1PQMDXZ714"
+        let initSteps = [];
+        let users = [];
+        let firebase_ready = false;
+        let auth_ready = false;
+        let functions_ready = false;
+        let region = 'us-central1';
+        let functionsRef = null;
+        // Departments (UM page)
+        let departmentsCacheUM = [];
+        let departmentsMapUM = new Map();
+        const roleInfo = {
+            admin: { name: 'مدير النظام', badge: 'bg-warning' },
+            manager: { name: 'مدراء الإدارات', badge: 'bg-primary' },
+            employee: { name: 'الموظفين', badge: 'bg-info' },
+            viewer: { name: 'المستعرضين', badge: 'bg-secondary' }
         };
-
-        // Firebase initialization will be handled by firebase-init.js
-        // Variables declaration
-        let allUsers = [];
-        let departments = [];
-        let selectedUserId = null;
-        let currentUserRole = null;
-        let currentUserDepartment = null;
-
-        // Initialize page when Firebase is ready
+        
+        function addStep(message, success = true) {
+            const step = `<div class="small ${success ? 'text-success' : 'text-danger'}">${success ? '✓' : '✗'} ${message}</div>`;
+            document.getElementById('progressSteps').innerHTML += step;
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('loadingStatus').textContent = message;
+        }
+        
+        function updateSystemStatus(message, isError = false) {
+            const statusDiv = document.getElementById('systemStatus');
+            statusDiv.innerHTML = `<div class="${isError ? 'status-error' : 'status-ready'}">${message}</div>`;
+        }
+        
+        function updateDebugInfo(info) {
+            document.getElementById('debugInfo').innerHTML = info;
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+        
+        // تهيئة مبسطة تعتمد على التحميل المبكر لـ Firebase
         document.addEventListener('DOMContentLoaded', async function() {
+            addStep('DOM تم تحميله');
+            updateStatus('تهيئة Firebase...');
             try {
-                // Wait for unified auth system
-                await unifiedAuth.waitForAuth();
+                if (!window.firebase) throw new Error('Firebase غير محمل');
+                firebase_ready = true;
+                if (typeof firebaseConfig !== 'undefined' && !firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                    addStep('initializeApp()');
+                }
+                const auth = firebase.auth();
+                const db = firebase.firestore();
+                addStep('Auth & Firestore جاهزان');
+                auth_ready = true;
+                try {
+                    functionsRef = firebase.app().functions(region);
+                    if (functionsRef?.httpsCallable) { functions_ready = true; addStep('Functions جاهزة'); }
+                } catch (e) { addStep('Functions فشلت: ' + (e.message||e), false); }
+                // الانتظار حتى يصبح unifiedAuth جاهزاً لالتقاط المستخدم الحالي
+                await new Promise(resolve => {
+                    let attempts=0; const max=50;
+                    const tick=()=>{attempts++; if (window.unifiedAuth && (unifiedAuth.isInitialized || unifiedAuth.currentUser)) return resolve(); (attempts<max)?setTimeout(tick,100):resolve();};
+                    tick();
+                });
+                try { window.unifiedUI?.updateSidebar?.(); } catch(_) {}
+                await loadDepartmentsListUM();
+                checkAuthentication(auth, db);
+            } catch (e) {
+                addStep('فشل التهيئة: ' + (e.message||e), false);
+                showError('تعذر بدء الصفحة: ' + (e.message||e));
+            }
+        });
+        
+        // Step 5: Check Authentication
+        function checkAuthentication(auth, db) {
+            updateStatus('فحص حالة المصادقة...');
+            
+            auth.onAuthStateChanged(function(user) {
+                if (user) {
+                    addStep(`مستخدم مسجل: ${user.email}`);
+                    loadUsers(db, user);
+                } else {
+                    addStep('لا يوجد مستخدم مسجل', false);
+                    showLoginRequired();
+                }
+            });
+        }
+        
+        // Step 6: Load Users
+        async function loadUsers(db, currentUser) {
+            updateStatus('تحميل بيانات المستخدمين...');
+            
+            try {
+                const snapshot = await db.collection('users').get();
+                users = [];
                 
-                if (!unifiedAuth.currentUser) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-
-                const userData = await unifiedAuth.getCurrentUserData();
-                if (!userData) {
-                    window.location.href = 'index.html';
-                    return;
-                }
-
-                currentUserRole = userData.role;
-                currentUserDepartment = userData.department;
-
-                // Check admin permissions (department admins or system admin)
-                if (!currentUserRole.includes('admin') && currentUserRole !== 'admin') {
-                    window.location.href = 'index.html';
-                    return;
-                }
-
-                // Load data
-                await loadDepartments();
-                await loadUsers();
+                snapshot.forEach(doc => {
+                    users.push({ id: doc.id, ...doc.data() });
+                });
+                
+                addStep(`تم تحميل ${users.length} مستخدم`);
+                displayUsers();
+                showSuccess();
+                
             } catch (error) {
-                console.error('خطأ في التحقق من صلاحيات المدير:', error);
-                window.location.href = 'index.html';
+                addStep(`خطأ في تحميل المستخدمين: ${error.message}`, false);
+                showError(`فشل تحميل المستخدمين: ${error.message}`);
+            }
+        }
+        
+        function displayUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+            
+            document.getElementById('userCount').textContent = users.length;
+            
+            const query = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+            const filtered = !query ? users : users.filter(u => {
+                return (u.displayName || u.name || '').toLowerCase().includes(query) || (u.email || '').toLowerCase().includes(query);
+            });
+
+            filtered.forEach(user => {
+                const row = document.createElement('tr');
+                const info = roleInfo[user.role] || { name: (user.role || 'غير محدد'), badge: 'bg-secondary' };
+                row.innerHTML = `
+                    <td>${user.displayName || user.name || 'غير محدد'}</td>
+                    <td>${user.email || 'غير محدد'}</td>
+                    <td>
+                        <span class="badge ${info.badge}">${info.name}</span>
+                    </td>
+                    <td>${departmentsMapUM.get(user.department) || user.departmentName || user.department || 'غير محدد'}</td>
+                    <td>
+                        <span class="badge ${user.isActive ? 'bg-success' : 'bg-secondary'}">
+                            ${user.isActive ? 'نشط' : 'غير نشط'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser('${user.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('usersCard').style.display = 'block';
+        }
+
+        // Load departments and populate select controls
+        async function loadDepartmentsListUM() {
+            try {
+                const db = firebase.firestore();
+                const snap = await db.collection('departments').orderBy('name').get();
+                departmentsCacheUM = [];
+                departmentsMapUM = new Map();
+                snap.forEach(doc => {
+                    const d = { id: doc.id, ...(doc.data() || {}) };
+                    if (d.active === false) return;
+                    departmentsCacheUM.push(d);
+                    const name = d.name || d.nameAr || d.nameEn || d.id;
+                    departmentsMapUM.set(d.id, name);
+                });
+
+                const cu = document.getElementById('cu_department');
+                if (cu) {
+                    const val = cu.value;
+                    cu.innerHTML = '<option value="">اختر الإدارة</option>';
+                    departmentsCacheUM.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.id;
+                        opt.textContent = d.name || d.nameAr || d.nameEn || d.id;
+                        cu.appendChild(opt);
+                    });
+                    if (val) cu.value = val;
+                }
+
+                const eu = document.getElementById('eu_department');
+                if (eu && eu.tagName === 'SELECT') {
+                    const val = eu.value;
+                    eu.innerHTML = '<option value="">اختر الإدارة</option>';
+                    departmentsCacheUM.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.id;
+                        opt.textContent = d.name || d.nameAr || d.nameEn || d.id;
+                        eu.appendChild(opt);
+                    });
+                    if (val) eu.value = val;
+                }
+            } catch (e) {
+                console.warn('تعذر تحميل الإدارات (UM):', e?.message || e);
+            }
+        }
+        
+        function showSuccess() {
+            updateSystemStatus('✅ النظام يعمل بشكل طبيعي - جميع المكونات محملة');
+            document.getElementById('addUserBtn').disabled = false;
+            updateDebugInfo(`
+                <strong>حالة النظام:</strong> ✅ جاهز<br>
+                <strong>Firebase:</strong> ${firebase_ready ? '✅' : '❌'} ${firebase_ready ? 'متصل' : 'غير متصل'}<br>
+                <strong>المصادقة:</strong> ${auth_ready ? '✅' : '❌'} ${auth_ready ? 'جاهز' : 'غير جاهز'}<br>
+                <strong>Functions:</strong> ${functions_ready ? '✅' : '❌'}<br>
+                <strong>المستخدمين:</strong> ${users.length} مستخدم محمل<br>
+                <strong>وقت التحميل:</strong> ${Date.now() - startTime}ms
+            `);
+            hideLoading();
+            // محاولة تحديث أو إنشاء القائمة الجانبية بعد نجاح التحميل
+            try {
+                if (window.unifiedUI?.updateSidebar) {
+                    window.unifiedUI.updateSidebar();
+                }
+            } catch (e) { console.warn('تعذر تحديث القائمة الجانبية:', e); }
+        }
+        
+        function showError(message) {
+            updateSystemStatus(`❌ خطأ في النظام: ${message}`, true);
+            updateDebugInfo(`
+                <strong>حالة النظام:</strong> ❌ خطأ<br>
+                <strong>الرسالة:</strong> ${message}<br>
+                <strong>Firebase:</strong> ${firebase_ready ? '✅' : '❌'}<br>
+                <strong>المصادقة:</strong> ${auth_ready ? '✅' : '❌'}<br>
+                <strong>الحلول المقترحة:</strong><br>
+                • تحقق من اتصال الإنترنت<br>
+                • تأكد من صحة إعدادات Firebase<br>
+                • جرب إعادة تحميل الصفحة<br>
+                • تحقق من وحدة التحكم للمزيد من التفاصيل
+            `);
+            hideLoading();
+        }
+        
+        function showLoginRequired() {
+            updateSystemStatus('⚠️ يتطلب تسجيل الدخول للوصول لإدارة المستخدمين', true);
+            updateDebugInfo(`
+                <strong>حالة النظام:</strong> ⚠️ يتطلب مصادقة<br>
+                <strong>Firebase:</strong> ${firebase_ready ? '✅' : '❌'}<br>
+                <strong>المطلوب:</strong> تسجيل دخول كمدير<br>
+                <button class="btn btn-primary mt-2" onclick="window.location.href='login.html'">
+                    تسجيل الدخول
+                </button>
+            `);
+            hideLoading();
+        }
+        
+        // (لم يعد هناك تحميل ديناميكي متسلسل بعد إعادة الترتيب)
+        
+        // Notifications
+        function showAlert(targetId, message, type = 'danger') {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            if (!message) { target.innerHTML = ''; return; }
+            target.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
+            setTimeout(() => { target.innerHTML = ''; }, 5000);
+        }
+
+        // Password utils
+        function randomPassword(len = 10) {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@$%*?';
+            let out = '';
+            for (let i = 0; i < len; i++) out += chars.charAt(Math.floor(Math.random() * chars.length));
+            return out;
+        }
+        async function copyText(text) {
+            try { await navigator.clipboard.writeText(text); } catch(_) {}
+        }
+
+        function getDepartmentName(key) {
+            const map = {
+                'archive': 'إدارة الأرشيف',
+                'legal': 'إدارة الشؤون القانونية',
+                'governance': 'إدارة الحوكمة والامتثال',
+                'collection': 'إدارة التحصيل',
+                'securitization': 'إدارة التوريق',
+                'it': 'إدارة تقنية المعلومات',
+                'general': 'الإدارة العامة'
+            };
+            return map[key] || '';
+        }
+
+        // Create user flow
+        let createUserModal, editUserModal, credentialsModal;
+        document.addEventListener('DOMContentLoaded', () => {
+            // Defer modal initialization until Bootstrap is loaded
+        });
+
+        document.getElementById('addUserBtn').addEventListener('click', function() {
+            document.getElementById('createUserForm').reset();
+            document.getElementById('cu_password').value = randomPassword(12);
+            showAlert('createUserAlert', '');
+            if (!createUserModal && typeof bootstrap !== 'undefined') {
+                createUserModal = new bootstrap.Modal(document.getElementById('createUserModal'));
+            }
+            if (createUserModal && createUserModal.show) createUserModal.show();
+        });
+
+        // Toggle permissions visibility based on role
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'cu_role') {
+                const isAdmin = e.target.value === 'admin';
+                const sec = document.getElementById('cu_permissions_section');
+                if (sec) sec.style.display = isAdmin ? 'block' : 'none';
             }
         });
 
-        // تحميل الإدارات
-        async function loadDepartments() {
-            try {
-                const snapshot = await db.collection('departments').orderBy('name').get();
-                departments = [];
-                
-                const departmentFilter = document.getElementById('departmentFilter');
-                departmentFilter.innerHTML = '<option value="">جميع الإدارات</option>';
+        document.getElementById('btnGenPass').addEventListener('click', () => {
+            const p = randomPassword(12);
+            document.getElementById('cu_password').value = p;
+        });
+        document.getElementById('btnCopyPass').addEventListener('click', () => {
+            copyText(document.getElementById('cu_password').value);
+        });
 
-                snapshot.forEach(doc => {
-                    const dept = { id: doc.id, ...doc.data() };
-                    departments.push(dept);
-
-                    // مدراء الإدارات يرون إدارتهم فقط في الفلتر
-                    if (currentUserRole === 'admin' || dept.id === currentUserDepartment) {
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.textContent = dept.name;
-                        departmentFilter.appendChild(option);
-                    }
-                });
-
-                console.log('✅ تم تحميل الإدارات');
-            } catch (error) {
-                console.error('❌ خطأ في تحميل الإدارات:', error);
-            }
-        }
-
-        // Load all users
-        async function loadUsers() {
-            try {
-                let query = db.collection('users').orderBy('createdAt', 'desc');
-                
-                // مدراء الإدارات يرون مستخدمي إدارتهم فقط
-                if (currentUserRole !== 'admin') {
-                    query = query.where('department', '==', currentUserDepartment);
-                }
-
-                const snapshot = await query.get();
-                allUsers = [];
-                
-                snapshot.forEach(doc => {
-                    const userData = doc.data();
-                    allUsers.push({
-                        id: doc.id,
-                        ...userData
-                    });
-                });
-
-                displayUsers(allUsers);
-                updateStatistics();
-            } catch (error) {
-                console.error('خطأ في تحميل المستخدمين:', error);
-                showAlert('خطأ في تحميل بيانات المستخدمين', 'danger');
-            }
-        }
-
-        // Display users in table
-        function displayUsers(users) {
-            const tbody = document.getElementById('usersTableBody');
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            const usersTable = document.getElementById('usersTable');
-
-            loadingSpinner.style.display = 'none';
-            usersTable.classList.remove('d-none');
-
-            tbody.innerHTML = '';                
-            if (users.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center py-4">
-                            <i class="fas fa-users text-muted mb-2" style="font-size: 3rem;"></i>
-                            <p class="text-muted">لا توجد مستخدمين</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            users.forEach(user => {
-                const row = document.createElement('tr');
-                
-                const statusClass = user.status === 'pending' ? 'status-pending' : 
-                                   user.status === 'approved' ? 'status-approved' : 'status-rejected';
-                
-                const roleClass = user.role === 'admin' ? 'role-admin' :
-                                 user.role === 'archive-officer' ? 'role-archive-officer' : 'role-viewer';
-
-                const roleName = user.role === 'admin' ? 'مدير النظام' :
-                                user.role === 'archive-officer' ? 'موظف أرشيف' :
-                                user.role === 'viewer' ? 'مستخدم عام' : 'غير محدد';
-
-                const statusName = user.status === 'pending' ? 'في انتظار الموافقة' :
-                                  user.status === 'approved' ? 'مفعل' : 'مرفوض';
-
-                const createdDate = user.createdAt ? new Date(user.createdAt.toDate()).toLocaleDateString('ar-SA') : 'غير محدد';
-
-                // البحث عن اسم الإدارة
-                const department = departments.find(d => d.id === user.department);
-                const departmentName = department ? department.name : (user.departmentName || user.department || 'غير محدد');
-
-                row.innerHTML = `
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-initial rounded-circle bg-primary text-white me-3">
-                                ${(user.displayName || user.firstName || 'م').charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <div class="fw-bold">${user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim()}</div>
-                                <small class="text-muted">${user.firstName || ''} ${user.lastName || ''}</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td>${user.email}</td>
-                    <td>
-                        <span class="badge bg-secondary">${departmentName}</span>
-                    </td>
-                    <td>
-                        <span class="role-badge ${roleClass}">${roleName}</span>
-                    </td>
-                    <td>
-                        <span class="status-badge ${statusClass}">${statusName}</span>
-                    </td>
-                    <td>${createdDate}</td>
-                    <td>
-                        <div class="action-buttons">
-                            ${user.status === 'pending' ? `
-                                <button class="btn btn-approve btn-sm" onclick="approveUser('${user.id}')" title="موافقة" aria-label="موافقة على المستخدم">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="btn btn-reject btn-sm" onclick="rejectUser('${user.id}')" title="رفض" aria-label="رفض المستخدم">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            ` : ''}
-                            <button class="btn btn-edit btn-sm" onclick="openRoleModal('${user.id}')" title="تحديد الدور" aria-label="تحديد دور المستخدم">
-                                <i class="fas fa-user-tag"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-
-                tbody.appendChild(row);
-            });
-        }
-
-        // Update statistics
-        function updateStatistics() {
-            const pending = allUsers.filter(u => u.status === 'pending').length;
-            const approved = allUsers.filter(u => u.status === 'approved').length;
-            const rejected = allUsers.filter(u => u.status === 'rejected').length;
-            const total = allUsers.length;
-
-            document.getElementById('pendingCount').textContent = pending;
-            document.getElementById('approvedCount').textContent = approved;
-            document.getElementById('rejectedCount').textContent = rejected;
-            document.getElementById('totalCount').textContent = total;
-        }
-
-        // Approve user
-        async function approveUser(userId) {
-            if (!confirm('هل أنت متأكد من موافقة هذا المستخدم؟')) return;
-
-            try {
-                await db.collection('users').doc(userId).update({
-                    status: 'approved',
-                    isActive: true,
-                    approvedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                showAlert('تم قبول المستخدم بنجاح', 'success');
-                await loadUsers();
-            } catch (error) {
-                console.error('خطأ في موافقة المستخدم:', error);
-                showAlert('خطأ في موافقة المستخدم', 'danger');
-            }
-        }
-
-        // Reject user
-        async function rejectUser(userId) {
-            if (!confirm('هل أنت متأكد من رفض هذا المستخدم؟')) return;
-
-            try {
-                await db.collection('users').doc(userId).update({
-                    status: 'rejected',
-                    isActive: false,
-                    rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                showAlert('تم رفض المستخدم', 'info');
-                await loadUsers();
-            } catch (error) {
-                console.error('خطأ في رفض المستخدم:', error);
-                showAlert('خطأ في رفض المستخدم', 'danger');
-            }
-        }
-
-        // Open role assignment modal
-        function openRoleModal(userId) {
-            selectedUserId = userId;
-            const user = allUsers.find(u => u.id === userId);
-            
-            if (user) {
-                document.getElementById('selectedUserName').textContent = user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim();
-                document.getElementById('selectedUserEmail').textContent = user.email;
-                
-                // Select current role
-                if (user.role) {
-                    const roleRadio = document.querySelector(`input[name="userRole"][value="${user.role}"]`);
-                    if (roleRadio) roleRadio.checked = true;
-                }
-
-                const modal = new bootstrap.Modal(document.getElementById('roleModal'));
-                modal.show();
-            }
-        }
-
-        // Assign role to user
-        async function assignRole() {
-            const selectedRole = document.querySelector('input[name="userRole"]:checked');
-            
-            if (!selectedRole || !selectedUserId) {
-                showAlert('يرجى اختيار دور للمستخدم', 'warning');
-                return;
-            }
-
-            try {
-                await db.collection('users').doc(selectedUserId).update({
-                    role: selectedRole.value,
-                    roleAssignedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                showAlert('تم تحديث دور المستخدم بنجاح', 'success');
-                
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('roleModal'));
-                modal.hide();
-                
-                // Reload users
-                await loadUsers();
-                
-                // Clear selection
-                selectedUserId = null;
-                document.querySelectorAll('input[name="userRole"]').forEach(radio => radio.checked = false);
-                
-            } catch (error) {
-                console.error('خطأ في تحديث دور المستخدم:', error);
-                showAlert('خطأ في تحديث دور المستخدم', 'danger');
-            }
-        }
-
-        // Filter users
-        function filterUsers() {
-            const departmentFilter = document.getElementById('departmentFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
-            const roleFilter = document.getElementById('roleFilter').value;
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
-
-            let filteredUsers = allUsers;
-
-            // Filter by department
-            if (departmentFilter) {
-                filteredUsers = filteredUsers.filter(user => user.department === departmentFilter);
-            }
-
-            // Filter by status
-            if (statusFilter) {
-                filteredUsers = filteredUsers.filter(user => user.status === statusFilter);
-            }
-
-            // Filter by role
-            if (roleFilter) {
-                filteredUsers = filteredUsers.filter(user => user.role === roleFilter);
-            }
-
-            // Filter by search
-            if (searchInput) {
-                filteredUsers = filteredUsers.filter(user => {
-                    const name = (user.displayName || `${user.firstName || ''} ${user.lastName || ''}`).toLowerCase();
-                    const email = (user.email || '').toLowerCase();
-                    const department = departments.find(d => d.id === user.department);
-                    const departmentName = (department?.name || user.departmentName || '').toLowerCase();
-                    
-                    return name.includes(searchInput) || 
-                           email.includes(searchInput) || 
-                           departmentName.includes(searchInput);
-                });
-            }
-
-            displayUsers(filteredUsers);
-        }
-
-        // Clear all filters
-        function clearFilters() {
-            document.getElementById('departmentFilter').value = '';
-            document.getElementById('statusFilter').value = '';
-            document.getElementById('roleFilter').value = '';
-            document.getElementById('searchInput').value = '';
-            displayUsers(allUsers);
-        }
-
-        // Refresh users
         async function refreshUsers() {
-            document.getElementById('loadingSpinner').style.display = 'flex';
-            document.getElementById('usersTable').classList.add('d-none');
-            await loadUsers();
+            try {
+                const db = firebase.firestore();
+                const snapshot = await db.collection('users').get();
+                users = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                displayUsers();
+            } catch (e) {
+                showAlert('systemStatus', 'تعذر تحديث قائمة المستخدمين: ' + (e.message || e), 'danger');
+            }
         }
 
-        // Show alert function
-        function showAlert(message, type = 'info') {
-            // Create alert element
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-            alertDiv.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            document.body.appendChild(alertDiv);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.parentNode.removeChild(alertDiv);
+        document.getElementById('confirmCreateUserBtn').addEventListener('click', async () => {
+            if (!functions_ready) { showAlert('createUserAlert', 'خدمة الوظائف غير جاهزة', 'danger'); return; }
+            const email = document.getElementById('cu_email').value.trim();
+            const displayName = document.getElementById('cu_displayName').value.trim();
+            const password = document.getElementById('cu_password').value.trim();
+            const role = document.getElementById('cu_role').value;
+            const department = document.getElementById('cu_department').value;
+            const phone = document.getElementById('cu_phone').value.trim();
+            const position = document.getElementById('cu_position').value.trim();
+            const isActive = document.getElementById('cu_isActive').checked;
+            const language = document.getElementById('cu_language').value;
+            const theme = document.getElementById('cu_theme').value;
+            const permissions = {
+                isAdmin: role === 'admin',
+                canManageSystem: document.getElementById('cu_canManageSystem').checked,
+                canManageUsers: document.getElementById('cu_canManageUsers').checked,
+                canViewAllDocuments: document.getElementById('cu_canViewAllDocuments').checked,
+                canManageDocuments: document.getElementById('cu_canManageDocuments').checked
+            };
+            if (!email || !password || !role) {
+                showAlert('createUserAlert', 'يرجى إدخال البريد والدور وكلمة المرور', 'warning');
+                return;
+            }
+            // UI lock
+            document.querySelector('#confirmCreateUserBtn .create-text').classList.add('d-none');
+            document.querySelector('#confirmCreateUserBtn .create-spinner').classList.remove('d-none');
+            document.getElementById('confirmCreateUserBtn').disabled = true;
+            try {
+                const callable = functionsRef.httpsCallable('createUserWithRole');
+                const res = await callable({ email, password, displayName, role, department });
+                const { uid } = (res && res.data && res.data.data) || res.data || {};
+                // Save extra profile fields in Firestore
+                try {
+                    const db = firebase.firestore();
+                    await db.collection('users').doc(uid).set({
+                        phone: phone || null,
+                        position: position || '',
+                        isActive: isActive,
+                        permissions: role === 'admin' ? permissions : {},
+                        departmentName: (departmentsMapUM.get(department) || getDepartmentName(department) || department),
+                        settings: { notifications: true, language, theme }
+                    }, { merge: true });
+                } catch (profileErr) {
+                    console.warn('Failed to save extra fields:', profileErr);
                 }
-            }, 5000);
+                // Show credentials modal
+                document.getElementById('cred_email').textContent = email;
+                document.getElementById('cred_password').textContent = password;
+                if (!credentialsModal && typeof bootstrap !== 'undefined') {
+                    credentialsModal = new bootstrap.Modal(document.getElementById('credentialsModal'));
+                }
+                if (createUserModal && createUserModal.hide) createUserModal.hide();
+                if (credentialsModal && credentialsModal.show) credentialsModal.show();
+                await refreshUsers();
+                updateSystemStatus('✅ تم إنشاء المستخدم بنجاح');
+            } catch (e) {
+                const msg = e.message || (e.details && e.details.message) || 'فشل إنشاء المستخدم';
+                showAlert('createUserAlert', msg, 'danger');
+            } finally {
+                document.querySelector('#confirmCreateUserBtn .create-text').classList.remove('d-none');
+                document.querySelector('#confirmCreateUserBtn .create-spinner').classList.add('d-none');
+                document.getElementById('confirmCreateUserBtn').disabled = false;
+            }
+        });
+
+        document.getElementById('copyCredEmail').addEventListener('click', () => {
+            copyText(document.getElementById('cred_email').textContent);
+        });
+        document.getElementById('copyCredAll').addEventListener('click', () => {
+            const txt = `Email: ${document.getElementById('cred_email').textContent}\nPassword: ${document.getElementById('cred_password').textContent}`;
+            copyText(txt);
+        });
+
+        // Edit user
+        window.editUser = async function(userId) {
+            const u = users.find(x => x.id === userId);
+            if (!u) return;
+            document.getElementById('eu_userId').value = u.id;
+            document.getElementById('eu_email').value = u.email || '';
+            document.getElementById('eu_role').value = u.role || 'employee';
+            try {
+                if (!departmentsCacheUM.length) { await loadDepartmentsListUM(); }
+                const sel = document.getElementById('eu_department');
+                if (sel && sel.tagName === 'SELECT') sel.value = u.department || '';
+            } catch (_) {}
+            showAlert('editUserAlert', '');
+            if (!editUserModal && typeof bootstrap !== 'undefined') {
+                editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            }
+            if (editUserModal && editUserModal.show) editUserModal.show();
         }
+
+        document.getElementById('confirmEditUserBtn').addEventListener('click', async () => {
+            if (!functions_ready) { showAlert('editUserAlert', 'خدمة الوظائف غير جاهزة', 'danger'); return; }
+            const userId = document.getElementById('eu_userId').value;
+            const role = document.getElementById('eu_role').value;
+            const department = document.getElementById('eu_department').value.trim();
+            if (!userId || !role) { showAlert('editUserAlert', 'حقول مفقودة', 'warning'); return; }
+            document.querySelector('#confirmEditUserBtn .edit-text').classList.add('d-none');
+            document.querySelector('#confirmEditUserBtn .edit-spinner').classList.remove('d-none');
+            document.getElementById('confirmEditUserBtn').disabled = true;
+            try {
+                const callable = functionsRef.httpsCallable('updateUserRole');
+                await callable({ userId, role, department });
+                if (editUserModal && editUserModal.hide) editUserModal.hide();
+                await refreshUsers();
+                updateSystemStatus('✅ تم حفظ التغييرات بنجاح');
+            } catch (e) {
+                const msg = e.message || 'فشل حفظ التغييرات';
+                showAlert('editUserAlert', msg, 'danger');
+            } finally {
+                document.querySelector('#confirmEditUserBtn .edit-text').classList.remove('d-none');
+                document.querySelector('#confirmEditUserBtn .edit-spinner').classList.add('d-none');
+                document.getElementById('confirmEditUserBtn').disabled = false;
+            }
+        });
+
+        // Delete user
+        window.deleteUser = async function(userId) {
+            if (!functions_ready) { updateSystemStatus('خدمة الوظائف غير جاهزة', true); return; }
+            const u = users.find(x => x.id === userId);
+            const label = u ? (u.email || u.displayName || userId) : userId;
+            if (!confirm('هل أنت متأكد من حذف المستخدم: ' + label + ' ؟')) return;
+            updateSystemStatus('⏳ جاري حذف المستخدم...');
+            try {
+                const callable = functionsRef.httpsCallable('deleteUserAccount');
+                await callable({ userId });
+                await refreshUsers();
+                updateSystemStatus('✅ تم حذف المستخدم');
+            } catch (e) {
+                updateSystemStatus('❌ فشل حذف المستخدم: ' + (e.message || e), true);
+            }
+        }
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', () => displayUsers());
+        document.getElementById('clearSearchBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            displayUsers();
+        });
+        
+        // Track loading time
+        const startTime = Date.now();
     </script>
 </body>
 </html>
-

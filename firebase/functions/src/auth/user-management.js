@@ -1,1 +1,2 @@
-// User management Cloud Function skeleton
+// Deprecated legacy user management stub.
+module.exports = {};

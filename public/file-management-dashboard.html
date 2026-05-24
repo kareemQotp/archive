@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <link rel="stylesheet" href="assets/css/permissions.css">
     
     <style>
@@ -23,7 +23,6 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
-
         .main-content {
             margin-right: 280px;
             transition: margin-right 0.3s ease;
@@ -177,6 +176,28 @@
             box-shadow: 0 8px 25px rgba(111, 66, 193, 0.4);
         }
 
+        .user-info {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .user-details .user-name {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-details .user-email {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-details .badge {
+            font-size: 0.75rem;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 margin-right: 0;
@@ -198,10 +219,31 @@
             }
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <!-- Unified Navbar (keeps existing page logic intact) -->
+    <!-- Unified navbar is injected by unified-ui-template.js -->
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-archive me-2"></i>
+                    نظام الأرشيف
+                </a>
+            </div>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="topUserInfo"></span>
+            </div>
+        </div>
+    </nav>
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="sidebar" aria-hidden="true">
         <div class="sidebar-header">
             <div class="logo">
                 <i class="fas fa-archive"></i>
@@ -221,9 +263,11 @@
         </nav>
     </aside>
 
+    <!-- Legacy overlay kept for backward compatibility with any existing JS -->
     <div class="overlay" id="overlay"></div>
 
-    <main class="main-content">
+    <main class="main-content" id="mainContent" role="main" tabindex="-1">
+        <div class="container py-3">
         <!-- Page Header -->
         <div class="page-header">
             <div class="d-flex justify-content-between align-items-center">
@@ -324,6 +368,7 @@
                 <!-- سيتم ملؤها بـ JavaScript -->
             </div>
         </div>
+        </div>
     </main>
 
     <!-- Bulk Transfer Modal -->
@@ -354,6 +399,9 @@
                                         <option value="governance">الحوكمة والامتثال</option>
                                         <option value="collection">إدارة التحصيل</option>
                                         <option value="securitization">إدارة التوريق</option>
+                                        <option value="hr">الموارد البشرية</option>
+                                        <option value="finance">المالية</option>
+                                        <option value="it">تقنية المعلومات</option>
                                     </select>
                                 </div>
                             </div>
@@ -367,6 +415,9 @@
                                         <option value="governance">الحوكمة والامتثال</option>
                                         <option value="collection">إدارة التحصيل</option>
                                         <option value="securitization">إدارة التوريق</option>
+                                        <option value="hr">الموارد البشرية</option>
+                                        <option value="finance">المالية</option>
+                                        <option value="it">تقنية المعلومات</option>
                                     </select>
                                 </div>
                             </div>
@@ -401,309 +452,21 @@
     <script src="assets/js/firebase-init.js"></script>
 
     <script src="assets/js/roles.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js" defer></script>
+    
+    <!-- Page Access Control - REQUIRED for permission checking -->
+    <script src="assets/js/page-access-control.js"></script>
     
     <!-- Unified Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-auth.js"></script>
 
-    <script>
-        // Initialize unified auth system
-        let permissionController;
-        let currentUser = null;
-        let sidebarManager = null;
+    <!-- Role-Based Routing System -->
+    <script src="assets/js/role-based-routing.js"></script>
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            // Wait for unified auth to initialize
-            await new Promise(resolve => {
-                const checkAuth = () => {
-                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
-                        // Initialize permission controller if available
-                        if (window.UIPermissionController) {
-                            permissionController = new UIPermissionController(unifiedAuth);
-                        }
-                        resolve();
-                    } else {
-                        setTimeout(checkAuth, 100);
-                    }
-                };
-                checkAuth();
-            });
-
-            // Set up auth state listener
-            unifiedAuth.onAuthStateChanged((user) => {
-                handleAuthStateChange(user);
-            });
-        });
-
-        async function handleAuthStateChange(user) {
-            if (!user) {
-                window.location.href = 'login.html?message=session-expired';
-                return;
-            }
-
-            currentUser = user;
-
-            // Allow access for all authenticated users
-            console.log('✅ File management access granted for authenticated user');
-
-            // Update permission-based UI
-            if (permissionController) {
-                permissionController.updateUI();
-            }
-            
-            // Update sidebar with proper role
-            if (window.sidebarManager) {
-                const userRole = unifiedAuth.getCurrentUserRole();
-                window.sidebarManager.updateSidebarNav(true, userRole);
-            }
-
-            // Load dashboard data
-            await loadDashboardData();
-        }
-
-        // Department names
-        const departmentNames = {
-            archive: 'الأرشيف',
-            legal: 'الشؤون القانونية',
-            governance: 'الحوكمة والامتثال',
-            collection: 'إدارة التحصيل',
-            securitization: 'إدارة التوريق'
-        };
-
-        document.addEventListener('DOMContentLoaded', function() {
-            sidebarManager = new SidebarManager();
-            
-            // Remove old auth listener - now handled by unified auth system
-        });
-
-        async function loadDashboardData() {
-            try {
-                await Promise.all([
-                    loadStatistics(),
-                    loadPendingFiles(),
-                    loadRecentActivity()
-                ]);
-            } catch (error) {
-                console.error('خطأ في تحميل بيانات لوحة الإدارة:', error);
-                authSystem.logError('dashboard-load-error', error);
-            }
-        }
-
-        async function loadStatistics() {
-            try {
-                const movementsSnapshot = await authSystem.db.collection('file_movements')
-                    .orderBy('timestamp', 'desc')
-                    .limit(500)
-                    .get();
-
-                const movements = [];
-                movementsSnapshot.forEach(doc => {
-                    movements.push(doc.data());
-                });
-
-                // Calculate statistics
-                const totalFiles = new Set(movements.map(m => m.fileNumber)).size;
-                const pendingTransfers = movements.filter(m => m.status === 'in_transit').length;
-                
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const completedToday = movements.filter(m => 
-                    m.status === 'received' && 
-                    m.timestamp && 
-                    m.timestamp.toDate() >= today
-                ).length;
-
-                // Simulate urgent files (files pending for more than 7 days)
-                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                const urgentFiles = movements.filter(m => 
-                    m.status === 'in_transit' && 
-                    m.timestamp && 
-                    m.timestamp.toDate() < weekAgo
-                ).length;
-
-                // Update UI
-                document.getElementById('totalFilesTracked').textContent = totalFiles;
-                document.getElementById('pendingTransfers').textContent = pendingTransfers;
-                document.getElementById('completedToday').textContent = completedToday;
-                document.getElementById('urgentFiles').textContent = urgentFiles;
-
-            } catch (error) {
-                console.error('خطأ في تحميل الإحصائيات:', error);
-            }
-        }
-
-        async function loadPendingFiles() {
-            const container = document.getElementById('pendingFilesList');
-            
-            try {
-                const pendingSnapshot = await authSystem.db.collection('file_movements')
-                    .where('status', '==', 'in_transit')
-                    .orderBy('timestamp', 'desc')
-                    .limit(10)
-                    .get();
-
-                if (pendingSnapshot.empty) {
-                    container.innerHTML = `
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-check-circle fa-2x mb-2"></i>
-                            <p>لا توجد ملفات معلقة حالياً</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const pendingFiles = [];
-                pendingSnapshot.forEach(doc => {
-                    pendingFiles.push({ id: doc.id, ...doc.data() });
-                });
-
-                container.innerHTML = pendingFiles.map(file => {
-                    const isUrgent = file.timestamp && 
-                        (Date.now() - file.timestamp.toDate().getTime()) > (7 * 24 * 60 * 60 * 1000);
-                    
-                    return `
-                        <div class="file-item">
-                            <div class="file-info flex-grow-1">
-                                <h6>${file.fileName || file.fileNumber}</h6>
-                                <small>من ${departmentNames[file.fromDepartment]} إلى ${departmentNames[file.toDepartment]}</small>
-                            </div>
-                            <div class="file-status ${isUrgent ? 'status-urgent' : 'status-pending'}">
-                                ${isUrgent ? 'عاجل' : 'معلق'}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-            } catch (error) {
-                console.error('خطأ في تحميل الملفات المعلقة:', error);
-                container.innerHTML = `
-                    <div class="alert alert-danger">
-                        خطأ في تحميل البيانات
-                    </div>
-                `;
-            }
-        }
-
-        async function loadRecentActivity() {
-            const container = document.getElementById('recentActivity');
-            
-            try {
-                const recentSnapshot = await authSystem.db.collection('file_movements')
-                    .orderBy('timestamp', 'desc')
-                    .limit(5)
-                    .get();
-
-                if (recentSnapshot.empty) {
-                    container.innerHTML = `
-                        <div class="text-center py-3 text-muted">
-                            <p>لا توجد نشاطات حديثة</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const activities = [];
-                recentSnapshot.forEach(doc => {
-                    activities.push(doc.data());
-                });
-
-                container.innerHTML = activities.map(activity => `
-                    <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
-                        <div class="me-3">
-                            <i class="fas fa-${activity.action === 'transfer' ? 'share' : 'inbox'} text-primary"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <small class="text-muted">
-                                ${activity.action === 'transfer' ? 'نقل' : 'استلام'} ملف 
-                                ${activity.fileNumber} 
-                                ${activity.action === 'transfer' ? 'إلى' : 'من'} 
-                                ${departmentNames[activity.toDepartment || activity.fromDepartment]}
-                            </small>
-                            <br>
-                            <small class="text-muted">
-                                ${activity.userDisplayName} - 
-                                ${activity.timestamp ? new Date(activity.timestamp.toDate()).toLocaleString('ar-SA') : ''}
-                            </small>
-                        </div>
-                    </div>
-                `).join('');
-
-            } catch (error) {
-                console.error('خطأ في تحميل النشاط الأخير:', error);
-            }
-        }
-
-        function refreshData() {
-            loadDashboardData();
-        }
-
-        function openBulkTransferModal() {
-            const modal = new bootstrap.Modal(document.getElementById('bulkTransferModal'));
-            modal.show();
-        }
-
-        async function processBulkTransfer() {
-            const fileNumbers = document.getElementById('bulkFileNumbers').value
-                .split('\n')
-                .map(line => line.trim())
-                .filter(line => line.length > 0);
-            
-            const fromDept = document.getElementById('bulkFromDept').value;
-            const toDept = document.getElementById('bulkToDept').value;
-            const notes = document.getElementById('bulkNotes').value.trim();
-
-            if (fileNumbers.length === 0) {
-                alert('يرجى إدخال أرقام الملفات');
-                return;
-            }
-
-            if (!fromDept || !toDept) {
-                alert('يرجى اختيار الأقسام');
-                return;
-            }
-
-            if (fromDept === toDept) {
-                alert('لا يمكن نقل الملفات لنفس القسم');
-                return;
-            }
-
-            try {
-                const batch = authSystem.db.batch();
-                let successCount = 0;
-
-                for (const fileNumber of fileNumbers) {
-                    const movementRef = authSystem.db.collection('file_movements').doc();
-                    batch.set(movementRef, {
-                        fileNumber: fileNumber,
-                        fileName: `ملف ${fileNumber}`,
-                        fromDepartment: fromDept,
-                        toDepartment: toDept,
-                        action: 'transfer',
-                        status: 'in_transit',
-                        notes: notes + ` (نقل مجمع)`,
-                        userId: currentUser.uid,
-                        userEmail: currentUser.email,
-                        userDisplayName: currentUser.displayName,
-                        timestamp: authSystem.db.FieldValue.serverTimestamp()
-                    });
-                    successCount++;
-                }
-
-                await batch.commit();
-
-                // Close modal and refresh
-                bootstrap.Modal.getInstance(document.getElementById('bulkTransferModal')).hide();
-                document.getElementById('bulkTransferForm').reset();
-                loadDashboardData();
-                
-                alert(`تم نقل ${successCount} ملف بنجاح`);
-
-            } catch (error) {
-                console.error('خطأ في النقل المجمع:', error);
-                alert('حدث خطأ في النقل المجمع');
-            }
-        }
-    </script>
+    <!-- File Management Dashboard Script -->
+    <script src="assets/js/file-management-dashboard.js"></script>
 </body>
 </html>
+

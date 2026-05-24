@@ -15,13 +15,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     
     <!-- Scripts -->
-    <script src="assets/js/app-config.js"></script>
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/notifications.js"></script>
-    <script src="assets/js/analytics.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    <script defer src="assets/js/app-config.js"></script>
+    <script defer src="assets/js/roles.js"></script>
+    <script defer src="assets/js/notifications.js"></script>
+    <!-- Unified UI Template (replaces legacy sidebar.js) -->
+    <script defer src="assets/js/unified-ui-template.js"></script>
     <!-- تطبيق الألوان الجديدة -->
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
 
     <style>
         /* System analytics specific styles */
@@ -37,26 +38,42 @@
         }
 
         .main-container {
-            margin-right: 300px;
             padding: 2rem;
             transition: margin-right 0.3s ease;
         }
 
-        body.sidebar-closed .main-container {
-            margin-right: 0;
+        /* Sidebar styles are handled by Unified UI template */
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            color: #0077b6;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background-color: rgba(0, 119, 182, 0.1);
+            color: #003566;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
         }
 
         .page-header {
             background: white;
             border-radius: 16px;
-            padding: 2rem;
             margin-bottom: 2rem;
             box-shadow: var(--shadow);
-            border: 1px solid var(--border);
+            padding: 1.25rem 1.5rem;
         }
 
         .page-title {
-            margin: 0;
             color: var(--text-primary);
             font-weight: 700;
             font-size: 2rem;
@@ -320,8 +337,13 @@
             }
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <!-- Unified Navbar Host -->
+    <!-- Unified navbar and sidebar are injected by unified-ui-template.js -->
     <!-- Loading State -->
     <div id="loadingState" class="loading">
         <div class="text-center">
@@ -333,17 +355,36 @@
     </div>
 
     <!-- Main Content -->
-    <div id="mainContent" class="main-container d-none">
+    <div id="mainContent" class="main-container d-none" role="main" tabindex="-1">
         <!-- Page Header -->
         <div class="page-header">
             <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="page-title">إحصائيات النظام</h1>
-                    <p class="text-muted mb-0">نظرة عامة على أداء واستخدام النظام</p>
+                <div class="d-flex align-items-center">
+                    <div>
+                        <h1 class="page-title">إحصائيات النظام</h1>
+                        <p class="text-muted mb-0">نظرة عامة على أداء واستخدام النظام</p>
+                    </div>
                 </div>
                 <div class="real-time-indicator">
                     <div class="status-dot"></div>
                     <span>تحديث مباشر</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Tools: visible only for system admin -->
+        <div class="filter-controls d-none" id="adminToolsCard">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-warning">
+                    <i class="fas fa-shield-halved me-2"></i>
+                    أدوات المدير: صيانة التخزين ومسح المصغرات القديمة لتقليل التكلفة
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-outline-danger btn-sm" id="btnCleanupThumbsAnalytics" data-permission-admin>
+                        <i class="fas fa-images me-1"></i>
+                        مسح المصغرات
+                    </button>
+                    <span id="cleanupStatusAnalytics" class="small text-muted"></span>
                 </div>
             </div>
         </div>
@@ -465,6 +506,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
     
     <!-- Firebase Configuration -->
     <script src="assets/js/firebase-config.js"></script>
@@ -472,63 +514,185 @@
     
     <!-- Unified Authentication System -->
     <script src="assets/js/unified-auth.js"></script>
+    <!-- Cloud Services (for cleanup thumbnails callable) -->
+    <script src="assets/js/cloud-services.js"></script>
+    
+    <!-- Analytics (loaded after Firebase) -->
+    <script defer src="assets/js/analytics.js"></script>
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBn9zLcodNLKWlUPfqsnEGoA1z7QZw_Ezk",
-            authDomain: "archive-tech.firebaseapp.com",
-            projectId: "archive-tech",
-            storageBucket: "archive-tech.firebasestorage.app",
-            messagingSenderId: "911076711034",
-            appId: "1:911076711034:web:7f190eed397becfe6779c3",
-            measurementId: "G-1PQMDXZ714"
-        };
-
-        // Firebase initialization will be handled by firebase-init.js
-        // Variables will be available globally
+        // Global variables for analytics
+        let analyticsAuth, analyticsDb, analyticsNotify, analyticsModule;
         
         // Elements
-        const loadingState = document.getElementById('loadingState');
-        const mainContent = document.getElementById('mainContent');
-        const statsContainer = document.getElementById('statsContainer');
-        const activitiesTable = document.getElementById('activitiesTable');
-        const dateRangeSelect = document.getElementById('dateRange');
-        const userRoleSelect = document.getElementById('userRole');
-        const refreshBtn = document.getElementById('refreshBtn');
-        const exportBtn = document.getElementById('exportBtn');
+        let loadingState, mainContent, statsContainer, activitiesTable;
+        let dateRangeSelect, userRoleSelect, refreshBtn, exportBtn;
+        
+        // Initialize elements when DOM is ready
+        function initializeElements() {
+            loadingState = document.getElementById('loadingState');
+            mainContent = document.getElementById('mainContent');
+            statsContainer = document.getElementById('statsContainer');
+            activitiesTable = document.getElementById('activitiesTable');
+            dateRangeSelect = document.getElementById('dateRange');
+            userRoleSelect = document.getElementById('userRole');
+            refreshBtn = document.getElementById('refreshBtn');
+            exportBtn = document.getElementById('exportBtn');
+            
+            console.log('📋 حالة العناصر:', {
+                loadingState: !!loadingState,
+                mainContent: !!mainContent,
+                statsContainer: !!statsContainer,
+                activitiesTable: !!activitiesTable,
+                dateRangeSelect: !!dateRangeSelect,
+                userRoleSelect: !!userRoleSelect,
+                refreshBtn: !!refreshBtn,
+                exportBtn: !!exportBtn
+            });
+        }
 
         // Charts
         let dailyActivityChart, userActionsChart, deviceTypesChart, performanceChart;
 
         // Initialize page when Firebase is ready
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 بدء تهيئة صفحة التحليلات...');
+            
+            // Initialize DOM elements first
+            initializeElements();
+            
+            // In case auth becomes ready later, refresh the unified UI once
+            document.addEventListener('firebaseAuthReady', async () => {
+                try { await window.unifiedUI?.updateSidebar?.(); } catch (_) {}
+            }, { once: true });
+
             try {
-                // Wait for unified auth system
-                await unifiedAuth.waitForAuth();
-                
-                if (!unifiedAuth.currentUser) {
-                    window.location.href = 'login.html';
+                // Check if essential elements exist
+                if (!loadingState || !mainContent) {
+                    console.error('❌ عناصر HTML المطلوبة غير موجودة');
+                    // Try to show a basic error message
+                    document.body.innerHTML = `
+                        <div class="alert alert-danger m-4" dir="rtl">
+                            <h4>خطأ في تحميل الصفحة</h4>
+                            <p>لم يتم العثور على العناصر المطلوبة في الصفحة. يرجى إعادة تحميل الصفحة.</p>
+                            <button class="btn btn-primary" onclick="location.reload()">إعادة تحميل</button>
+                        </div>
+                    `;
                     return;
                 }
-
-                // Check if user has access to analytics
-                const userData = await unifiedAuth.getCurrentUserData();
-                const userRole = userData?.role;
                 
-                if (userRole === 'admin' || hasPermission(userRole, 'view_reports')) {
-                    await initializePage();
-                    if (window.sidebarManager) {
-                        window.sidebarManager.updateSidebarNav(true, userRole);
+                // Wait for Firebase and unified auth with timeout
+                const firebaseTimeout = setTimeout(() => {
+                    console.warn('⏰ انتهت مهلة انتظار Firebase');
+                }, 4000); // 4 ثوانٍ
+                
+                try {
+                    await waitForFirebase();
+                    clearTimeout(firebaseTimeout);
+                } catch (error) {
+                    console.error('🔄 خطأ في انتظار Firebase:', error);
+                    clearTimeout(firebaseTimeout);
+                    if (localStorage.getItem('archiveDemoMode') === 'enabled') {
+                        await initializeDemoAnalytics();
+                        showAnalyticsDemoNotice();
+                        return;
+                    } else {
+                        throw error;
                     }
-                } else {
-                    window.location.href = 'index.html';
                 }
+                
+                // Initialize global variables
+                analyticsAuth = window.unifiedAuth;
+                analyticsDb = window.db;
+                analyticsNotify = window.notify || window.notificationManager;
+                analyticsModule = window.analytics;
+                
+                console.log('🔍 فحص حالة Firebase:', {
+                    unifiedAuth: !!analyticsAuth,
+                    currentUser: !!analyticsAuth?.currentUser,
+                    db: !!analyticsDb
+                });
+                
+                // انتظر حتى تُحدد حالة المستخدم ثم حدّث الواجهة واعرض البيانات الفعلية
+                await waitForAuthReady();
+                // Toggle admin tools visibility based on role
+                try {
+                    const isAdmin = !!(window.unifiedAuth && (window.unifiedAuth.userRole === 'admin' || window.unifiedAuth.hasPermission?.('system.admin')));
+                    const adminCard = document.getElementById('adminToolsCard');
+                    if (adminCard && isAdmin) {
+                        adminCard.classList.remove('d-none');
+                    }
+                } catch (_) {}
+                if (window.unifiedUI?.updateSidebar) {
+                    await window.unifiedUI.updateSidebar();
+                }
+                await initializePage();
+                return;
             } catch (error) {
                 console.error('خطأ في التحقق من الصلاحيات:', error);
-                window.location.href = 'index.html';
+                // Fallback اختياري للوضع التجريبي فقط إن كان مفعلاً يدوياً
+                if (localStorage.getItem('archiveDemoMode') === 'enabled') {
+                    console.log('🔄 التبديل للوضع التجريبي بناءً على الإعداد المحلي');
+                    await initializeDemoAnalytics();
+                    showAnalyticsDemoNotice();
+                } else {
+                    // عرض رسالة ودية بدلاً من بيانات وهمية
+                    loadingState.classList.add('d-none');
+                    mainContent.classList.remove('d-none');
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-warning';
+                    alert.dir = 'rtl';
+                    alert.innerHTML = '<strong>تعذر تحميل التحليلات الفعلية.</strong> يرجى إعادة المحاولة أو التحقق من الاتصال.';
+                    mainContent.prepend(alert);
+                }
             }
         });
+
+        async function waitForFirebase() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 20; // 2 seconds total (20 * 100ms)
+                
+                const checkFirebase = () => {
+                    attempts++;
+                    console.log(`🔄 محاولة ${attempts}/${maxAttempts} للعثور على Firebase...`);
+                    
+                    if (window.unifiedAuth && window.db) {
+                        console.log('✅ تم العثور على Firebase');
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        console.log('❌ انتهت المحاولات، لم يتم العثور على Firebase');
+                        reject(new Error('Firebase not loaded'));
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
+        }
+
+        // ينتظر حتى تتوفر حالة المستخدم الفعلية أو ينتهي الوقت
+        async function waitForAuthReady(timeoutMs = 4000) {
+            if (window.unifiedAuth?.currentUser) return;
+            await new Promise((resolve) => {
+                let resolved = false;
+                const onReady = () => { if (!resolved) { resolved = true; resolve(); } };
+                const t = setTimeout(onReady, timeoutMs);
+                document.addEventListener('firebaseAuthReady', () => { clearTimeout(t); onReady(); }, { once: true });
+            });
+        }
+
+        function hasPermission(userRole, permission) {
+            if (!userRole) return false;
+            
+            const permissions = {
+                'admin': ['view_reports', 'manage_users', 'delete_files'],
+                'archive_officer': ['view_reports', 'upload_files'],
+                'viewer': []
+            };
+            
+            return permissions[userRole]?.includes(permission) || false;
+        }
 
         async function initializePage() {
             loadingState.classList.add('d-none');
@@ -540,10 +704,82 @@
         }
 
         function setupEventListeners() {
-            refreshBtn.addEventListener('click', loadAnalyticsData);
-            dateRangeSelect.addEventListener('change', loadAnalyticsData);
-            userRoleSelect.addEventListener('change', loadAnalyticsData);
-            exportBtn.addEventListener('click', exportData);
+            console.log('🎯 إعداد مستمعي الأحداث...');
+            
+            // Check if elements exist before adding listeners
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', loadAnalyticsData);
+                console.log('✅ مستمع زر التحديث تم إعداده');
+            } else {
+                console.warn('⚠️ زر التحديث غير موجود');
+            }
+            
+            if (dateRangeSelect) {
+                dateRangeSelect.addEventListener('change', loadAnalyticsData);
+                console.log('✅ مستمع اختيار التاريخ تم إعداده');
+            } else {
+                console.warn('⚠️ عنصر اختيار التاريخ غير موجود');
+            }
+            
+            if (userRoleSelect) {
+                userRoleSelect.addEventListener('change', loadAnalyticsData);
+                console.log('✅ مستمع اختيار الدور تم إعداده');
+            } else {
+                console.warn('⚠️ عنصر اختيار الدور غير موجود');
+            }
+            
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportData);
+                console.log('✅ مستمع زر التصدير تم إعداده');
+            } else {
+                console.warn('⚠️ زر التصدير غير موجود');
+            }
+
+            // Admin: cleanup thumbnails
+            const btnCleanup = document.getElementById('btnCleanupThumbsAnalytics');
+            if (btnCleanup) {
+                btnCleanup.addEventListener('click', handleCleanupThumbnailsAnalytics);
+            }
+        }
+
+        // Admin action: call cleanupThumbnails function and show feedback
+        async function handleCleanupThumbnailsAnalytics(e) {
+            try {
+                if (e) e.preventDefault();
+                const statusEl = document.getElementById('cleanupStatusAnalytics');
+                if (statusEl) statusEl.textContent = 'جاري التنفيذ...';
+                // Client-side permission check (server also enforces admin)
+                const isAdmin = !!(window.unifiedAuth && (window.unifiedAuth.userRole === 'admin' || window.unifiedAuth.hasPermission?.('system.admin')));
+                if (!isAdmin) {
+                    if (statusEl) statusEl.textContent = '';
+                    showInlineAlert('هذا الإجراء مخصص لمدير النظام فقط', 'danger');
+                    return;
+                }
+                const svc = window.cloudFunctionService || new window.CloudFunctionService();
+                const res = await svc.cleanupThumbnails();
+                if (statusEl) statusEl.textContent = '';
+                const deleted = res?.deleted || res?.count || 0;
+                showInlineAlert(`تم مسح المصغرات بنجاح. العناصر المحذوفة: ${deleted}`, 'success');
+            } catch (err) {
+                const statusEl = document.getElementById('cleanupStatusAnalytics');
+                if (statusEl) statusEl.textContent = '';
+                console.error('Cleanup thumbnails failed:', err);
+                showInlineAlert(`تعذر مسح المصغرات: ${err?.message || err}`, 'danger');
+            }
+        }
+
+        function showInlineAlert(message, type = 'info') {
+            // Prefer notification service if available
+            if (analyticsNotify && typeof analyticsNotify[type] === 'function') {
+                try { analyticsNotify[type](type === 'success' ? 'نجاح' : 'تنبيه', message); return; } catch (_) {}
+            }
+            try {
+                const host = document.getElementById('mainContent');
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${message}<button type=\"button\" class=\"btn-close\" data-bs-dismiss=\"alert\" aria-label=\"Close\"></button></div>`;
+                host?.prepend(wrapper.firstChild);
+                setTimeout(() => { const el = host?.querySelector('.alert'); if (el) el.remove(); }, 6000);
+            } catch (_) { /* noop */ }
         }
 
         async function loadAnalyticsData() {
@@ -555,7 +791,39 @@
                 const selectedRole = userRoleSelect.value;
 
                 // Generate analytics report
-                const report = analytics.generateReport(dateRange);
+                let report;
+                if (analyticsModule && analyticsModule.generateReport) {
+                    report = analyticsModule.generateReport(dateRange);
+                } else {
+                    // Fallback to demo data if analytics not available
+                    report = {
+                        summary: {
+                            totalPageViews: 1250,
+                            uniqueUsers: 48,
+                            totalEvents: 325,
+                            averageSessionDuration: 245000,
+                            errorRate: 2.1,
+                            performanceMetrics: {
+                                averageLoadTime: 1200,
+                                averageDomReady: 800
+                            }
+                        },
+                        charts: {
+                            dailyActivity: generateDemoChartData(dateRange),
+                            topActions: [
+                                { action: 'رفع الملفات', count: 420 },
+                                { action: 'البحث', count: 380 },
+                                { action: 'التحميل', count: 290 },
+                                { action: 'المراجعة', count: 160 }
+                            ],
+                            deviceTypes: {
+                                desktop: 65,
+                                mobile: 30,
+                                tablet: 5
+                            }
+                        }
+                    };
+                }
                 
                 // Load additional data from Firebase
                 const firebaseData = await loadFirebaseAnalytics(dateRange, selectedRole);
@@ -568,10 +836,18 @@
                 updateCharts(combinedData);
                 updateActivitiesTable(combinedData.recentActivities);
                 
-                notify.success('تم التحديث', 'تم تحديث البيانات بنجاح');
+                if (analyticsNotify && analyticsNotify.success) {
+                    analyticsNotify.success('تم التحديث', 'تم تحديث البيانات بنجاح');
+                } else {
+                    console.log('✅ تم تحديث البيانات بنجاح');
+                }
             } catch (error) {
                 console.error('خطأ في تحميل البيانات:', error);
-                notify.error('خطأ', 'فشل في تحميل البيانات');
+                if (analyticsNotify && analyticsNotify.error) {
+                    analyticsNotify.error('خطأ', 'فشل في تحميل البيانات');
+                } else {
+                    console.error('❌ فشل في تحميل البيانات');
+                }
             } finally {
                 refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>تحديث البيانات';
                 refreshBtn.disabled = false;
@@ -579,105 +855,405 @@
         }
 
         async function loadFirebaseAnalytics(dateRange, role) {
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - dateRange);
+            try {
+                if (!analyticsDb) {
+                    console.warn('Firebase database not available');
+                    if (localStorage.getItem('archiveDemoMode') === 'enabled') {
+                        return generateDemoFirebaseData();
+                    }
+                    return { users: [], documents: [], movements: [], totalDocuments: 0, periodStats: null };
+                }
+                
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - dateRange);
+                const prevStart = new Date(cutoffDate);
+                prevStart.setDate(prevStart.getDate() - dateRange);
 
-            // Load users data
-            let usersQuery = db.collection('users');
-            if (role) {
-                usersQuery = usersQuery.where('role', '==', role);
+                // Load users data (optionally filtered by role)
+                let usersQuery = analyticsDb.collection('users');
+                if (role && role !== 'all') {
+                    usersQuery = usersQuery.where('role', '==', role);
+                }
+                const usersSnapshot = await usersQuery.get();
+                const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Recent documents within date range (for charts/activities)
+                const documentsSnapshot = await analyticsDb.collection('documents')
+                    .where('createdAt', '>=', cutoffDate)
+                    .get();
+                const documents = documentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Previous period documents count
+                let documentsPrevCount = null;
+                try {
+                    const docsPrevSnap = await analyticsDb.collection('documents')
+                        .where('createdAt', '>=', prevStart)
+                        .where('createdAt', '<', cutoffDate)
+                        .get();
+                    documentsPrevCount = docsPrevSnap.size;
+                } catch (e) {
+                    console.warn('Could not fetch previous-period documents count:', e);
+                }
+
+                // Total documents (all time) for the headline stat
+                // Prefer calling Cloud Function to count Storage files accurately, then add Firestore 'documents' if needed
+                let totalDocuments = 0;
+                // 1) Try Cloud Function: storage files count (accurate source of truth for Storage)
+                try {
+                    if (window.functions || firebase.functions) {
+                        // Use explicit region to avoid any default-region mismatch
+                        const fn = (
+                            window.functions || firebase.functions('us-central1')
+                        ).httpsCallable('getStorageFilesCount');
+                        // Count files only under the 'documents/' prefix in Storage
+                        const resp = await fn({ prefix: 'documents/' });
+                        const storageCount = resp?.data?.data?.count ?? resp?.data?.count;
+                        if (typeof storageCount === 'number' && storageCount >= 0) {
+                            totalDocuments = storageCount;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not get storage files count from Cloud Function:', e);
+                }
+                // 2) Also count Firestore documents records (in case there are indexed docs without physical files yet)
+                try {
+                    const totalDocsSnap = await analyticsDb.collection('documents').get();
+                    const docsCount = totalDocsSnap.size;
+                    // If Cloud Function failed, use docsCount; else choose max to avoid undercount
+                    totalDocuments = Math.max(totalDocuments, docsCount);
+                } catch (e) {
+                    console.warn('Could not fetch documents count:', e);
+                }
+
+                // File movements within date range
+                const movementsSnapshot = await analyticsDb.collection('file_movements')
+                    .where('timestamp', '>=', cutoffDate)
+                    .get();
+                const movements = movementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Previous period movements count
+                let movementsPrevCount = null;
+                try {
+                    const mvPrevSnap = await analyticsDb.collection('file_movements')
+                        .where('timestamp', '>=', prevStart)
+                        .where('timestamp', '<', cutoffDate)
+                        .get();
+                    movementsPrevCount = mvPrevSnap.size;
+                } catch (e) {
+                    console.warn('Could not fetch previous-period movements count:', e);
+                }
+
+                const periodStats = {
+                    documents: { current: documents.length, previous: documentsPrevCount },
+                    movements: { current: movements.length, previous: movementsPrevCount }
+                };
+
+                return { users, documents, movements, totalDocuments, periodStats };
+            } catch (error) {
+                console.error('Error loading Firebase analytics:', error);
+                if (localStorage.getItem('archiveDemoMode') === 'enabled') {
+                    return generateDemoFirebaseData();
+                }
+                return { users: [], documents: [], movements: [], totalDocuments: 0, periodStats: null };
             }
-            
-            const usersSnapshot = await usersQuery.get();
-            const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
 
-            // Load documents data
-            const documentsSnapshot = await db.collection('documents')
-                .where('createdAt', '>=', cutoffDate)
-                .get();
-            const documents = documentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Load file movements data
-            const movementsSnapshot = await db.collection('file_movements')
-                .where('timestamp', '>=', cutoffDate)
-                .get();
-            const movements = movementsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            return { users, documents, movements };
+        function generateDemoFirebaseData() {
+            return {
+                users: Array.from({length: 15}, (_, i) => ({
+                    id: `user_${i}`,
+                    email: `user${i}@example.com`,
+                    role: ['admin', 'archive_officer', 'viewer'][i % 3],
+                    createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
+                })),
+                documents: Array.from({length: 50}, (_, i) => ({
+                    id: `doc_${i}`,
+                    title: `وثيقة رقم ${i + 1}`,
+                    createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
+                })),
+                movements: Array.from({length: 30}, (_, i) => ({
+                    id: `movement_${i}`,
+                    timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+                    action: ['upload', 'download', 'move'][i % 3]
+                }))
+            };
         }
 
         function mergeAnalyticsData(clientData, firebaseData) {
+            const activeUsers = getActiveUsersCount(firebaseData);
             return {
                 ...clientData,
                 firebase: firebaseData,
                 combined: {
                     totalUsers: firebaseData.users.length,
-                    totalDocuments: firebaseData.documents.length,
+                    totalDocuments: typeof firebaseData.totalDocuments === 'number' ? firebaseData.totalDocuments : firebaseData.documents.length,
                     totalMovements: firebaseData.movements.length,
-                    activeUsers: firebaseData.users.filter(u => u.lastLogin && 
-                        new Date(u.lastLogin.toDate()) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length
+                    activeUsers
                 },
+                periodStats: firebaseData.periodStats || null,
                 recentActivities: generateRecentActivities(firebaseData)
             };
         }
 
+        function getActiveUsersCount(firebaseData) {
+            try {
+                const cutoff = Date.now() - (parseInt(document.getElementById('dateRange')?.value || '7') * 24 * 60 * 60 * 1000);
+                const activeSet = new Set();
+
+                // 1) Infer activity from recent documents and movements (already filtered by dateRange)
+                for (const doc of firebaseData.documents || []) {
+                    const key = getUserKeyFromRecord(doc);
+                    if (key) activeSet.add(key);
+                }
+                for (const mv of firebaseData.movements || []) {
+                    const key = getUserKeyFromRecord(mv);
+                    if (key) activeSet.add(key);
+                }
+
+                // 2) Fallback to users' recent login/activity timestamps
+                if (activeSet.size === 0) {
+                    for (const u of firebaseData.users || []) {
+                        const ts = firstDefined(
+                            u.lastLogin,
+                            u.lastLoginAt,
+                            u.lastSignInTime,
+                            u.last_active,
+                            u.lastActivityAt,
+                            u.activityAt,
+                            u.updatedAt,
+                            u.createdAt,
+                            u.metadata?.lastSignInTime
+                        );
+                        const dt = normalizeTimestamp(ts);
+                        if (dt && dt.getTime() >= cutoff) {
+                            const key = u.uid || u.id || u.email || u.displayName || u.name;
+                            if (key) activeSet.add(key);
+                        }
+                    }
+                }
+
+                // 3) Always count current authenticated user as active within session
+                const cu = (typeof analyticsAuth !== 'undefined' && analyticsAuth?.currentUser) ? analyticsAuth.currentUser : null;
+                if (cu) {
+                    const key = cu.uid || cu.email || cu.displayName;
+                    if (key) activeSet.add(key);
+                }
+
+                return activeSet.size;
+            } catch (e) {
+                console.warn('active users fallback due to error:', e);
+                // Safe fallback
+                return (typeof analyticsAuth !== 'undefined' && analyticsAuth?.currentUser) ? 1 : 0;
+            }
+        }
+
+        function normalizeTimestamp(ts) {
+            if (!ts) return null;
+            try {
+                // Firestore Timestamp
+                if (typeof ts === 'object' && typeof ts.toDate === 'function') return ts.toDate();
+                // Date instance
+                if (ts instanceof Date) return ts;
+                // Number (ms or seconds)
+                if (typeof ts === 'number') {
+                    // If in seconds, convert to ms (assume < 10^12 is seconds)
+                    const ms = ts < 1e12 ? ts * 1000 : ts;
+                    return new Date(ms);
+                }
+                // String (ISO or parseable)
+                if (typeof ts === 'string') {
+                    const d = new Date(ts);
+                    if (!isNaN(d.getTime())) return d;
+                }
+            } catch (_) { /* ignore */ }
+            return null;
+        }
+
+        function getUserKeyFromRecord(rec) {
+            // Prefer uid/id/email if available, else fall back to any actor object fields
+            const candidate = firstDefined(
+                rec.uploadedByUid,
+                rec.uploaderUid,
+                rec.userUid,
+                rec.uid,
+                rec.userId,
+                rec.ownerUid,
+                rec.actorUid,
+                rec.actorId,
+                rec.performedByUid,
+                rec.transferredByUid,
+                rec.createdByUid,
+                rec.uploadedBy,
+                rec.createdBy,
+                rec.owner,
+                rec.uploader,
+                rec.user,
+                rec.actor,
+                rec.performedBy,
+                rec.transferredBy,
+                rec.createdByEmail,
+                rec.actorEmail,
+                rec.email
+            );
+
+            if (!candidate) return null;
+            if (typeof candidate === 'string') return candidate;
+            if (typeof candidate === 'object') {
+                return candidate.uid || candidate.id || candidate.email || candidate.displayName || candidate.name || null;
+            }
+            return null;
+        }
+
         function generateRecentActivities(data) {
             const activities = [];
-            
+
+            // Build a quick user index from Firestore users to resolve names
+            const userIndex = buildUserIndex(data.users || []);
+
             // Add document activities
             data.documents.slice(0, 10).forEach(doc => {
+                const userLabel = resolveUserLabel(userIndex,
+                    firstDefined(
+                        doc.uploadedBy,
+                        doc.createdBy,
+                        doc.owner,
+                        doc.uploader,
+                        doc.uploaderUid,
+                        doc.user,
+                        doc.userId,
+                        doc.uid,
+                        doc.actor,
+                        doc.actorUid,
+                        doc.actorEmail,
+                        doc.actorName
+                    )
+                );
                 activities.push({
                     timestamp: doc.createdAt,
-                    user: doc.uploadedBy || 'غير معروف',
+                    user: userLabel,
                     action: 'رفع وثيقة',
-                    details: doc.title || doc.filename,
+                    details: doc.title || doc.filename || doc.name || `وثيقة #${doc.id}`,
                     page: 'الوثائق'
                 });
             });
 
             // Add movement activities
             data.movements.slice(0, 10).forEach(movement => {
+                const userLabel = resolveUserLabel(userIndex,
+                    firstDefined(
+                        movement.transferredBy,
+                        movement.performedBy,
+                        movement.movedBy,
+                        movement.initiatedBy,
+                        movement.createdBy,
+                        movement.handledBy,
+                        movement.user,
+                        movement.userId,
+                        movement.uid,
+                        movement.actor,
+                        movement.actorUid,
+                        movement.actorEmail,
+                        movement.actorName,
+                        movement.performedByUid,
+                        movement.performedByEmail,
+                        movement.performedByName
+                    )
+                );
+                const fromDept = movement.fromDepartment || movement.from || movement.sourceDepartment || 'غير محدد';
+                const toDept = movement.toDepartment || movement.to || movement.targetDepartment || 'غير محدد';
                 activities.push({
-                    timestamp: movement.timestamp,
-                    user: movement.transferredBy || 'غير معروف',
+                    timestamp: movement.timestamp || movement.createdAt || movement.updatedAt,
+                    user: userLabel,
                     action: 'نقل ملف',
-                    details: `من ${movement.fromDepartment} إلى ${movement.toDepartment}`,
+                    details: `من ${fromDept} إلى ${toDept}`,
                     page: 'تتبع الملفات'
                 });
             });
 
-            return activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 20);
+            return activities
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                .slice(0, 20);
+        }
+
+        function buildUserIndex(users) {
+            const byId = new Map();
+            const byEmail = new Map();
+            users.forEach(u => {
+                const label = u.displayName || u.name || u.fullName || u.email || u.id || u.uid;
+                if (u.id) byId.set(u.id, label);
+                if (u.uid) byId.set(u.uid, label);
+                if (u.email) byEmail.set(u.email, label);
+            });
+            return { byId, byEmail };
+        }
+
+        function firstDefined(...vals) {
+            for (const v of vals) {
+                if (v !== undefined && v !== null) return v;
+            }
+            return undefined;
+        }
+
+        function resolveUserLabel(userIndex, userField) {
+            if (!userField) return 'غير معروف';
+            // If it's already a readable string (name/email), show it
+            if (typeof userField === 'string') {
+                const key = userField.trim();
+                // Try to resolve as UID first, then email
+                if (userIndex.byId.has(key)) return userIndex.byId.get(key);
+                if (userIndex.byEmail.has(key)) return userIndex.byEmail.get(key);
+                return key; // likely an email or name
+            }
+            // If it's an object, try common fields
+            if (typeof userField === 'object') {
+                const name = userField.displayName || userField.name || userField.fullName;
+                const uid = userField.uid || userField.id;
+                const email = userField.email;
+                if (name) return name;
+                if (uid && userIndex.byId.has(uid)) return userIndex.byId.get(uid);
+                if (email && userIndex.byEmail.has(email)) return userIndex.byEmail.get(email);
+                return email || uid || 'غير معروف';
+            }
+            return 'غير معروف';
         }
 
         function updateStatistics(data) {
+            // Compute realistic changes only where we have comparable period stats
+            const docChange = (data.periodStats?.documents?.previous > 0)
+                ? ((data.periodStats.documents.current - data.periodStats.documents.previous) / data.periodStats.documents.previous * 100)
+                : null;
+            const mvChange = (data.periodStats?.movements?.previous > 0)
+                ? ((data.periodStats.movements.current - data.periodStats.movements.previous) / data.periodStats.movements.previous * 100)
+                : null;
+
             const stats = [
                 {
                     title: 'إجمالي المستخدمين',
                     value: data.combined.totalUsers,
                     icon: 'fas fa-users',
                     color: '#3182ce',
-                    change: calculateChange(data.combined.totalUsers, data.summary.uniqueUsers)
+                    change: null // إجمالي تراكمي: لا نعرض نسبة تغيير لتجنب نتائج غير واقعية
                 },
                 {
                     title: 'المستخدمون النشطون',
                     value: data.combined.activeUsers,
                     icon: 'fas fa-user-check',
                     color: '#38a169',
-                    change: calculateChange(data.combined.activeUsers, Math.floor(data.summary.uniqueUsers * 0.7))
+                    change: null // لا نملك نافذة سابقة دقيقة للنشاط هنا
                 },
                 {
                     title: 'إجمالي الوثائق',
                     value: data.combined.totalDocuments,
                     icon: 'fas fa-file-alt',
                     color: '#d69e2e',
-                    change: calculateChange(data.combined.totalDocuments, data.summary.totalPageViews)
+                    change: docChange // نسبة تغيير عدد الوثائق المُضافة مقارنة بالفترة السابقة
                 },
                 {
                     title: 'حركات الملفات',
                     value: data.combined.totalMovements,
                     icon: 'fas fa-exchange-alt',
                     color: '#9f7aea',
-                    change: calculateChange(data.combined.totalMovements, data.summary.totalEvents)
+                    change: mvChange
                 },
                 {
                     title: 'متوسط وقت الجلسة',
@@ -691,7 +1267,7 @@
                     value: data.summary.errorRate.toFixed(1) + '%',
                     icon: 'fas fa-exclamation-triangle',
                     color: '#e53e3e',
-                    change: calculateChange(data.summary.errorRate, 5) // مقارنة مع 5% كمرجع
+                    change: null // حتى تتوفر بيانات حقيقية
                 }
             ];
 
@@ -701,7 +1277,7 @@
                         <div class="stat-icon" style="background-color: ${stat.color}">
                             <i class="${stat.icon}"></i>
                         </div>
-                        ${stat.change !== null ? `
+                        ${stat.change !== null && !isNaN(stat.change) ? `
                             <div class="stat-change ${stat.change >= 0 ? 'positive' : 'negative'}">
                                 <i class="fas fa-arrow-${stat.change >= 0 ? 'up' : 'down'} me-1"></i>
                                 ${Math.abs(stat.change).toFixed(1)}%
@@ -895,13 +1471,32 @@
 
         function exportData() {
             try {
-                const report = analytics.generateReport(parseInt(dateRangeSelect.value));
+                let report;
+                if (analyticsModule && analyticsModule.generateReport) {
+                    report = analyticsModule.generateReport(parseInt(dateRangeSelect.value));
+                } else {
+                    report = {
+                        charts: {
+                            dailyActivity: generateDemoChartData(30)
+                        }
+                    };
+                }
+                
                 const csvData = generateCSV(report);
                 downloadCSV(csvData, `analytics-${new Date().toISOString().split('T')[0]}.csv`);
-                notify.success('تم التصدير', 'تم تصدير البيانات بنجاح');
+                
+                if (analyticsNotify && analyticsNotify.success) {
+                    analyticsNotify.success('تم التصدير', 'تم تصدير البيانات بنجاح');
+                } else {
+                    console.log('✅ تم تصدير البيانات بنجاح');
+                }
             } catch (error) {
                 console.error('خطأ في التصدير:', error);
-                notify.error('خطأ', 'فشل في تصدير البيانات');
+                if (analyticsNotify && analyticsNotify.error) {
+                    analyticsNotify.error('خطأ', 'فشل في تصدير البيانات');
+                } else {
+                    console.error('❌ فشل في تصدير البيانات');
+                }
             }
         }
 
@@ -932,8 +1527,193 @@
         // Helper functions
         function calculateChange(current, previous) {
             if (!previous || previous === 0) return 0;
+            return ((current - previous) / previous * 100).toFixed(1);
+        }
+        
+        function generateDemoChartData(days) {
+            const data = [];
+            const now = new Date();
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                data.push({
+                    date: date.toISOString().split('T')[0],
+                    count: Math.floor(Math.random() * 50) + 10
+                });
+            }
+            return data;
+        }
+        
+        async function initializeDemoAnalytics() {
+            console.log('🎭 تفعيل وضع العرض التوضيحي للتحليلات');
+            
+            // Set demo user only if unifiedAuth doesn't exist
+            if (!window.unifiedAuth) {
+                window.unifiedAuth = {
+                    currentUser: {
+                        email: 'demo@archive-tech.com',
+                        displayName: 'مستخدم تجريبي',
+                        uid: 'demo-user-id'
+                    },
+                    getCurrentUserData: () => Promise.resolve({ role: 'admin' })
+                };
+            }
+            
+            // Update local reference
+            analyticsAuth = window.unifiedAuth;
+            
+            // Initialize page
+            loadingState.classList.add('d-none');
+            mainContent.classList.remove('d-none');
+            
+            // Load demo analytics data
+            await loadDemoAnalyticsData();
+            setupEventListeners();
+        }
+        
+        async function loadDemoAnalyticsData() {
+            // Generate demo analytics data
+            const demoData = {
+                totalActivities: 1250,
+                activeUsers: 48,
+                totalUploads: 325,
+                systemHealth: 98.5,
+                charts: {
+                    dailyActivity: generateDemoChartData(30),
+                    userActions: [
+                        { action: 'رفع الملفات', count: 420 },
+                        { action: 'البحث', count: 380 },
+                        { action: 'التحميل', count: 290 },
+                        { action: 'المراجعة', count: 160 }
+                    ],
+                    deviceTypes: [
+                        { type: 'Desktop', count: 65 },
+                        { type: 'Mobile', count: 30 },
+                        { type: 'Tablet', count: 5 }
+                    ]
+                }
+            };
+            
+            // Update UI with demo data
+            updateAnalyticsUI(demoData);
+            createDemoCharts(demoData.charts);
+        }
+        
+        function updateAnalyticsUI(data) {
+            const stats = [
+                {
+                    icon: 'fas fa-chart-line',
+                    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    value: data.totalActivities || '1,250',
+                    label: 'إجمالي الأنشطة',
+                    change: '+12.5%',
+                    type: 'positive'
+                },
+                {
+                    icon: 'fas fa-users',
+                    color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    value: data.activeUsers || '48',
+                    label: 'المستخدمون النشطون',
+                    change: '+8.3%',
+                    type: 'positive'
+                },
+                {
+                    icon: 'fas fa-file-upload',
+                    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    value: data.totalUploads || '325',
+                    label: 'الملفات المرفوعة',
+                    change: '+15.2%',
+                    type: 'positive'
+                },
+                {
+                    icon: 'fas fa-server',
+                    color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                    value: `${data.systemHealth || 98.5}%`,
+                    label: 'صحة النظام',
+                    change: '+0.5%',
+                    type: 'positive'
+                }
+            ];
+
+            statsContainer.innerHTML = stats.map(stat => `
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: ${stat.color};">
+                            <i class="${stat.icon}"></i>
+                        </div>
+                        <div class="stat-change ${stat.type}">
+                            ${stat.change}
+                        </div>
+                    </div>
+                    <h2 class="stat-value">${stat.value}</h2>
+                    <p class="stat-label">${stat.label}</p>
+                </div>
+            `).join('');
+        }
+        
+        function createDemoCharts(chartData) {
+            // Create demo charts with the provided data
+            updateDailyActivityChart(chartData.dailyActivity);
+            updateUserActionsChart(chartData.userActions);
+            updateDeviceTypesChart(chartData.deviceTypes);
+            updatePerformanceChart(chartData.performance);
+        }
+        
+        function generateDemoChartData(days) {
+            const data = [];
+            const now = new Date();
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                data.push({
+                    date: date.toISOString().split('T')[0],
+                    count: Math.floor(Math.random() * 50) + 10
+                });
+            }
+            return data;
+        }
+        
+        function showAnalyticsDemoNotice() {
+            setTimeout(() => {
+                const notice = document.createElement('div');
+                notice.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    max-width: 300px;
+                    font-family: 'Cairo', sans-serif;
+                `;
+                notice.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-chart-bar"></i>
+                        <div>
+                            <strong>وضع العرض التوضيحي</strong>
+                            <br><small>التحليلات في وضع المحاكاة</small>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
+                    </div>
+                `;
+                document.body.appendChild(notice);
+                
+                setTimeout(() => {
+                    if (notice.parentElement) {
+                        notice.remove();
+                    }
+                }, 8000);
+            }, 500);
+        }
+
+        function calculatePercentageChange(current, previous) {
+            if (previous === 0) return 0;
             return ((current - previous) / previous) * 100;
         }
+        
 
         function formatDuration(ms) {
             const minutes = Math.floor(ms / 60000);
@@ -955,11 +1735,13 @@
             });
         }
 
-        // Track page view
-        if (typeof analytics !== 'undefined') {
-            analytics.trackPageView();
+        // Track page view (demo-friendly)
+        if (analyticsModule && typeof analyticsModule.trackPageView === 'function') {
+            analyticsModule.trackPageView();
         }
     </script>
 </body>
 </html>
+
+
 

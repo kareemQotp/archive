@@ -1,4 +1,5 @@
 const admin = require('firebase-admin');
+const { serverTS } = require('./utils/serverTimestamp');
 
 // Initialize Firebase Admin
 const serviceAccount = require('../archive-tech-firebase-adminsdk.json');
@@ -25,7 +26,7 @@ async function createTestInvitation() {
       autoApprove: false,
       maxUses: 1,
       currentUses: 0,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  createdAt: serverTS(admin),
       expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days from now
       notes: 'دعوة اختبار للتطوير'
     };

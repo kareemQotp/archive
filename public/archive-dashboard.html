@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <link rel="stylesheet" href="assets/css/permissions.css">
     <style>
         .department-header {
@@ -119,28 +119,12 @@
             color: #2E8B57;
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <div class="d-flex align-items-center">
-                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="index.html">
-                    <i class="fas fa-archive me-2"></i>
-                    نظام الأرشيف
-                </a>
-            </div>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3" id="userInfo"></span>
-                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    خروج
-                </button>
-            </div>
-        </div>
-    </nav>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    
 
     <!-- Department Header -->
     <div class="department-header">
@@ -153,7 +137,7 @@
                 </div>
                 <div class="col">
                     <h1 class="mb-1">إدارة الأرشيف العام</h1>
-                    <p class="mb-0 opacity-75">إدارة وحفظ الوثائق والملفات الرسمية</p>
+                    <p class="mb-0 opacity-75" id="departmentSubtitle">إدارة وحفظ الوثائق والملفات الرسمية</p>
                 </div>
                 <div class="col-auto">
                     <div class="text-end">
@@ -296,7 +280,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -310,6 +295,9 @@
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
+    <!-- Role-Based Routing System -->
+    <script src="assets/js/role-based-routing.js"></script>
+    
     <!-- Notification System -->
     <script src="assets/js/notifications.js"></script>
     <script src="assets/js/notification-service.js"></script>
@@ -320,6 +308,11 @@
         let permissionController;
 
         document.addEventListener('DOMContentLoaded', async function() {
+            // تعطيل نظام التوجيه الذكي التلقائي في هذه الصفحة
+            window.__DISABLE_AUTO_ROUTING__ = true;
+            
+            // Unified UI auto-initializes; if present refresh sidebar
+            try { if (window.unifiedUI?.updateSidebar) await window.unifiedUI.updateSidebar(); } catch {}
             console.log('🔧 تحميل لوحة تحكم إدارة الأرشيف');
             
             // Wait for unified auth to initialize
@@ -340,6 +333,11 @@
             authSystem.onAuthStateChanged(async (user) => {
                 await handleAuthStateChange(user);
             });
+            
+            // منع التوجيه التلقائي من نظم أخرى
+            window.addEventListener('beforeunload', () => {
+                sessionStorage.removeItem('userChooseDashboard');
+            });
         });
 
         async function handleAuthStateChange(user) {
@@ -353,24 +351,186 @@
                 return;
             }
 
-            // Check if user belongs to Archive department
-            const userDepartment = authSystem.userDepartment;
-            if (userDepartment !== 'archive' && userDepartment !== 'إدارة الأرشيف العام') {
-                console.log('❌ المستخدم لا ينتمي لإدارة الأرشيف، التوجيه للوحة العامة');
+            // Check if user belongs to Archive department or has admin privileges
+            const userDepartment = authSystem.userProfile?.department || authSystem.userProfile?.departmentId;
+            // تطبيع اسم الإدارة للاعتماد على مفتاح واحد
+            let normalizedDept = (userDepartment || '').toString();
+            try {
+                if (window.roleBasedRouter && typeof window.roleBasedRouter.normalizeDepartmentName === 'function') {
+                    normalizedDept = window.roleBasedRouter.normalizeDepartmentName(normalizedDept);
+                } else {
+                    normalizedDept = normalizedDept.toLowerCase().trim();
+                    if (normalizedDept === 'الارشيف' || normalizedDept === 'ارشيف' || normalizedDept === 'ادارة الارشيف') normalizedDept = 'archive';
+                }
+            } catch (_) { /* ignore */ }
+            const userRole = authSystem.userProfile?.role;
+            const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin';
+            const isArchiveOfficer = userRole === 'archive-officer' || userRole === 'archive_officer';
+            
+            console.log('🔍 فحص صلاحيات الوصول للأرشيف:', {
+                userDepartment,
+                userRole,
+                isSystemAdmin,
+                isArchiveOfficer,
+                userEmail: user.email,
+                fullProfile: authSystem.userProfile
+            });
+            
+            // Allow access for:
+            // 1. Archive department users (by department name or ID)
+            // 2. Archive officers (by role)
+            // 3. System admins
+            // 4. Users with admin role
+            // 5. Admin emails
+            const hasAccess = normalizedDept === 'archive' ||
+                            userDepartment === 'إدارة الأرشيف' ||
+                            userDepartment === 'إدارة الأرشيف العام' ||
+                            userDepartment === 'أرشيف' ||
+                            userDepartment === 'الأرشيف' ||
+                            isArchiveOfficer ||
+                            isSystemAdmin ||
+                            userRole === 'admin' ||
+                            user.email?.includes('admin');
+            
+            if (!hasAccess) {
+                const awaitingProfile = !window.db || !userDepartment || userDepartment === 'عام';
+                if (awaitingProfile) {
+                    console.log('⏳ لا يوجد وصول حالياً وربما لم تُحمَّل بيانات الملف الشخصي بعد. انتظار تحديث الملف الشخصي...');
+
+                    let redirected = false;
+                    const fallbackTimer = setTimeout(() => {
+                        if (redirected) return;
+                        // قبل التحويل النهائي، تحقق عبر الراوتر المركزي إن كان يجب أن يكون هنا
+                        try {
+                            if (window.roleBasedRouter && authSystem?.userProfile) {
+                                const target = window.roleBasedRouter.getDashboardRoute(authSystem.userProfile);
+                                if (target === 'archive-dashboard.html') {
+                                    console.log('✅ الراوتر يؤكد أن هذه هي الصفحة الصحيحة، لن يتم التحويل.');
+                                    return; // اترك المستخدم هنا
+                                }
+                            }
+                        } catch (_) {}
+                        console.log('⏱️ انتهى الانتظار دون تحديث للملف الشخصي، التوجيه للوحة العامة');
+                        alert('ليس لديك صلاحية للوصول إلى لوحة تحكم إدارة الأرشيف. سيتم توجيهك للوحة التحكم العامة.');
+                        window.location.href = 'dashboard.html?message=wrong-department';
+                    }, 2000);
+
+                    window.addEventListener('userProfileRefreshed', async () => {
+                        if (redirected) return;
+                        try {
+                            clearTimeout(fallbackTimer);
+                            // إعادة التحقق بعد تحديث الملف الشخصي
+                            const refreshedDept = authSystem.userProfile?.department || authSystem.userProfile?.departmentId;
+                            const refreshedRole = authSystem.userProfile?.role;
+                            const refreshedIsAdmin = refreshedRole === 'system_admin' || refreshedRole === 'admin';
+                            const refreshedIsArchiveOfficer = refreshedRole === 'archive-officer' || refreshedRole === 'archive_officer';
+                            // احتساب عبر الراوتر أولاً
+                            let routerAffirms = false;
+                            try {
+                                if (window.roleBasedRouter && authSystem?.userProfile) {
+                                    const target = window.roleBasedRouter.getDashboardRoute(authSystem.userProfile);
+                                    routerAffirms = (target === 'archive-dashboard.html');
+                                }
+                            } catch (_) {}
+
+                            const refreshedHasAccess = routerAffirms ||
+                                                      refreshedDept === 'archive' ||
+                                                      refreshedDept === 'إدارة الأرشيف' ||
+                                                      refreshedDept === 'إدارة الأرشيف العام' ||
+                                                      refreshedDept === 'أرشيف' ||
+                                                      refreshedDept === 'الأرشيف' ||
+                                                      refreshedIsArchiveOfficer ||
+                                                      refreshedIsAdmin ||
+                                                      refreshedRole === 'admin' ||
+                                                      user.email?.includes('admin');
+
+                            if (!refreshedHasAccess) {
+                                console.log('❌ بعد التحديث: ما زال المستخدم بلا صلاحية وصول، التوجيه للوحة العامة');
+                                alert('ليس لديك صلاحية للوصول إلى لوحة تحكم إدارة الأرشيف. سيتم توجيهك للوحة التحكم العامة.');
+                                window.location.href = 'dashboard.html?message=wrong-department';
+                                redirected = true;
+                                return;
+                            }
+
+                            console.log('✅ بعد التحديث: تم منح الوصول لإدارة الأرشيف');
+                            // متابعة نفس الخطوات كما في المسار الناجح
+                            const displayName2 = user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم');
+                            let badgeText2 = 'إدارة الأرشيف';
+                            let badgeClass2 = 'bg-success';
+                            if (refreshedIsAdmin) { badgeText2 = 'مسؤول النظام'; badgeClass2 = 'bg-danger'; }
+                            else if (refreshedRole === 'admin') { badgeText2 = 'مدير'; badgeClass2 = 'bg-warning'; }
+                            else if (refreshedIsArchiveOfficer) { badgeText2 = 'موظف أرشيف'; badgeClass2 = 'bg-info'; }
+                            const subtitleEl = document.getElementById('departmentSubtitle');
+                            if (subtitleEl) {
+                                if (refreshedIsAdmin) subtitleEl.textContent = 'لوحة تحكم شاملة - عرض جميع البيانات عبر النظام';
+                                else if (refreshedIsArchiveOfficer) subtitleEl.textContent = 'لوحة تحكم موظف الأرشيف - إدارة الوثائق والملفات';
+                            }
+                            const userInfoEl2 = document.getElementById('userInfo');
+                            if (userInfoEl2) {
+                                userInfoEl2.innerHTML = `<i class="fas fa-user me-1"></i> ${displayName2} <span class="badge ${badgeClass2} ms-2">${badgeText2}</span>`;
+                            }
+                            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                                window.unifiedUI.updateSidebar();
+                            }
+                            if (permissionController) { permissionController.updateUI(); }
+                            await loadArchiveDashboardData();
+                        } catch (e) {
+                            console.warn('خطأ أثناء إعادة التحقق بعد تحديث الملف الشخصي:', e);
+                            alert('ليس لديك صلاحية للوصول إلى لوحة تحكم إدارة الأرشيف. سيتم توجيهك للوحة التحكم العامة.');
+                            window.location.href = 'dashboard.html?message=wrong-department';
+                            redirected = true;
+                        }
+                    }, { once: true });
+
+                    return;
+                }
+
+                console.log('❌ المستخدم لا يملك صلاحية الوصول لإدارة الأرشيف، التوجيه للوحة العامة');
+                console.log('تفاصيل المستخدم:', { department: userDepartment, role: userRole, email: user.email });
+                alert('ليس لديك صلاحية للوصول إلى لوحة تحكم إدارة الأرشيف. سيتم توجيهك للوحة التحكم العامة.');
                 window.location.href = 'dashboard.html?message=wrong-department';
                 return;
             }
+            
+            console.log('✅ تم منح الوصول لإدارة الأرشيف');
+
+            // Update department subtitle for system admins
+            if (isSystemAdmin) {
+                document.getElementById('departmentSubtitle').textContent = 
+                    'لوحة تحكم شاملة - عرض جميع البيانات عبر النظام';
+            } else if (isArchiveOfficer) {
+                document.getElementById('departmentSubtitle').textContent = 
+                    'لوحة تحكم موظف الأرشيف - إدارة الوثائق والملفات';
+            }
 
             // Update user info display
-            const displayName = user.displayName || user.email.split('@')[0];
+            const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم');
+            
+            let badgeText = 'إدارة الأرشيف';
+            let badgeClass = 'bg-success';
+            
+            if (isSystemAdmin) {
+                badgeText = 'مسؤول النظام';
+                badgeClass = 'bg-danger';
+            } else if (userRole === 'admin') {
+                badgeText = 'مدير';
+                badgeClass = 'bg-warning';
+            } else if (isArchiveOfficer) {
+                badgeText = 'موظف أرشيف';
+                badgeClass = 'bg-info';
+            }
+            
             document.getElementById('userInfo').innerHTML = `
                 <i class="fas fa-user me-1"></i> ${displayName}
-                <span class="badge bg-success ms-2">إدارة الأرشيف</span>
+                <span class="badge ${badgeClass} ms-2">${badgeText}</span>
             `;
             
             // Update sidebar
             if (window.sidebarManager) {
-                window.sidebarManager.updateSidebarNav(true);
+                const unifiedUI = window.unifiedUITemplate;
+            if (unifiedUI) {
+                unifiedUI.updateSidebar();
+            };
             }
 
             // Update permission-based UI
@@ -400,53 +560,138 @@
 
         async function loadDepartmentStats() {
             try {
-                // Archive documents count
-                const archiveDocsQuery = authSystem.db.collection('documents')
-                    .where('department', '==', 'archive');
-                const archiveDocsSnap = await archiveDocsQuery.get();
-                document.getElementById('statDocuments').textContent = archiveDocsSnap.size;
+                if (!window.db) {
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة لتحميل إحصائيات الأرشيف');
+                    setStatsDefaults();
+                    return;
+                }
 
-                // Classified folders count (documents with classification)
-                const classifiedQuery = authSystem.db.collection('documents')
-                    .where('department', '==', 'archive')
-                    .where('classification', '!=', null);
-                const classifiedSnap = await classifiedQuery.get();
-                document.getElementById('statFolders').textContent = classifiedSnap.size;
+                const isSystemAdmin = authSystem.userProfile?.role === 'system_admin' || authSystem.userProfile?.role === 'admin';
+                const deptFilter = !isSystemAdmin;
 
-                // This month uploads
-                const thisMonth = new Date();
-                thisMonth.setDate(1);
-                thisMonth.setHours(0, 0, 0, 0);
-                
-                const monthlyUploadsQuery = authSystem.db.collection('documents')
-                    .where('department', '==', 'archive')
-                    .where('uploadDate', '>=', thisMonth);
-                const monthlyUploadsSnap = await monthlyUploadsQuery.get();
-                document.getElementById('statUploads').textContent = monthlyUploadsSnap.size;
+                // (1) الوثائق المحفوظة: نحاول currentDepartment ثم department
+                let docCount = 0;
+                try {
+                    if (deptFilter) {
+                        const snap1 = await window.db.collection('documents').where('currentDepartment', '==', 'archive').limit(1).get();
+                        const useCurrent = !snap1.empty; // هل يوجد حقل currentDepartment مستخدم فعلاً
+                        const docsSnap = await window.db.collection('documents')
+                            .where(useCurrent ? 'currentDepartment' : 'department', '==', 'archive')
+                            .get();
+                        docCount = docsSnap.size;
+                    } else {
+                        const docsSnap = await window.db.collection('documents').get();
+                        docCount = docsSnap.size;
+                    }
+                } catch (e) { console.warn('documents count fallback:', e.message); }
+                document.getElementById('statDocuments').textContent = docCount;
 
-                // Search activities count (from activity logs)
-                const searchLogsQuery = authSystem.db.collection('activity_logs')
-                    .where('action', '==', 'search')
-                    .where('userDepartment', '==', 'archive')
-                    .orderBy('timestamp', 'desc')
-                    .limit(100);
-                const searchLogsSnap = await searchLogsQuery.get();
-                document.getElementById('statSearches').textContent = searchLogsSnap.size;
+                // (2) الملفات المصنفة: classification != null (مع مراعاة أن بعض المستندات قد تستخدم classificationCode)
+                let classifiedCount = 0;
+                try {
+                    let query = window.db.collection('documents').where('classification', '!=', null);
+                    if (deptFilter) query = query.where('currentDepartment', '==', 'archive');
+                    const clsSnap = await query.get();
+                    classifiedCount = clsSnap.size;
+                    if (classifiedCount === 0) {
+                        let alt = window.db.collection('documents').where('classificationCode', '!=', null);
+                        if (deptFilter) alt = alt.where('currentDepartment', '==', 'archive');
+                        const altSnap = await alt.get();
+                        if (!altSnap.empty) classifiedCount = altSnap.size;
+                    }
+                } catch (e) { console.warn('classified fallback:', e.message); }
+                document.getElementById('statFolders').textContent = classifiedCount;
+
+                // (3) رفع هذا الشهر: حقل uploadDate أو uploadedAt (Timestamp/String)
+                let uploadsThisMonth = 0;
+                try {
+                    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+                    // Query using uploadedAt if indexed else fallback to fetching subset (bounded by 200) for performance
+                    let baseQuery = window.db.collection('documents');
+                    if (deptFilter) baseQuery = baseQuery.where('currentDepartment', '==', 'archive');
+                    // Attempt server-side filter if field exists for at least one doc
+                    let useUploadedAt = false;
+                    try {
+                        const test = await baseQuery.where('uploadedAt','>=', monthStart).limit(1).get();
+                        useUploadedAt = true; // if query didn't throw, field is queryable
+                        uploadsThisMonth = test.size; // seed
+                        if (test.size === 1) {
+                            // Need full count
+                            const full = await baseQuery.where('uploadedAt','>=', monthStart).get();
+                            uploadsThisMonth = full.size;
+                        }
+                    } catch (_) {
+                        // fallback: load limited set and filter client-side
+                        const subset = await baseQuery.orderBy('uploadedAt','desc').limit(200).get().catch(()=> null);
+                        if (subset) {
+                            uploadsThisMonth = subset.docs.filter(d=> {
+                                const data = d.data();
+                                const ts = data.uploadedAt || data.uploadDate || data.uploadTime;
+                                const dt = ts && ts.toDate ? ts.toDate() : (typeof ts === 'string' ? new Date(ts) : (ts instanceof Date ? ts : null));
+                                return dt && dt >= monthStart;
+                            }).length;
+                        }
+                    }
+                } catch (e) { console.warn('uploads month fallback:', e.message); }
+                document.getElementById('statUploads').textContent = uploadsThisMonth;
+
+                // (4) عمليات البحث: action == 'search' (قد نحتاج userDepartment أو currentDepartment)
+                let searchCount = 0;
+                try {
+                    let searchQuery = window.db.collection('activity_logs').where('action','==','search').orderBy('timestamp','desc').limit(200);
+                    if (deptFilter) {
+                        // prefer userDepartment, fallback currentDepartment
+                        const test = await window.db.collection('activity_logs').where('userDepartment','==','archive').limit(1).get();
+                        if (!test.empty) {
+                            searchQuery = window.db.collection('activity_logs')
+                                .where('action','==','search')
+                                .where('userDepartment','==','archive')
+                                .orderBy('timestamp','desc')
+                                .limit(200);
+                        } else {
+                            searchQuery = window.db.collection('activity_logs')
+                                .where('action','==','search')
+                                .where('currentDepartment','==','archive')
+                                .orderBy('timestamp','desc')
+                                .limit(200);
+                        }
+                    }
+                    const searchSnap = await searchQuery.get();
+                    searchCount = searchSnap.size;
+                } catch (e) { console.warn('search count fallback:', e.message); }
+                document.getElementById('statSearches').textContent = searchCount;
+
+                console.log('[ArchiveDashboardStats]', { docCount, classifiedCount, uploadsThisMonth, searchCount, deptFilter });
 
             } catch (error) {
                 console.warn('لا يمكن تحميل إحصائيات الإدارة:', error);
-                // Set default values
-                document.getElementById('statDocuments').textContent = '0';
-                document.getElementById('statFolders').textContent = '0';
-                document.getElementById('statUploads').textContent = '0';
-                document.getElementById('statSearches').textContent = '0';
+                setStatsDefaults();
             }
+        }
+
+        function setStatsDefaults(){
+            document.getElementById('statDocuments').textContent = '0';
+            document.getElementById('statFolders').textContent = '0';
+            document.getElementById('statUploads').textContent = '0';
+            document.getElementById('statSearches').textContent = '0';
         }
 
         async function loadDepartmentUserCount() {
             try {
-                const usersQuery = authSystem.db.collection('users')
-                    .where('department', '==', 'archive');
+                if (!window.db) {
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة لتحميل عدد المستخدمين');
+                    document.getElementById('departmentUserCount').textContent = '0';
+                    return;
+                }
+
+                const isSystemAdmin = authSystem.userProfile?.role === 'system_admin' || 
+                                    authSystem.userProfile?.role === 'admin';
+                
+                let usersQuery = window.db.collection('users');
+                if (!isSystemAdmin) {
+                    usersQuery = usersQuery.where('department', '==', 'archive');
+                }
+                
                 const usersSnap = await usersQuery.get();
                 document.getElementById('departmentUserCount').textContent = usersSnap.size;
             } catch (error) {
@@ -457,10 +702,28 @@
 
         async function loadRecentActivity() {
             try {
-                const activityQuery = authSystem.db.collection('activity_logs')
-                    .where('userDepartment', '==', 'archive')
+                if (!window.db) {
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة لتحميل النشاط الأخير');
+                    document.getElementById('recentActivity').innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-database me-2"></i>
+                            قاعدة البيانات غير متوفرة حالياً
+                        </div>
+                    `;
+                    return;
+                }
+
+                const isSystemAdmin = authSystem.userProfile?.role === 'system_admin' || 
+                                    authSystem.userProfile?.role === 'admin';
+                
+                let activityQuery = window.db.collection('activity_logs')
                     .orderBy('timestamp', 'desc')
                     .limit(10);
+                
+                // For non-admin users, filter by department
+                if (!isSystemAdmin) {
+                    activityQuery = activityQuery.where('userDepartment', '==', 'archive');
+                }
                 
                 const activitySnap = await activityQuery.get();
                 const activityContainer = document.getElementById('recentActivity');
@@ -509,6 +772,7 @@
                                     <div class="fw-medium">${activity.description || activity.action}</div>
                                     <small class="text-muted">
                                         ${activity.userName || 'مستخدم'} • ${timeStr}
+                                        ${isSystemAdmin && activity.userDepartment ? ` • ${activity.userDepartment}` : ''}
                                     </small>
                                 </div>
                             </div>
@@ -541,4 +805,6 @@
     </script>
 </body>
 </html>
+
+
 

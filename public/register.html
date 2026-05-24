@@ -13,12 +13,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <!-- تطبيق الألوان الجديدة -->
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <!-- Permission-based styling system -->
     <link rel="stylesheet" href="assets/css/permissions.css">
+    <script>window.__ALLOW_GUEST_ACCESS__ = true; window.__HIDE_SIDEBAR__ = true;</script>
     
     <style>
         /* Register page specific styles */
+        html, body { height: 100%; overflow-x: hidden; }
+
         body {
             background: linear-gradient(135deg, 
                 var(--primary) 0%,
@@ -37,6 +40,9 @@
             margin: 0;
         }
 
+        /* Hide global UI on auth pages for a clean layout */
+        .navbar, #sidebar, #sidebarOverlay { display: none !important; }
+
         @keyframes gradientShift {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -45,8 +51,9 @@
 
         .auth-container {
             width: 100%;
-            max-width: 500px;
+            max-width: 450px; /* align with login */
             position: relative;
+            margin: 0 auto;
         }
 
         .auth-box {
@@ -63,6 +70,7 @@
             position: relative;
             overflow: hidden;
             transition: all 0.4s ease;
+            max-width: 100%;
         }
 
         .auth-box::before {
@@ -84,16 +92,17 @@
         }
 
         .auth-box:hover {
-            transform: translateY(-8px) scale(1.02);
+            /* Keep hover subtle to match login simplicity */
+            transform: none;
             box-shadow: 
-                0 35px 70px rgba(0, 0, 0, 0.15),
-                0 15px 35px rgba(0, 0, 0, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+                0 25px 50px rgba(0, 0, 0, 0.1),
+                0 10px 30px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
         }
 
         .auth-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem; /* align with login */
         }
 
         .auth-logo-wrapper {
@@ -145,7 +154,7 @@
             background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 800;
-            font-size: 2.2rem;
+            font-size: 2.5rem; /* align with login */
             animation: gradientShift 10s ease infinite;
             margin-bottom: 0.5rem;
         }
@@ -157,50 +166,34 @@
             opacity: 0.9;
         }
 
+        /* Flatten sections to match login's simpler layout */
         .auth-section {
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.9) 0%,
-                rgba(255, 255, 255, 0.7) 100%
-            );
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 
-                0 8px 25px rgba(0, 0, 0, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.5);
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
+            margin-bottom: 1rem;
+            border: 0;
+            box-shadow: none;
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+            transition: none;
         }
 
         .auth-section:hover {
-            transform: translateY(-2px);
-            box-shadow: 
-                0 12px 35px rgba(0, 0, 0, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 0.7);
+            transform: none;
+            box-shadow: none;
         }
 
-        .auth-section-title {
-            margin-bottom: 1rem;
-            font-size: 1rem;
-            font-weight: 700;
-            color: #2d3748;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        /* Hide section titles for a cleaner login-like layout */
+        .auth-section-title { display: none; }
 
         .form-floating > .form-control {
             border: 2px solid rgba(255, 255, 255, 0.3);
             background: rgba(255, 255, 255, 0.8);
-            height: calc(3.5rem + 2px);
-            padding: 1rem 1rem 1rem 2.8rem;
+            height: calc(3.75rem + 2px); /* align with login */
+            padding: 1.25rem 1.25rem 1.25rem 3rem; /* align with login */
             border-radius: 16px;
-            font-size: 0.95rem;
+            font-size: 1rem; /* align with login */
             font-weight: 500;
             color: #2d3748;
             transition: all 0.4s ease;
@@ -209,6 +202,14 @@
             box-shadow: 
                 inset 0 2px 4px rgba(0, 0, 0, 0.05),
                 0 1px 3px rgba(0, 0, 0, 0.1);
+            direction: rtl;
+            text-align: right;
+        }
+
+        /* Force LTR for specific inputs like email/password/invite for better readability in RTL UI */
+        .form-floating > .form-control.ltr-input {
+            direction: ltr;
+            text-align: left;
         }
 
         .form-floating > .form-control:focus {
@@ -218,18 +219,19 @@
                 0 0 0 4px rgba(102, 126, 234, 0.1),
                 0 8px 25px rgba(102, 126, 234, 0.15),
                 inset 0 2px 4px rgba(0, 0, 0, 0.05);
-            transform: translateY(-2px) scale(1.01);
+            transform: translateY(-3px) scale(1.02); /* align with login */
             outline: none;
         }
 
         .form-floating > label {
-            padding-right: 2.8rem;
-            height: calc(3.5rem + 2px);
-            padding-top: 1rem;
+            padding-right: 3rem; /* align with login */
+            height: calc(3.75rem + 2px); /* align with login */
+            padding-top: 1.25rem; /* align with login */
             color: #718096;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.95rem; /* align with login */
             transition: all 0.4s ease;
+            pointer-events: none;
         }
 
         .form-floating > .form-control:focus + label,
@@ -416,6 +418,7 @@
             overflow: hidden;
             animation: gradientShift 8s ease infinite;
             width: 100%;
+            max-width: 100%;
         }
 
         .btn-primary::before {
@@ -463,6 +466,7 @@
             backdrop-filter: blur(10px);
             transition: all 0.4s ease;
             width: 100%;
+            max-width: 100%;
         }
 
         .btn-outline-secondary:hover {
@@ -508,8 +512,8 @@
         }
 
         .auth-footer {
-            margin-top: 2rem;
-            padding-top: 1.5rem;
+            margin-top: 2.5rem; /* align with login */
+            padding-top: 2rem;   /* align with login */
             border-top: 2px solid rgba(255, 255, 255, 0.2);
             text-align: center;
         }
@@ -567,18 +571,19 @@
             
             .auth-box {
                 padding: 2rem 1.5rem;
+                border-radius: 20px;
             }
             
             .form-floating > .form-control {
-                height: calc(3.25rem + 2px);
-                padding: 0.875rem 0.875rem 0.875rem 2.5rem;
-                font-size: 0.9rem;
+                height: calc(3.5rem + 2px); /* align with login */
+                padding: 1rem 1rem 1rem 2.5rem; /* align with login */
+                font-size: 0.95rem; /* align with login */
             }
             
             .form-floating > label {
-                padding-right: 2.5rem;
-                height: calc(3.25rem + 2px);
-                font-size: 0.85rem;
+                padding-right: 2.5rem; /* align with login */
+                height: calc(3.5rem + 2px); /* align with login */
+                font-size: 0.9rem; /* align with login */
             }
             
             .btn-primary {
@@ -587,12 +592,9 @@
             }
             
             .auth-title {
-                font-size: 1.8rem;
+                font-size: 2rem; /* align with login */
             }
-            
-            .auth-section {
-                padding: 1.25rem;
-            }
+            /* Keep sections flat and padding-free on small screens as well */
         }
 
         @media (max-width: 480px) {
@@ -601,7 +603,7 @@
             }
             
             .auth-title {
-                font-size: 1.6rem;
+                font-size: 1.75rem; /* align with login */
             }
             
             .role-option .form-check-label {
@@ -625,25 +627,11 @@
             font-size: 1.5rem;
         }
 
-        /* Registration options styles */
-        .registration-options .option-card {
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            height: 120px;
-        }
-
-        .registration-options .option-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
-            border-color: var(--primary);
-        }
-
-        .registration-options .option-card.selected {
-            border-color: var(--primary);
-            background: rgba(102, 126, 234, 0.1);
-            transform: scale(1.02);
-        }
+        /* Hide registration options and department form to keep invite-only, login-like simplicity */
+        .registration-options { display: none !important; }
+        #departmentForm { display: none !important; }
+        /* Ensure invite form is shown by default even if a class toggles it */
+        .auth-page #inviteForm { display: block !important; }
 
         .d-none-custom {
             display: none !important;
@@ -652,10 +640,23 @@
         .alert-info-custom {
             background: rgba(13, 110, 253, 0.1);
         }
+
+        /* Invite-only: disable department option visually and interaction */
+        .invite-only-disabled {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+    /* Fix long strings wrapping: avoid breaking every character in inputs */
+    .font-monospace { word-break: break-word; }
+    .form-control { word-break: normal; overflow-wrap: anywhere; }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
-<body>
-    <div class="auth-container">
+<body class="auth-page">
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <div class="auth-container" id="mainContent" role="main" tabindex="-1">
         <div class="auth-box">
             <!-- Header -->
             <div class="auth-header">
@@ -678,34 +679,28 @@
                         المعلومات الشخصية
                     </h3>
                     
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="firstName" name="firstName" placeholder="الاسم الأول" required>
-                                <label for="firstName">
-                                    <i class="fas fa-user me-2"></i>
-                                    الاسم الأول
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="lastName" name="lastName" placeholder="اسم العائلة" required>
-                                <label for="lastName">
-                                    <i class="fas fa-user me-2"></i>
-                                    اسم العائلة
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-floating">
-                                <input type="email" class="form-control" id="email" name="email" placeholder="البريد الإلكتروني" required>
-                                <label for="email">
-                                    <i class="fas fa-envelope me-2"></i>
-                                    البريد الإلكتروني
-                                </label>
-                            </div>
-                        </div>
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="firstName" name="firstName" placeholder="الاسم الأول" required>
+                        <label for="firstName">
+                            <i class="fas fa-user me-2"></i>
+                            الاسم الأول
+                        </label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="lastName" name="lastName" placeholder="اسم العائلة" required>
+                        <label for="lastName">
+                            <i class="fas fa-user me-2"></i>
+                            اسم العائلة
+                        </label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control ltr-input" id="email" name="email" placeholder="البريد الإلكتروني" required inputmode="email" autocomplete="email">
+                        <label for="email">
+                            <i class="fas fa-envelope me-2"></i>
+                            البريد الإلكتروني
+                        </label>
                     </div>
                 </div>
 
@@ -718,12 +713,12 @@
                     
                     <div class="registration-options mb-3">
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="card option-card h-100" onclick="selectRegistrationType('department')" id="deptOption">
+                            <div class="col-md-6" aria-hidden="true">
+                                <div class="card option-card h-100 opacity-50" id="deptOption" title="التسجيل متاح بكود الدعوة فقط">
                                     <div class="card-body text-center d-flex flex-column justify-content-center">
-                                        <i class="fas fa-building fa-2x text-primary mb-2"></i>
-                                        <h6 class="card-title">اختيار الإدارة</h6>
-                                        <p class="card-text text-muted small">اختر الإدارة التابع لها</p>
+                                        <i class="fas fa-building fa-2x text-secondary mb-2"></i>
+                                        <h6 class="card-title">اختيار الإدارة (معطل)</h6>
+                                        <p class="card-text text-muted small">التسجيل متاح بكود الدعوة فقط</p>
                                     </div>
                                 </div>
                             </div>
@@ -771,17 +766,18 @@
                     </div>
 
                     <!-- Invite Code Form -->
-                    <div id="inviteForm" class="d-none-custom">
-                        <div class="mb-3">
-                            <label for="inviteCode" class="form-label">
-                                <i class="fas fa-key text-warning me-2"></i>
+                    <div id="inviteForm" class="">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control ltr-input font-monospace" id="inviteCode" name="inviteCode" placeholder="كود الدعوة" autocomplete="one-time-code" inputmode="text">
+                            <label for="inviteCode">
+                                <i class="fas fa-key me-2 text-warning"></i>
                                 كود الدعوة
                             </label>
-                            <input type="text" class="form-control" id="inviteCode" name="inviteCode" 
-                                   placeholder="أدخل كود الدعوة المرسل من مدير الإدارة">
-                            <div class="form-text">
-                                يمكنك الحصول على كود الدعوة من مدير الإدارة التابع لها
-                            </div>
+                            <!-- Inline validation feedback for invite code -->
+                            <div id="inviteFeedback" class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-text mb-2">
+                            يمكنك الحصول على كود الدعوة من مدير الإدارة التابع لها
                         </div>
 
                         <div id="inviteInfo" class="d-none-custom">
@@ -804,54 +800,51 @@
                         <i class="fas fa-lock me-2"></i>
                         كلمة المرور
                     </h3>
-                    
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <div class="form-floating">
-                                <input type="password" class="form-control" id="password" name="password" placeholder="كلمة المرور" required>
-                                <label for="password">
-                                    <i class="fas fa-lock me-2"></i>
-                                    كلمة المرور
-                                </label>
-                            </div>
-                            <div class="password-strength">
-                                <div class="progress">
-                                    <div class="progress-bar" id="passwordStrengthBar" role="progressbar" aria-label="مؤشر قوة كلمة المرور" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
-                                <small id="passwordStrengthText" class="form-text">أدخل كلمة مرور قوية</small>
-                            </div>
-                            <div class="password-requirements mt-2">
-                                <div class="requirement" id="lengthReq">
-                                    <i class="fas fa-times me-2"></i>
-                                    على الأقل 8 أحرف
-                                </div>
-                                <div class="requirement" id="upperReq">
-                                    <i class="fas fa-times me-2"></i>
-                                    حرف كبير واحد على الأقل
-                                </div>
-                                <div class="requirement" id="lowerReq">
-                                    <i class="fas fa-times me-2"></i>
-                                    حرف صغير واحد على الأقل
-                                </div>
-                                <div class="requirement" id="numberReq">
-                                    <i class="fas fa-times me-2"></i>
-                                    رقم واحد على الأقل
-                                </div>
-                                <div class="requirement" id="specialReq">
-                                    <i class="fas fa-times me-2"></i>
-                                    رمز خاص واحد على الأقل
-                                </div>
-                            </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control ltr-input" id="password" name="password" placeholder="كلمة المرور" required autocomplete="new-password">
+                        <label for="password">
+                            <i class="fas fa-lock me-2"></i>
+                            كلمة المرور
+                        </label>
+                    </div>
+
+                    <div class="password-strength mb-3">
+                        <div class="progress">
+                            <div class="progress-bar" id="passwordStrengthBar" role="progressbar" aria-label="مؤشر قوة كلمة المرور" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <div class="col-12">
-                            <div class="form-floating">
-                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" placeholder="تأكيد كلمة المرور" required>
-                                <label for="confirmPassword">
-                                    <i class="fas fa-check-circle me-2"></i>
-                                    تأكيد كلمة المرور
-                                </label>
-                            </div>
+                        <small id="passwordStrengthText" class="form-text">أدخل كلمة مرور قوية</small>
+                    </div>
+
+                    <div class="password-requirements mt-2 mb-3">
+                        <div class="requirement" id="lengthReq">
+                            <i class="fas fa-times me-2"></i>
+                            على الأقل 8 أحرف
                         </div>
+                        <div class="requirement" id="upperReq">
+                            <i class="fas fa-times me-2"></i>
+                            حرف كبير واحد على الأقل
+                        </div>
+                        <div class="requirement" id="lowerReq">
+                            <i class="fas fa-times me-2"></i>
+                            حرف صغير واحد على الأقل
+                        </div>
+                        <div class="requirement" id="numberReq">
+                            <i class="fas fa-times me-2"></i>
+                            رقم واحد على الأقل
+                        </div>
+                        <div class="requirement" id="specialReq">
+                            <i class="fas fa-times me-2"></i>
+                            رمز خاص واحد على الأقل
+                        </div>
+                    </div>
+
+                    <div class="form-floating">
+                        <input type="password" class="form-control ltr-input" id="confirmPassword" name="confirmPassword" placeholder="تأكيد كلمة المرور" required autocomplete="new-password">
+                        <label for="confirmPassword">
+                            <i class="fas fa-check-circle me-2"></i>
+                            تأكيد كلمة المرور
+                        </label>
                     </div>
                 </div>
 
@@ -896,60 +889,139 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js"></script>
     
     <!-- Firebase v10.7.1 - الإصدار الموحد -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
     
     <!-- Firebase Configuration -->
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
     
-    <!-- Unified Authentication System -->
+    <!-- Core Systems -->
+    <script src="assets/js/activity-logger.js"></script>
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-auth.js"></script>
 
     <script>
-        // Initialize unified auth system
-        let authSystem;
-        let permissionController;
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            // Wait for unified auth to initialize
-            await new Promise(resolve => {
-                const checkAuth = () => {
-                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
-                        authSystem = unifiedAuth;
-                        // Initialize permission controller
-                        permissionController = new UIPermissionController(authSystem);
-                        resolve();
-                    } else {
-                        setTimeout(checkAuth, 100);
-                    }
-                };
-                checkAuth();
-            });
-
-            // Check if user is already logged in
-            if (authSystem.isAuthenticated) {
-                window.location.href = 'dashboard.html';
-                return;
-            }
-
-            // Initialize registration system
-            initializeRegistrationSystem();
-        });
-
-        // متغيرات النظام الهجين
+        // متغيرات النظام
+        let currentUser = null;
+        let authSystem = null;
+        let permissionController = null;
         let selectedRegistrationType = null;
         let departmentsData = [];
         let validInviteData = null;
+        let isSubmitting = false; // منع الإرسال المزدوج
 
-        // Check if user is already logged in
+        // دالة مساعدة لتسجيل الأنشطة
+        function logActivity(action, details = {}) {
+            try {
+                if (window.activityLogger && typeof window.activityLogger.logActivity === 'function') {
+                    const activityData = {
+                        ...details,
+                        page: 'register',
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    if (currentUser && currentUser.uid) {
+                        activityData.userId = currentUser.uid;
+                    }
+                    
+                    window.activityLogger.logActivity(action, activityData);
+                } else {
+                    console.log('Activity:', action, details);
+                }
+            } catch (error) {
+                console.error('خطأ في تسجيل النشاط:', error);
+            }
+        }
+
+        // انتظار تهيئة Firebase والمصادقة
+        async function waitForFirebaseAndAuth() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkReady = () => {
+                    attempts++;
+                    
+                    if (window.firebase && 
+                        window.firebase.auth && 
+                        window.firebase.firestore &&
+                        window.unifiedAuth) {
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error('Firebase initialization timeout'));
+                    } else {
+                        setTimeout(checkReady, 100);
+                    }
+                };
+                
+                checkReady();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Refresh Unified UI if available; avoid instantiating to prevent duplicate navbars
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                try { await window.unifiedUI.updateSidebar(); } catch (_) { /* ignore */ }
+            }
+            try {
+                console.log('🚀 بدء تهيئة صفحة التسجيل...');
+                
+                logActivity('page_access', {
+                    path: window.location.pathname
+                });
+
+                // انتظار تهيئة Firebase والمصادقة
+                await waitForFirebaseAndAuth();
+                console.log('✅ Firebase ونظام المصادقة جاهزان');
+
+                // Wait for unified auth to initialize
+                await new Promise(resolve => {
+                    const checkAuth = () => {
+                        if (window.unifiedAuth && unifiedAuth.isInitialized) {
+                            authSystem = unifiedAuth;
+                            // Initialize permission controller
+                            permissionController = new UIPermissionController(authSystem);
+                            resolve();
+                        } else {
+                            setTimeout(checkAuth, 100);
+                        }
+                    };
+                    checkAuth();
+                });
+
+                // Check if user is already logged in
+                if (authSystem.isAuthenticated) {
+                    console.log('✅ المستخدم مسجل دخول بالفعل');
+                    logActivity('already_authenticated', {
+                        redirect_to: 'dashboard'
+                    });
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+
+                // Initialize registration system
+                await initializeRegistrationSystem();
+                
+                console.log('🎉 تم تهيئة صفحة التسجيل بنجاح!');
+
+            } catch (error) {
+                console.error('❌ خطأ في تهيئة الصفحة:', error);
+                logActivity('page_error', {
+                    error: error.message
+                });
+                showAlert('حدث خطأ في تحميل الصفحة. يرجى إعادة تحميل الصفحة.', 'danger');
+            }
+        });
+
         // Initialize registration system
-        function initializeRegistrationSystem() {
+        async function initializeRegistrationSystem() {
             // Check for invite code in URL
             const urlParams = new URLSearchParams(window.location.search);
             const inviteCode = urlParams.get('invite');
@@ -958,6 +1030,9 @@
                 selectRegistrationType('invite');
                 document.getElementById('inviteCode').value = inviteCode;
                 validateInviteCode(inviteCode);
+            } else {
+                // فرض التسجيل بالدعوة كافتراضي
+                selectRegistrationType('invite');
             }
             
             // Load departments
@@ -972,10 +1047,10 @@
                 // Try with and without ordering in case of missing index
                 let snapshot;
                 try {
-                    snapshot = await db.collection('departments').orderBy('name').get();
+                    snapshot = await firebase.firestore().collection('departments').orderBy('name').get();
                 } catch (indexError) {
                     console.warn('⚠️ لا يمكن ترتيب الإدارات، سيتم تحميلها بدون ترتيب:', indexError.message);
-                    snapshot = await db.collection('departments').get();
+                    snapshot = await firebase.firestore().collection('departments').get();
                 }
                 
                 departmentsData = [];
@@ -1033,6 +1108,12 @@
         function selectRegistrationType(type) {
             selectedRegistrationType = type;
             
+            // تسجيل النشاط
+            logActivity('registration_type_selected', {
+                action: 'اختيار نوع التسجيل',
+                registrationType: type
+            });
+            
             // إزالة التحديد السابق
             document.querySelectorAll('.option-card').forEach(card => {
                 card.classList.remove('selected');
@@ -1051,113 +1132,197 @@
             }
         }
 
-        // التحقق من كود الدعوة
-        async function validateInviteCode(code) {
+        // أدوات مساعدة للواجهة: ضبط صحة كود الدعوة بشكل سليم مع رسائل داخلية
+        function setInviteValidity(valid, message = '') {
+            const input = document.getElementById('inviteCode');
+            const feedback = document.getElementById('inviteFeedback');
+            if (!input || !feedback) return;
+
+            if (valid) {
+                input.classList.remove('is-invalid');
+                input.classList.add('is-valid');
+                feedback.textContent = '';
+                feedback.style.display = 'none';
+            } else {
+                input.classList.remove('is-valid');
+                if (message) {
+                    input.classList.add('is-invalid');
+                    feedback.textContent = message;
+                    feedback.style.display = '';
+                } else {
+                    input.classList.remove('is-invalid');
+                    feedback.textContent = '';
+                    feedback.style.display = 'none';
+                }
+            }
+        }
+
+        // دالة مساعدة للتخفيف (debounce)
+        function debounce(fn, delay = 400) {
+            let t;
+            return (...args) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn.apply(null, args), delay);
+            };
+        }
+
+        // التحقق من كود الدعوة (عبر دالة سحابية آمنة)
+    async function validateInviteCode(code) {
             if (!code || code.length < 8) {
                 document.getElementById('inviteInfo').classList.add('d-none-custom');
                 validInviteData = null;
+                setInviteValidity(false, code && code.length > 0 ? 'يرجى إدخال كود من 8 رموز على الأقل' : '');
                 return false;
             }
 
             try {
                 console.log('🔍 جاري التحقق من كود الدعوة:', code);
                 
-                // البحث البسيط عن الكود فقط
-                const snapshot = await db.collection('invitations')
-                    .where('code', '==', code)
-                    .get();
-
-                console.log('📊 نتائج البحث:', {
-                    empty: snapshot.empty,
-                    size: snapshot.size,
-                    code: code
+                // تسجيل النشاط
+                logActivity('invite_code_validation', {
+                    action: 'محاولة التحقق من كود دعوة',
+                    inviteCode: code.substring(0, 4) + '***' // جزء من الكود للخصوصية
                 });
-
-                if (snapshot.empty) {
-                    console.log('❌ لم يتم العثور على الكود');
-                    showAlert('كود الدعوة غير موجود', 'danger');
-                    document.getElementById('inviteInfo').classList.add('d-none-custom');
-                    validInviteData = null;
-                    return false;
-                }
-
-                // فحص كل دعوة للعثور على النشطة وغير المنتهية
-                let validInvite = null;
-                const now = firebase.firestore.Timestamp.now();
                 
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    console.log('🔍 فحص الدعوة:', {
-                        id: doc.id,
-                        status: data.status,
-                        expiresAt: data.expiresAt?.toDate(),
-                        now: now.toDate(),
-                        isActive: data.status === 'active',
-                        isNotExpired: data.expiresAt > now
-                    });
-                    
-                    // التحقق من الحالة وتاريخ الانتهاء
-                    if (data.status === 'active' && data.expiresAt > now) {
-                        validInvite = { id: doc.id, ...data };
-                    }
-                });
+                // استخدام دالة callable آمنة لتجاوز صلاحيات قواعد Firestore
+                const validateFn = firebase.functions().httpsCallable('validateInvitation');
+                const response = await validateFn({ code });
+                const respData = response?.data;
+                const success = typeof respData?.success === 'boolean' ? respData.success : true;
 
-                if (!validInvite) {
-                    // محاولة إعطاء رسالة أكثر تفصيلاً
-                    const inviteData = snapshot.docs[0].data();
-                    
-                    if (inviteData.status !== 'active') {
-                        showAlert(`كود الدعوة غير نشط. الحالة الحالية: ${inviteData.status}`, 'warning');
-                    } else if (inviteData.expiresAt <= now) {
-                        const expiryDate = inviteData.expiresAt.toDate().toLocaleDateString('ar');
-                        showAlert(`كود الدعوة منتهي الصلاحية منذ ${expiryDate}`, 'warning');
-                    } else {
-                        showAlert('كود الدعوة غير صالح للاستخدام', 'danger');
-                    }
-                    
+                if (!success) {
+                    logActivity('invite_code_not_found', {
+                        action: 'كود الدعوة غير صالح/منتهي',
+                        inviteCode: code.substring(0, 4) + '***'
+                    });
                     document.getElementById('inviteInfo').classList.add('d-none-custom');
                     validInviteData = null;
+                    setInviteValidity(false, 'كود الدعوة غير صالح أو منتهي الصلاحية');
                     return false;
                 }
 
-                validInviteData = validInvite;
-                console.log('✅ تم العثور على الدعوة:', validInviteData);
+                const invitation = respData?.data?.invitation || respData?.invitation || respData;
+                if (!invitation || !invitation.department) {
+                    document.getElementById('inviteInfo').classList.add('d-none-custom');
+                    validInviteData = null;
+                    setInviteValidity(false, 'تعذر التحقق من كود الدعوة حالياً');
+                    return false;
+                }
+
+                // حفظ بيانات مختصرة تكفي للاستخدام اللاحق وعرض التفاصيل
+                validInviteData = {
+                    code,
+                    department: invitation.department,
+                    role: invitation.role || '',
+                    invitedBy: invitation.createdBy || invitation.invitedBy || ''
+                };
+
+                // تسجيل النشاط - كود دعوة صالح
+                logActivity('invite_code_validated', {
+                    action: 'تم التحقق من كود الدعوة بنجاح',
+                    inviteCode: code.substring(0, 4) + '***',
+                    department: validInviteData.department,
+                    invitedBy: validInviteData.invitedBy
+                });
 
                 // عرض معلومات الدعوة
                 const department = departmentsData.find(d => d.id === validInviteData.department);
                 document.getElementById('inviteDetails').innerHTML = `
-                    الإدارة: <strong>${department?.name || validInviteData.departmentName || validInviteData.department}</strong><br>
-                    مرسل من: <strong>${validInviteData.invitedBy}</strong><br>
-                    <small class="text-muted">الدور المقترح: ${validInviteData.suggestedRole || 'غير محدد'}</small>
+                    الإدارة: <strong>${department?.name || validInviteData.department}</strong><br>
+                    ${validInviteData.invitedBy ? `مرسل من: <strong>${validInviteData.invitedBy}</strong><br>` : ''}
+                    <small class="text-muted">الدور المقترح: ${validInviteData.role || 'غير محدد'}</small>
                 `;
                 document.getElementById('inviteInfo').classList.remove('d-none-custom');
-                
+                setInviteValidity(true);
+
                 return true;
             } catch (error) {
                 console.error('❌ خطأ في التحقق من كود الدعوة:', error);
                 
+                // تسجيل النشاط - خطأ في التحقق
+                logActivity('invite_code_validation_error', {
+                    action: 'خطأ في التحقق من كود الدعوة',
+                    inviteCode: code.substring(0, 4) + '***',
+                    error: error.message
+                });
+                
                 // رسالة خطأ مبسطة
                 let errorMessage = 'خطأ في التحقق من كود الدعوة';
-                if (error.message.includes('network')) {
+                const codeStr = String(error.code || '');
+                if (error.message?.toLowerCase().includes('network')) {
                     errorMessage = 'خطأ في الاتصال بالإنترنت. يرجى التحقق من الاتصال.';
-                } else if (error.message.includes('permission')) {
+                } else if (codeStr.includes('permission-denied')) {
                     errorMessage = 'ليس لديك صلاحية للوصول إلى هذه البيانات.';
+                } else if (codeStr.includes('not-found') || /Invalid or expired invitation code/i.test(error.message || '')) {
+                    errorMessage = 'كود الدعوة غير موجود أو منتهي الصلاحية.';
+                } else if (codeStr.includes('failed-precondition')) {
+                    errorMessage = 'كود الدعوة غير صالح للاستخدام حالياً.';
+                } else if (codeStr.includes('resource-exhausted')) {
+                    errorMessage = 'عدد محاولات التحقق كبير. يرجى المحاولة لاحقاً.';
+                } else if (codeStr.includes('unavailable')) {
+                    errorMessage = 'الخدمة غير متاحة مؤقتاً. يرجى المحاولة لاحقاً.';
                 }
                 
-                showAlert(errorMessage, 'danger');
+                // إظهار رسالة داخلية للحقل بدلاً من تنبيه عام في الحالات المتوقعة
+                setInviteValidity(false, errorMessage);
+                // في حال أخطاء الشبكة/الخدمة فقط، يمكن إظهار تنبيه عام أيضاً
+                if (/network|unavailable/i.test(error.message || '') || /(unavailable|network-request-failed)/i.test(String(error.code || ''))) {
+                    showAlert(errorMessage, 'danger');
+                }
                 return false;
             }
         }
 
-        // مراقبة تغيير كود الدعوة
-        document.getElementById('inviteCode').addEventListener('input', async function() {
-            const code = this.value.trim();
+        // مراقبة تغيير كود الدعوة مع تخفيف الإدخال (debounce) ورسائل فورية
+        const inviteInput = document.getElementById('inviteCode');
+        const debouncedInviteValidation = debounce(async () => {
+            const code = inviteInput.value.trim();
             if (code.length >= 8) {
                 await validateInviteCode(code);
-            } else {
+            }
+        }, 450);
+
+        inviteInput.addEventListener('input', () => {
+            const code = inviteInput.value.trim();
+
+            logActivity('invite_code_input', {
+                action: 'إدخال كود دعوة',
+                codeLength: code.length,
+                isValidLength: code.length >= 8
+            });
+
+            if (code.length < 8) {
                 document.getElementById('inviteInfo').classList.add('d-none-custom');
                 validInviteData = null;
+                // عرض رسالة قصيرة لحد أدنى للطول عند وجود إدخال
+                setInviteValidity(false, code.length > 0 ? 'يرجى إدخال كود من 8 رموز على الأقل' : '');
+            } else {
+                // إزالة رسالة الحد الأدنى والبدء بالتحقق بعد مهلة قصيرة
+                setInviteValidity(false, '');
+                debouncedInviteValidation();
             }
+        });
+
+        // التحقق عند الخروج من الحقل لضمان التحقق النهائي
+        inviteInput.addEventListener('blur', async () => {
+            const code = inviteInput.value.trim();
+            if (code.length >= 8) {
+                await validateInviteCode(code);
+            }
+        });
+
+        // دعم اللصق السريع
+        inviteInput.addEventListener('paste', () => {
+            setTimeout(() => {
+                const code = inviteInput.value.trim();
+                if (code.length >= 8) {
+                    validateInviteCode(code);
+                } else {
+                    document.getElementById('inviteInfo').classList.add('d-none-custom');
+                    validInviteData = null;
+                    setInviteValidity(false, code.length > 0 ? 'يرجى إدخال كود من 8 رموز على الأقل' : '');
+                }
+            }, 0);
         });
 
         // Password strength checker
@@ -1250,6 +1415,12 @@
             const password = passwordInput.value;
             const confirmPassword = confirmPasswordInput.value;
             
+            // تسجيل النشاط - محاولة التحقق من كلمة المرور
+            logActivity('password_validation', {
+                action: 'التحقق من مطابقة كلمات المرور',
+                isMatching: password === confirmPassword
+            });
+            
             if (confirmPassword && password !== confirmPassword) {
                 confirmPasswordInput.classList.add('is-invalid');
                 confirmPasswordInput.classList.remove('is-valid');
@@ -1259,10 +1430,15 @@
             }
         }
 
-        // Form submission
-        registerForm.addEventListener('submit', async function(e) {
+        // Form submission (حماية من التكرار)
+    registerForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+            e.stopImmediatePropagation();
+
+            if (isSubmitting) {
+                return; // تجاهل أي إرسال إضافي أثناء التنفيذ
+            }
+
             const formData = new FormData(this);
             const userData = {
                 firstName: formData.get('firstName'),
@@ -1272,29 +1448,30 @@
                 confirmPassword: formData.get('confirmPassword')
             };
 
-            // التحقق من اختيار نوع التسجيل
-            if (!selectedRegistrationType) {
-                showAlert('يرجى اختيار طريقة التسجيل', 'danger');
+            // التحقق من اختيار نوع التسجيل (الدعوة فقط)
+            if (!selectedRegistrationType || selectedRegistrationType !== 'invite') {
+                showAlert('التسجيل متاح بكود الدعوة فقط', 'danger');
                 return;
             }
 
             // التحقق من بيانات النوع المحدد
-            if (selectedRegistrationType === 'department') {
-                userData.department = formData.get('userDepartment');
-                userData.joinReason = formData.get('joinReason');
-                userData.registrationType = 'department-selection';
-                
-                if (!userData.department) {
-                    showAlert('يرجى اختيار الإدارة التابع لها', 'danger');
-                    return;
-                }
-            } else if (selectedRegistrationType === 'invite') {
+            if (selectedRegistrationType === 'invite') {
                 if (!validInviteData) {
-                    showAlert('يرجى إدخال كود دعوة صحيح', 'danger');
-                    return;
+                    // حاول التحقق من الحقل مباشرة في حال لم تكتمل عملية التحقق بعد
+                    const codeInputVal = document.getElementById('inviteCode')?.value?.trim();
+                    if (codeInputVal && codeInputVal.length >= 8) {
+                        const ok = await validateInviteCode(codeInputVal);
+                        if (!ok) {
+                            showAlert('يرجى إدخال كود دعوة صحيح', 'danger');
+                            return;
+                        }
+                    } else {
+                        showAlert('يرجى إدخال كود دعوة صحيح', 'danger');
+                        return;
+                    }
                 }
                 userData.department = validInviteData.department;
-                userData.inviteCode = validInviteData.code;
+                userData.inviteCode = validInviteData.code; // من الكود المُدخل مباشرة والمثبت عبر الدالة السحابية
                 userData.registrationType = 'invitation';
                 userData.invitedBy = validInviteData.invitedBy;
             }
@@ -1320,7 +1497,26 @@
                 return;
             }
 
-            await registerUser(userData);
+            try {
+                isSubmitting = true;
+                if (registerBtn) {
+                    // سنعتمد على showLoading داخل registerUser لإدارة حالة الزر والنص
+                    registerBtn.disabled = true; // قفل الزر فوراً لمنع النقرات المزدوجة
+                }
+                await registerUser(userData);
+                // عند النجاح سنترك الزر معطلاً وننتظر إعادة التوجيه
+            } catch (err) {
+                console.error('Registration failed:', err);
+                showAlert('حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.', 'danger');
+                // سيتم إعادة حالة الزر عبر showLoading(false) في registerUser عند الفشل
+            } finally {
+                // لا نعيد isSubmitting إلى false عند النجاح لتجنب النقر مجدداً قبل إعادة التوجيه
+                // نعيده فقط في حال الفشل
+                if (registerBtn && registerBtn.disabled && !document.querySelector('.alert.alert-success')) {
+                    // لم تنجح العملية
+                    isSubmitting = false;
+                }
+            }
         });
 
         // Register user function - Enhanced with unified auth
@@ -1328,6 +1524,14 @@
             try {
                 showLoading(true);
                 clearAlerts();
+
+                // تسجيل النشاط - بدء التسجيل
+                logActivity('registration_start', {
+                    action: 'بدء عملية إنشاء حساب جديد',
+                    email: userData.email,
+                    registrationType: userData.registrationType,
+                    department: userData.department
+                });
 
                 // Use unified auth system for registration
                 const registrationData = {
@@ -1357,28 +1561,31 @@
                 const department = departmentsData.find(d => d.id === userData.department);
                 registrationData.departmentName = department?.name || '';
 
-                // Register user with unified auth system
-                const result = await authSystem.registerUser(registrationData);
+                // Register user with unified auth system (creates Auth user only)
+                const result = await authSystem.registerUser({ ...registrationData, serverHandled: true });
 
-                // تحديث إحصائيات الإدارة
-                if (department) {
-                    await firebase.firestore().collection('departments').doc(userData.department).update({
-                        'stats.totalUsers': firebase.firestore.FieldValue.increment(1),
-                        'stats.pendingUsers': firebase.firestore.FieldValue.increment(needsApproval ? 1 : 0),
-                        'stats.activeUsers': firebase.firestore.FieldValue.increment(needsApproval ? 0 : 1)
-                    });
-                }
-
-                // تحديث حالة الدعوة إن وجدت
-                if (validInviteData) {
-                    await firebase.firestore().collection('invitations').doc(validInviteData.id).update({
-                        status: 'used',
-                        usedBy: result.user.uid,
-                        usedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                // Call secure function to complete server-side operations (consume invitation + write user profile + update stats)
+                const completeFn = firebase.functions().httpsCallable('completeRegistration');
+                const completeRes = await completeFn({
+                    inviteCode: registrationData.inviteCode,
+                    profile: { firstName: registrationData.firstName, lastName: registrationData.lastName }
+                });
+                const serverData = completeRes?.data?.data || {};
+                if (serverData && typeof serverData.isActive === 'boolean') {
+                    needsApproval = !serverData.isActive;
                 }
 
                 console.log('✅ تم إنشاء الحساب بنجاح:', result.user.email);
+                
+                // تسجيل النشاط - نجح التسجيل
+                logActivity('registration_success', {
+                    action: 'تم إنشاء الحساب بنجاح',
+                    email: userData.email,
+                    registrationType: userData.registrationType,
+                    department: userData.department,
+                    needsApproval: needsApproval,
+                    userId: result.user.uid
+                });
                 
                 // رسالة نجاح مخصصة حسب نوع التسجيل
                 let successMessage = '';
@@ -1402,12 +1609,23 @@
             } catch (error) {
                 console.error('❌ خطأ في إنشاء الحساب:', error);
                 
+                // تسجيل النشاط - فشل التسجيل
+                logActivity('registration_failed', {
+                    action: 'فشل في إنشاء الحساب',
+                    email: userData.email,
+                    registrationType: userData.registrationType,
+                    department: userData.department,
+                    error: error.message || error.code
+                });
+                
                 let errorMessage = 'حدث خطأ في إنشاء الحساب. يرجى المحاولة مرة أخرى.';
                 
                 // Enhanced error handling with unified auth
                 if (error.message && error.message.includes('البريد الإلكتروني مستخدم')) {
                     errorMessage = 'البريد الإلكتروني مستخدم بالفعل. يرجى تسجيل الدخول أو استخدام بريد إلكتروني آخر.';
                 } else {
+                    // مطابقة أكواد أخطاء وظائف السحابة
+                    const codeStr = String(error.code || '');
                     switch (error.code) {
                         case 'auth/email-already-in-use':
                             errorMessage = 'البريد الإلكتروني مُستخدم بالفعل';
@@ -1421,7 +1639,49 @@
                         case 'auth/network-request-failed':
                             errorMessage = 'خطأ في الاتصال بالإنترنت';
                             break;
+                        // أخطاء وظائف سحابية شائعة أثناء إكمال التسجيل
+                        case 'permission-denied':
+                        case 'functions/permission-denied':
+                            errorMessage = 'لا تملك صلاحية لإكمال العملية.';
+                            break;
+                        case 'failed-precondition':
+                        case 'functions/failed-precondition':
+                            errorMessage = 'لا يمكن إكمال التسجيل بهذه الدعوة حالياً. قد تكون مستعملة أو منتهية.';
+                            break;
+                        case 'not-found':
+                        case 'functions/not-found':
+                            errorMessage = 'تعذر العثور على الدعوة. يرجى التأكد من الكود.';
+                            break;
+                        case 'resource-exhausted':
+                        case 'functions/resource-exhausted':
+                            errorMessage = 'تم تجاوز الحد المسموح من المحاولات. يرجى المحاولة لاحقاً.';
+                            break;
+                        case 'unavailable':
+                        case 'functions/unavailable':
+                            errorMessage = 'الخدمة غير متاحة مؤقتاً. يرجى المحاولة لاحقاً.';
+                            break;
+                        case 'internal':
+                        case 'functions/internal':
+                            // إذا تم إنشاء المستخدم فعلاً لكن فشل الإكمال الخادمي
+                            try {
+                                const createdUser = (firebase && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser : null;
+                                if (createdUser && createdUser.email === userData.email) {
+                                    // رسالة ودية وتوجيه
+                                    showAlert('تم إنشاء الحساب بنجاح، لكن حدث عطل بسيط أثناء التفعيل. يمكنك تسجيل الدخول، وسيتم تفعيل حسابك قريباً أو بالتواصل مع المدير.', 'warning');
+                                    // منع النقرات المزدوجة
+                                    isSubmitting = true;
+                                    // نضمن تسجيل الخروج لتفادي حالة دخول غير مكتملة
+                                    try { await firebase.auth().signOut(); } catch (_) {}
+                                    setTimeout(() => {
+                                        window.location.href = 'login.html?message=registration-pending';
+                                    }, 4000);
+                                    return; // لا نظهر رسالة خطأ افتراضية
+                                }
+                            } catch (_) { /* ignore */ }
+                            errorMessage = 'حدث خطأ داخلي أثناء إكمال التسجيل. يرجى المحاولة لاحقاً.';
+                            break;
                         default:
+                            // في بعض الأحيان تُعاد رسالة عامة أو يُملأ code فقط
                             errorMessage = error.message || 'حدث خطأ غير متوقع في إنشاء الحساب';
                     }
                 }
@@ -1436,7 +1696,13 @@
         function showLoading(loading) {
             const registerText = document.getElementById('registerText');
             const registerSpinner = document.getElementById('registerSpinner');
-            
+
+            // حراسة ضد عدم وجود العناصر لأي سبب (لتجنب TypeError)
+            if (!registerBtn || !registerText || !registerSpinner) {
+                if (registerBtn) registerBtn.disabled = !!loading;
+                return;
+            }
+
             if (loading) {
                 registerBtn.disabled = true;
                 registerText.classList.add('d-none');
@@ -1544,114 +1810,7 @@
             return strength >= 60;
         }
 
-        // Password event listeners
-        document.getElementById('password').addEventListener('input', function() {
-            checkPasswordStrength(this.value);
-            validatePasswordMatch();
-        });
-
-        document.getElementById('confirmPassword').addEventListener('input', validatePasswordMatch);
-
-        function validatePasswordMatch() {
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const confirmPasswordField = document.getElementById('confirmPassword');
-
-            if (confirmPassword === '') {
-                confirmPasswordField.classList.remove('is-valid', 'is-invalid');
-                return;
-            }
-
-            if (password === confirmPassword) {
-                confirmPasswordField.classList.remove('is-invalid');
-                confirmPasswordField.classList.add('is-valid');
-            } else {
-                confirmPasswordField.classList.remove('is-valid');
-                confirmPasswordField.classList.add('is-invalid');
-            }
-        }
-
-        // Invite code validation
-        document.getElementById('inviteCode').addEventListener('input', function() {
-            const code = this.value.trim();
-            if (code.length >= 8) {
-                validateInviteCode(code);
-            } else {
-                document.getElementById('inviteInfo').classList.add('d-none-custom');
-                validInviteData = null;
-            }
-        });
-
-        // Form submission handler
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            clearAlerts();
-            
-            // Validate form
-            const firstName = document.getElementById('firstName').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            
-            if (!firstName || !lastName || !email || !password || !confirmPassword) {
-                showAlert('جميع الحقول مطلوبة', 'danger');
-                return;
-            }
-            
-            if (!isValidEmail(email)) {
-                showAlert('البريد الإلكتروني غير صحيح', 'danger');
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                showAlert('كلمة المرور وتأكيد كلمة المرور غير متطابقان', 'danger');
-                return;
-            }
-            
-            if (!checkPasswordStrength(password)) {
-                showAlert('كلمة المرور لا تحقق المتطلبات الأمنية', 'danger');
-                return;
-            }
-            
-            // Validate registration type
-            if (!selectedRegistrationType) {
-                showAlert('يرجى اختيار طريقة التسجيل', 'danger');
-                return;
-            }
-            
-            if (selectedRegistrationType === 'department') {
-                const department = document.getElementById('userDepartment').value;
-                if (!department) {
-                    showAlert('يرجى اختيار الإدارة', 'danger');
-                    return;
-                }
-            } else if (selectedRegistrationType === 'invite') {
-                const inviteCode = document.getElementById('inviteCode').value.trim();
-                if (!inviteCode || !validInviteData) {
-                    showAlert('يرجى إدخال كود دعوة صحيح', 'danger');
-                    return;
-                }
-            }
-            
-            try {
-                await registerUser({
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    password: password,
-                    confirmPassword: confirmPassword,
-                    registrationType: selectedRegistrationType,
-                    department: selectedRegistrationType === 'department' ? document.getElementById('userDepartment').value : (validInviteData ? validInviteData.department : null),
-                    joinReason: selectedRegistrationType === 'department' ? document.getElementById('joinReason').value : null,
-                    inviteCode: selectedRegistrationType === 'invite' ? document.getElementById('inviteCode').value : null,
-                    invitedBy: validInviteData ? validInviteData.invitedBy : null
-                });
-            } catch (error) {
-                console.error('Registration error:', error);
-                showAlert('حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.', 'danger');
-            }
-        });
+        // تمت إزالة معالجات مكررة لكلمات المرور وكود الدعوة وإرسال النموذج لتفادي الإرسال المزدوج
 
         // Form validation
         const inputs = document.querySelectorAll('.form-control');
@@ -1678,15 +1837,27 @@
             }
         });
 
-        // Initialize sidebar for non-authenticated state
+        // Initialize sidebar for non-authenticated state and rebind after auth/UI events
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
-                if (window.sidebarManager) {
-                    window.sidebarManager.updateSidebarNav(false);
-                }
+                try {
+                    if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                        window.unifiedUI.updateSidebar();
+                    }
+                } catch (_) { /* ignore */ }
             }, 100);
+
+            window.addEventListener('firebaseAuthReady', () => {
+                try {
+                    if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                        window.unifiedUI.updateSidebar();
+                    }
+                } catch (_) { /* ignore */ }
+            });
         });
     </script>
 </body>
 </html>
+
+
 

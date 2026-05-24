@@ -5,25 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة الإشعارات - نظام الأرشيف</title>
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Bootstrap RTL -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
+    <link rel="stylesheet" href="assets/css/permissions.css">
     
     <style>
+        * {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+        }
+
         body {
-            font-family: 'Cairo', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 2rem 0;
+        }
+
+        .main-content {
+            margin-right: 280px;
+            transition: margin-right 0.3s ease;
+            padding: 2rem 2rem 3rem 2rem; /* extra bottom padding for mobile FABs */
+        }
+
+        .sidebar-collapsed .main-content {
+            margin-right: 0;
         }
 
         .notification-settings-container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .settings-header {
@@ -31,39 +52,73 @@
             color: white;
             padding: 2rem;
             text-align: center;
+            position: relative;
+        }
+
+        .settings-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+        }
+
+        .settings-header > * {
+            position: relative;
+            z-index: 1;
         }
 
         .settings-header h1 {
             margin: 0;
-            font-size: 2rem;
-            font-weight: 700;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #ffffff, #f0f9ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .settings-nav {
-            background: #f8fafc;
+            background: rgba(248, 250, 252, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
             padding: 1rem;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
         }
 
         .nav-pills .nav-link {
             color: #64748b;
-            border-radius: 12px;
+            border-radius: 15px;
             margin-left: 0.5rem;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border: 2px solid transparent;
         }
 
         .nav-pills .nav-link:hover {
-            background: #e2e8f0;
+            background: rgba(226, 232, 240, 0.8);
             color: #334155;
+            transform: translateY(-2px);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .nav-pills .nav-link.active {
-            background: #3b82f6;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
             color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
         }
 
         .settings-content {
             padding: 2rem;
+            background: rgba(255, 255, 255, 0.8);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
         }
 
         .settings-section {
@@ -72,23 +127,38 @@
 
         .settings-section h3 {
             color: #1e293b;
-            margin-bottom: 1rem;
-            font-size: 1.3rem;
-            font-weight: 600;
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .settings-section h3::before {
+            content: '';
+            width: 4px;
+            height: 2rem;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 2px;
         }
 
         .settings-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 15px;
             padding: 1.5rem;
-            margin-bottom: 1rem;
-            transition: all 0.3s;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
 
         .settings-card:hover {
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .setting-item {
@@ -96,7 +166,15 @@
             align-items: center;
             justify-content: space-between;
             padding: 1rem 0;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid rgba(241, 245, 249, 0.8);
+            transition: all 0.3s ease;
+        }
+
+        .setting-item:hover {
+            background: rgba(248, 250, 252, 0.5);
+            border-radius: 10px;
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
 
         .setting-item:last-child {
@@ -106,176 +184,230 @@
         .setting-label {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
         }
 
         .setting-label .icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
         }
 
         .setting-label .info h5 {
             margin: 0;
             color: #1e293b;
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: 1.1rem;
+            font-weight: 700;
         }
 
         .setting-label .info p {
             margin: 0;
             color: #64748b;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
+            line-height: 1.4;
         }
 
         .form-switch .form-check-input {
-            width: 3rem;
-            height: 1.5rem;
+            width: 3.5rem;
+            height: 1.8rem;
             border-radius: 1rem;
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
         }
 
         .form-switch .form-check-input:checked {
             background-color: #3b82f6;
             border-color: #3b82f6;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .form-switch .form-check-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
         }
 
         .time-picker {
             display: flex;
             gap: 1rem;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .time-picker input {
-            width: 100px;
-            padding: 0.5rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
+            width: 120px;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .time-picker input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
         }
 
         .priority-badges {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.75rem;
             flex-wrap: wrap;
         }
 
         .priority-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .priority-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .priority-badge:hover::before {
+            left: 100%;
         }
 
         .priority-badge.low {
-            background: #f0f9ff;
-            color: #0369a1;
-            border: 1px solid #bae6fd;
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+            border-color: #93c5fd;
         }
 
         .priority-badge.normal {
-            background: #f0fdf4;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
             color: #166534;
-            border: 1px solid #bbf7d0;
+            border-color: #86efac;
         }
 
         .priority-badge.high {
-            background: #fef3c7;
-            color: #d97706;
-            border: 1px solid #fde68a;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #b45309;
+            border-color: #fbbf24;
         }
 
         .priority-badge.urgent {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
+            background: linear-gradient(135deg, #fef2f2, #fecaca);
+            color: #b91c1c;
+            border-color: #f87171;
         }
 
         .priority-badge.active {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border-color: currentColor;
         }
 
         .frequency-selector {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 1rem;
             margin-top: 1rem;
         }
 
         .frequency-option {
-            padding: 1rem;
+            padding: 1.5rem;
             border: 2px solid #e2e8f0;
-            border-radius: 12px;
+            border-radius: 15px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
         }
 
         .frequency-option:hover {
             border-color: #3b82f6;
-            background: #f0f9ff;
+            background: rgba(59, 130, 246, 0.05);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
         }
 
         .frequency-option.active {
             border-color: #3b82f6;
-            background: #3b82f6;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
         }
 
         .frequency-option i {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+            margin-bottom: 0.75rem;
+            display: block;
         }
 
         .test-notification-btn {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             border: none;
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.3s;
+            padding: 0.875rem 1.75rem;
+            border-radius: 12px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
         }
 
         .test-notification-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+            color: white;
         }
 
         .save-settings-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             color: white;
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            font-weight: 600;
+            padding: 1rem 2.5rem;
+            border-radius: 15px;
+            font-weight: 700;
             font-size: 1.1rem;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
         }
 
         .save-settings-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+            color: white;
         }
 
         .notification-history {
             max-height: 400px;
             overflow-y: auto;
+            border-radius: 10px;
         }
 
         .history-item {
-            padding: 1rem;
-            border-bottom: 1px solid #f1f5f9;
-            transition: all 0.3s;
+            padding: 1.25rem;
+            border-bottom: 1px solid rgba(241, 245, 249, 0.8);
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
         }
 
         .history-item:hover {
-            background: #f8fafc;
+            background: rgba(248, 250, 252, 0.8);
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
 
         .history-item:last-child {
@@ -286,99 +418,135 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
         }
 
         .history-title {
-            font-weight: 600;
+            font-weight: 700;
             color: #1e293b;
             margin: 0;
+            font-size: 1.1rem;
         }
 
         .history-time {
             color: #64748b;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 600;
         }
 
         .history-message {
             color: #475569;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
             margin-bottom: 2rem;
         }
 
         .stat-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.9);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 15px;
+            padding: 2rem;
             text-align: center;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
         }
 
         .stat-card:hover {
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transform: translateY(-8px);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 15px;
+            width: 70px;
+            height: 70px;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            margin: 0 auto 1rem;
+            font-size: 1.8rem;
+            margin: 0 auto 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1) rotate(5deg);
         }
 
         .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
+            font-size: 2.5rem;
+            font-weight: 800;
             color: #1e293b;
             margin: 0;
+            margin-bottom: 0.5rem;
         }
 
         .stat-label {
             color: #64748b;
-            font-size: 0.9rem;
+            font-size: 1rem;
             margin: 0;
+            font-weight: 600;
         }
 
         .notification-preview {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1rem;
-            margin-top: 1rem;
+            background: rgba(248, 250, 252, 0.9);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            transition: all 0.3s ease;
         }
 
         .preview-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
         }
 
         .preview-title {
-            font-weight: 600;
+            font-weight: 700;
             color: #1e293b;
             margin: 0;
+            font-size: 1.1rem;
         }
 
         .preview-message {
             color: #475569;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            line-height: 1.6;
         }
 
         @media (max-width: 768px) {
+            .main-content {
+                margin-right: 0;
+                padding: 1rem;
+            }
+
             .notification-settings-container {
-                margin: 1rem;
+                margin: 0.5rem;
                 border-radius: 15px;
             }
 
@@ -387,11 +555,11 @@
             }
 
             .settings-header h1 {
-                font-size: 1.5rem;
+                font-size: 2rem;
             }
 
             .settings-content {
-                padding: 1rem;
+                padding: 1.5rem;
             }
 
             .frequency-selector {
@@ -401,108 +569,193 @@
             .stats-grid {
                 grid-template-columns: 1fr;
             }
+
+            .setting-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .time-picker {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .time-picker input {
+                width: 100%;
+            }
         }
 
-        /* Notification Icon Styles */
+        /* Enhanced Notification Icon Styles */
         .notification-icon-sound {
-            background: #dbeafe !important;
-            color: #3b82f6 !important;
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+            color: #1e40af !important;
         }
 
         .notification-icon-desktop {
-            background: #dcfce7 !important;
-            color: #16a34a !important;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
+            color: #166534 !important;
         }
 
         .notification-icon-badges {
-            background: #fef3c7 !important;
-            color: #d97706 !important;
+            background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+            color: #b45309 !important;
         }
 
         .notification-icon-group {
-            background: #f3e8ff !important;
-            color: #9333ea !important;
+            background: linear-gradient(135deg, #f3e8ff, #e9d5ff) !important;
+            color: #7c3aed !important;
         }
 
         .notification-icon-quiet {
-            background: #e0f2fe !important;
-            color: #0891b2 !important;
+            background: linear-gradient(135deg, #e0f2fe, #b3e5fc) !important;
+            color: #0277bd !important;
         }
 
         .notification-icon-web {
-            background: #dbeafe !important;
-            color: #3b82f6 !important;
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+            color: #1e40af !important;
         }
 
         .notification-icon-email {
-            background: #dcfce7 !important;
-            color: #16a34a !important;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
+            color: #166534 !important;
         }
 
         .notification-icon-push {
-            background: #fef3c7 !important;
-            color: #d97706 !important;
+            background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+            color: #b45309 !important;
         }
 
         .notification-icon-file {
-            background: #dbeafe !important;
-            color: #3b82f6 !important;
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+            color: #1e40af !important;
         }
 
         .notification-icon-movement {
-            background: #dcfce7 !important;
-            color: #16a34a !important;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
+            color: #166534 !important;
         }
 
         .notification-icon-urgent {
-            background: #fef3c7 !important;
-            color: #d97706 !important;
+            background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+            color: #b45309 !important;
         }
 
         .notification-icon-security {
-            background: #fef2f2 !important;
-            color: #dc2626 !important;
+            background: linear-gradient(135deg, #fef2f2, #fecaca) !important;
+            color: #b91c1c !important;
         }
 
         .notification-icon-maintenance {
-            background: #f3e8ff !important;
-            color: #9333ea !important;
+            background: linear-gradient(135deg, #f3e8ff, #e9d5ff) !important;
+            color: #7c3aed !important;
         }
 
         .notification-icon-expiry {
-            background: #e0f2fe !important;
-            color: #0891b2 !important;
+            background: linear-gradient(135deg, #e0f2fe, #b3e5fc) !important;
+            color: #0277bd !important;
         }
 
         .stat-icon-blue {
-            background: #dbeafe !important;
-            color: #3b82f6 !important;
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+            color: #1e40af !important;
         }
 
         .stat-icon-green {
-            background: #dcfce7 !important;
-            color: #16a34a !important;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
+            color: #166534 !important;
         }
 
         .stat-icon-yellow {
-            background: #fef3c7 !important;
-            color: #d97706 !important;
+            background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+            color: #b45309 !important;
         }
 
         .stat-icon-red {
-            background: #fef2f2 !important;
-            color: #dc2626 !important;
+            background: linear-gradient(135deg, #fef2f2, #fecaca) !important;
+            color: #b91c1c !important;
         }
 
         .hidden {
             display: none !important;
         }
+
+        /* Loading animations */
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* Custom scrollbar */
+        .notification-history::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .notification-history::-webkit-scrollbar-track {
+            background: rgba(241, 245, 249, 0.5);
+            border-radius: 4px;
+        }
+
+        .notification-history::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 4px;
+        }
+
+        .notification-history::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+        }
     </style>
+
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <div class="notification-settings-container">
-        <!-- رأس الصفحة -->
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar" aria-label="القائمة الجانبية">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-archive"></i>
+                <span>نظام الأرشيف</span>
+            </div>
+            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="user-info" id="userInfo">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </div>
+        
+        <nav class="sidebar-nav" id="sidebarNav">
+            <!-- سيتم ملؤها بـ JavaScript -->
+        </nav>
+    </aside>
+
+    <div class="overlay" id="overlay" tabindex="-1" aria-hidden="true"></div>
+
+    <main class="main-content">
+        <div class="notification-settings-container" id="mainContent" role="main" tabindex="-1">
+        <!-- رأس الصفحة مع عناصر تحكم سريعة -->
         <div class="settings-header">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light btn-sm d-md-none" id="sidebarToggle" title="القائمة">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <nav aria-label="breadcrumb" class="ms-auto">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a class="text-white-50" href="index.html">الرئيسية</a></li>
+                        <li class="breadcrumb-item active text-white" aria-current="page">إدارة الإشعارات</li>
+                    </ol>
+                </nav>
+            </div>
             <h1>
                 <i class="fas fa-bell me-3"></i>
                 إدارة الإشعارات
@@ -594,7 +847,7 @@
                             <div class="setting-item">
                                 <div class="setting-label">
                                     <div class="icon notification-icon-badges">
-                                        <i class="fas fa-badge"></i>
+                                        <i class="fas fa-hashtag"></i>
                                     </div>
                                     <div class="info">
                                         <h5>شارات العد</h5>
@@ -920,6 +1173,7 @@
                 <div class="tab-pane fade" id="stats">
                     <div class="settings-section">
                         <h3>إحصائيات الإشعارات</h3>
+                        <small class="text-muted">البيانات يتم احتسابها فعليًا من قاعدة البيانات لمستخدمك الحالي</small>
                         
                         <div class="stats-grid">
                             <div class="stat-card">
@@ -971,7 +1225,7 @@
                         إعادة تعيين
                     </button>
                     
-                    <button class="btn save-settings-btn" onclick="saveSettings()">
+                    <button class="btn save-settings-btn" onclick="saveSettings(event)">
                         <i class="fas fa-save me-2"></i>
                         حفظ الإعدادات
                     </button>
@@ -991,361 +1245,1135 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Firebase SDK -->
+    <!-- Firebase v10.7.1 - الإصدار الموحد -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check-compat.js"></script>
     
-    <!-- تطبيق الإعدادات -->
+    <!-- Firebase Configuration -->
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
+
+    <!-- Enhanced System Components -->
+    <script src="assets/js/roles.js"></script>
+    
+    <script src="assets/js/activity-logger.js"></script>
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
     <script src="assets/js/notifications.js"></script>
     <script src="assets/js/advanced-alerts.js"></script>
     <script src="assets/js/smart-notifications.js"></script>
+    <script src="assets/js/cloud-services.js"></script>
+    <!-- Load unified UI before inline bootstrapping to ensure sidebar availability -->
+    <script src="assets/js/unified-ui-template.js"></script>
     
     <script>
-        // متغيرات عامة
+        // Initialize system components
+        let permissionController;
+        let currentUser = null;
+        let sidebarManager = null;
+        let localActivityLogger = null;
         let currentSettings = {};
         let notificationHistory = [];
         let stats = {};
 
-        // تهيئة الصفحة
-        document.addEventListener('DOMContentLoaded', function() {
-            loadSettings();
-            loadNotificationHistory();
-            loadStats();
-            setupEventListeners();
-        });
-
-        // إعداد مستمعي الأحداث
-        function setupEventListeners() {
-            // الساعات الهادئة
-            document.getElementById('enableQuietHours').addEventListener('change', function() {
-                const settings = document.getElementById('quietHoursSettings');
-                settings.style.display = this.checked ? 'block' : 'none';
-            });
-
-            // شارات الأولوية
-            document.querySelectorAll('.priority-badge').forEach(badge => {
-                badge.addEventListener('click', function() {
-                    this.classList.toggle('active');
-                    updatePreview();
-                });
-            });
-
-            // خيارات التكرار
-            document.querySelectorAll('.frequency-option').forEach(option => {
-                option.addEventListener('click', function() {
-                    this.classList.toggle('active');
-                    updatePreview();
-                });
-            });
-
-            // تحديث المعاينة عند تغيير الإعدادات
-            document.querySelectorAll('input[type="checkbox"]').forEach(input => {
-                input.addEventListener('change', updatePreview);
+        // Enhanced Firebase initialization with waitForFirebaseAndAuth pattern
+        async function waitForFirebaseAndAuth() {
+            return new Promise((resolve) => {
+                const checkReady = () => {
+                    if (window.unifiedAuth && 
+                        window.unifiedAuth.isInitialized && 
+                        window.firebase && 
+                        window.db) {
+                        resolve();
+                    } else {
+                        setTimeout(checkReady, 100);
+                    }
+                };
+                checkReady();
             });
         }
 
-        // تحميل الإعدادات
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Initialize or reuse global Unified UI Template for consistent sidebar
+                // Unified UI auto-initializes; refresh sidebar if available
+                if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                    try { await window.unifiedUI.updateSidebar(); } catch (e) { console.warn('تعذر تحديث القائمة الجانبية:', e); }
+                }
+                // Wait for Firebase and authentication to be ready
+                await waitForFirebaseAndAuth();
+                
+                // Initialize enhanced system components
+                if (window.ActivityLogger) {
+                    localActivityLogger = new ActivityLogger();
+                }
+
+                if (window.UIPermissionController) {
+                    permissionController = new UIPermissionController();
+                }
+
+                // Initialize sidebar manager
+                if (window.SidebarManager) {
+                    sidebarManager = new SidebarManager();
+                }
+
+                // Hook up sidebar toggle for mobile
+                try {
+                    const toggleBtn = document.getElementById('sidebarToggle');
+                    if (toggleBtn && window.sidebarManager && typeof window.sidebarManager.toggleSidebar === 'function') {
+                        toggleBtn.addEventListener('click', () => window.sidebarManager.toggleSidebar());
+                    } else if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
+                    }
+                } catch (_) {}
+
+                // Set up authentication state listener
+                unifiedAuth.onAuthStateChanged(handleAuthStateChange);
+
+                // Initialize page components
+                setupEventListeners();
+
+                // Log page access
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('page_access', {
+                        page: 'notification-settings',
+                        timestamp: new Date().toISOString(),
+                        userAgent: navigator.userAgent
+                    });
+                }
+
+            } catch (error) {
+                console.error('خطأ في تهيئة الصفحة:', error);
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('page_error', {
+                        page: 'notification-settings',
+                        error: error.message,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                showAlert('حدث خطأ في تحميل الصفحة. يرجى إعادة تحميل الصفحة.', 'error');
+            }
+        });
+
+        async function handleAuthStateChange(user) {
+            try {
+                if (!user) {
+                    // Redirect to login if not authenticated
+                    if (localActivityLogger) {
+                        localActivityLogger.logActivity('auth_redirect', {
+                            page: 'notification-settings',
+                            reason: 'no_user',
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                    window.location.href = 'login.html?redirect=notification-settings.html&message=session-expired';
+                    return;
+                }
+
+                currentUser = user;
+                console.log('✅ تم تسجيل الدخول لإعدادات الإشعارات:', user.email);
+
+                // Log successful authentication
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('auth_success', {
+                        page: 'notification-settings',
+                        user_email: user.email,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                // Update UI with user info
+                await updateUserInterface();
+
+                // Ensure unified UI sidebar reflects current auth state
+                try { if (window.unifiedUI && window.unifiedUI.updateSidebar) { window.unifiedUI.updateSidebar(); } } catch (e) { console.warn('Sidebar update failed:', e); }
+
+                // Ensure Sidebar is visible on this page
+                try {
+                    if (window.sidebarManager && typeof window.sidebarManager.showSidebar === 'function') {
+                        window.sidebarManager.showSidebar();
+                        document.body.classList.remove('sidebar-collapsed');
+                    }
+                } catch (_) {}
+
+                // Update permission-based UI
+                if (permissionController) {
+                    permissionController.updateUI();
+                }
+
+                // Load user settings and data
+                await loadSettings();
+                await loadNotificationHistory();
+                await loadStats();
+
+            } catch (error) {
+                console.error('خطأ في معالجة حالة المصادقة:', error);
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('auth_error', {
+                        page: 'notification-settings',
+                        error: error.message,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                showAlert('حدث خطأ في تحميل البيانات. يرجى إعادة تحميل الصفحة.', 'error');
+            }
+        }
+
+        // Enhanced user interface update function
+        async function updateUserInterface() {
+            try {
+                if (currentUser && sidebarManager) {
+                    const userInfo = {
+                        displayName: currentUser.displayName || currentUser.email || 'مستخدم',
+                        email: currentUser.email || '',
+                        role: currentUser.role || 'user',
+                        department: currentUser.department || ''
+                    };
+
+                    // Update sidebar navigation based on role (SidebarManager does not expose updateUserInfo)
+                    sidebarManager.updateSidebarNav(true, userInfo.role);
+                }
+
+            } catch (error) {
+                console.error('خطأ في تحديث واجهة المستخدم:', error);
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('ui_update_error', {
+                        error: error.message,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            }
+        }
+
+        // Enhanced event listeners setup
+        function setupEventListeners() {
+            try {
+                // الساعات الهادئة
+                const quietHoursToggle = document.getElementById('enableQuietHours');
+                if (quietHoursToggle) {
+                    quietHoursToggle.addEventListener('change', function() {
+                        const settings = document.getElementById('quietHoursSettings');
+                        if (settings) {
+                            if (this.checked) {
+                                settings.classList.remove('hidden');
+                                settings.style.display = 'flex';
+                            } else {
+                                settings.classList.add('hidden');
+                                settings.style.display = 'none';
+                            }
+                        }
+                        updatePreview();
+                    });
+                }
+
+                // شارات الأولوية
+                document.querySelectorAll('.priority-badge').forEach(badge => {
+                    badge.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                        updatePreview();
+                        
+                        if (localActivityLogger) {
+                            localActivityLogger.logActivity('priority_toggle', {
+                                priority: this.dataset.priority,
+                                active: this.classList.contains('active'),
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                    });
+                });
+
+                // خيارات التكرار
+                document.querySelectorAll('.frequency-option').forEach(option => {
+                    option.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                        updatePreview();
+                        
+                        if (localActivityLogger) {
+                            localActivityLogger.logActivity('frequency_toggle', {
+                                frequency: this.dataset.frequency,
+                                active: this.classList.contains('active'),
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                    });
+                });
+
+                // تحديث المعاينة عند تغيير الإعدادات
+                document.querySelectorAll('input[type="checkbox"]').forEach(input => {
+                    input.addEventListener('change', function() {
+                        updatePreview();
+                        
+                        if (localActivityLogger) {
+                            localActivityLogger.logActivity('setting_toggle', {
+                                setting: this.id,
+                                checked: this.checked,
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                    });
+                });
+
+                console.log('✅ تم إعداد مستمعي الأحداث بنجاح');
+
+            } catch (error) {
+                console.error('خطأ في إعداد مستمعي الأحداث:', error);
+            }
+        }
+
+        // Enhanced settings loading with error handling
         async function loadSettings() {
             try {
-                if (window.smartNotificationManager) {
-                    const userId = auth.currentUser?.uid;
-                    if (userId) {
-                        const userPrefs = smartNotificationManager.userPreferences.get(userId);
+                showLoading(true);
+
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('settings_load_start', {
+                        page: 'notification-settings',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                // Try to load from Firebase first
+                if (window.smartNotificationManager && window.smartNotificationManager.getUserPreferences && currentUser) {
+                    try {
+                        const userPrefs = await smartNotificationManager.getUserPreferences(currentUser.uid);
                         if (userPrefs) {
                             applySettings(userPrefs);
+                            console.log('✅ تم تحميل الإعدادات من Firebase');
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn('فشل في تحميل الإعدادات من Firebase:', error);
+                    }
+                }
+
+                // Fallback to localStorage
+                const savedSettings = localStorage.getItem('notificationSettings');
+                if (savedSettings) {
+                    try {
+                        const settings = JSON.parse(savedSettings);
+                        applySettings(settings);
+                        console.log('✅ تم تحميل الإعدادات من التخزين المحلي');
+                        return;
+                    } catch (error) {
+                        console.warn('خطأ في تحليل الإعدادات المحفوظة:', error);
+                    }
+                }
+
+                // Apply default settings
+                applyDefaultSettings();
+                console.log('✅ تم تطبيق الإعدادات الافتراضية');
+
+            } catch (error) {
+                console.error('خطأ في تحميل الإعدادات:', error);
+                
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('settings_load_error', {
+                        error: error.message,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                showAlert('حدث خطأ في تحميل الإعدادات. سيتم استخدام الإعدادات الافتراضية.', 'warning');
+                applyDefaultSettings();
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Apply default settings
+        function applyDefaultSettings() {
+            const defaultSettings = {
+                channels: {
+                    web: true,
+                    email: true,
+                    push: false,
+                    desktop: false,
+                    badges: true
+                },
+                frequency: {
+                    immediate: true,
+                    daily: true,
+                    weekly: true,
+                    monthly: false
+                },
+                types: {
+                    file_upload: true,
+                    file_movement: true,
+                    urgent_activity: true,
+                    security_alert: true,
+                    system_maintenance: true,
+                    document_expiry: true
+                },
+                quietHours: {
+                    enabled: false,
+                    start: '22:00',
+                    end: '08:00'
+                },
+                groupSimilar: true,
+                sound: true
+            };
+
+            applySettings(defaultSettings);
+        }
+
+        // Enhanced settings application with comprehensive error handling
+        function applySettings(settings) {
+            try {
+                currentSettings = { ...settings };
+
+                // التفضيلات العامة
+                setCheckboxValue('enableSound', settings.sound);
+                setCheckboxValue('enableDesktop', settings.channels?.desktop);
+                setCheckboxValue('enableBadges', settings.channels?.badges);
+                setCheckboxValue('groupSimilar', settings.groupSimilar);
+
+                // الساعات الهادئة
+                if (settings.quietHours) {
+                    setCheckboxValue('enableQuietHours', settings.quietHours.enabled);
+                    setInputValue('quietStart', settings.quietHours.start || '22:00');
+                    setInputValue('quietEnd', settings.quietHours.end || '08:00');
+                    
+                    const quietSettings = document.getElementById('quietHoursSettings');
+                    if (quietSettings) {
+                        if (settings.quietHours.enabled) {
+                            quietSettings.classList.remove('hidden');
+                            quietSettings.style.display = 'flex';
+                        } else {
+                            quietSettings.classList.add('hidden');
+                            quietSettings.style.display = 'none';
                         }
                     }
                 }
+
+                // قنوات الإرسال
+                if (settings.channels) {
+                    setCheckboxValue('webChannel', settings.channels.web);
+                    setCheckboxValue('emailChannel', settings.channels.email);
+                    setCheckboxValue('pushChannel', settings.channels.push);
+                }
+
+                // أنواع الإشعارات
+                if (settings.types) {
+                    setCheckboxValue('fileUpload', settings.types.file_upload);
+                    setCheckboxValue('fileMovement', settings.types.file_movement);
+                    setCheckboxValue('urgentActivity', settings.types.urgent_activity);
+                    setCheckboxValue('securityAlert', settings.types.security_alert);
+                    setCheckboxValue('systemMaintenance', settings.types.system_maintenance);
+                    setCheckboxValue('documentExpiry', settings.types.document_expiry);
+                }
+
+                // تكرار الإشعارات
+                if (settings.frequency) {
+                    document.querySelectorAll('.frequency-option').forEach(option => {
+                        const freq = option.dataset.frequency;
+                        if (settings.frequency[freq]) {
+                            option.classList.add('active');
+                        } else {
+                            option.classList.remove('active');
+                        }
+                    });
+                }
+
+                // شارات الأولوية
+                if (settings.priorities) {
+                    document.querySelectorAll('.priority-badge').forEach(badge => {
+                        const priority = badge.dataset.priority;
+                        if (settings.priorities[priority]) {
+                            badge.classList.add('active');
+                        } else {
+                            badge.classList.remove('active');
+                        }
+                    });
+                } else {
+                    // Default: all priorities active
+                    document.querySelectorAll('.priority-badge').forEach(badge => {
+                        badge.classList.add('active');
+                    });
+                }
+
+                updatePreview();
+                console.log('✅ تم تطبيق الإعدادات بنجاح');
+
             } catch (error) {
-                console.error('خطأ في تحميل الإعدادات:', error);
+                console.error('خطأ في تطبيق الإعدادات:', error);
+                showAlert('حدث خطأ في تطبيق الإعدادات', 'error');
             }
         }
 
-        // تطبيق الإعدادات على الواجهة
-        function applySettings(settings) {
-            currentSettings = settings;
-
-            // التفضيلات العامة
-            document.getElementById('enableSound').checked = settings.channels?.web || false;
-            document.getElementById('enableDesktop').checked = settings.channels?.desktop || false;
-            document.getElementById('enableBadges').checked = settings.channels?.badges || false;
-            document.getElementById('groupSimilar').checked = settings.groupSimilar || false;
-
-            // الساعات الهادئة
-            if (settings.quietHours) {
-                document.getElementById('enableQuietHours').checked = settings.quietHours.enabled || false;
-                document.getElementById('quietStart').value = settings.quietHours.start || '22:00';
-                document.getElementById('quietEnd').value = settings.quietHours.end || '08:00';
-                
-                const quietSettings = document.getElementById('quietHoursSettings');
-                quietSettings.style.display = settings.quietHours.enabled ? 'block' : 'none';
-            }
-
-            // قنوات الإرسال
-            if (settings.channels) {
-                document.getElementById('webChannel').checked = settings.channels.web || false;
-                document.getElementById('emailChannel').checked = settings.channels.email || false;
-                document.getElementById('pushChannel').checked = settings.channels.push || false;
-            }
-
-            // أنواع الإشعارات
-            if (settings.types) {
-                document.getElementById('fileUpload').checked = settings.types.file_upload || false;
-                document.getElementById('fileMovement').checked = settings.types.file_movement || false;
-                document.getElementById('urgentActivity').checked = settings.types.urgent_activity || false;
-                document.getElementById('securityAlert').checked = settings.types.security_alert || false;
-                document.getElementById('systemMaintenance').checked = settings.types.system_maintenance || false;
-                document.getElementById('documentExpiry').checked = settings.types.document_expiry || false;
-            }
-
-            // تكرار الإشعارات
-            if (settings.frequency) {
-                document.querySelectorAll('.frequency-option').forEach(option => {
-                    const freq = option.dataset.frequency;
-                    if (settings.frequency[freq]) {
-                        option.classList.add('active');
-                    } else {
-                        option.classList.remove('active');
-                    }
-                });
+        // Helper functions for setting values safely
+        function setCheckboxValue(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.checked = !!value;
             }
         }
 
-        // تحميل سجل الإشعارات
+        function setInputValue(id, value) {
+            const element = document.getElementById(id);
+            if (element && value !== undefined) {
+                element.value = value;
+            }
+        }
+
+        // Enhanced notification history loading with real data
         async function loadNotificationHistory() {
             try {
                 const historyContainer = document.getElementById('notificationHistory');
-                historyContainer.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+                if (!historyContainer) return;
 
-                // محاكاة بيانات السجل
-                const mockHistory = [
-                    {
-                        id: 1,
-                        title: 'تم تحميل ملف جديد',
-                        message: 'تم تحميل ملف "تقرير مالي" بواسطة أحمد محمد',
-                        timestamp: new Date(Date.now() - 3600000),
-                        type: 'file_upload',
-                        read: true
-                    },
-                    {
-                        id: 2,
-                        title: 'حركة ملف',
-                        message: 'تم نقل الملف #12345 من الإدارة المالية إلى الإدارة القانونية',
-                        timestamp: new Date(Date.now() - 7200000),
-                        type: 'file_movement',
-                        read: false
-                    },
-                    {
-                        id: 3,
-                        title: 'تنبيه أمني',
-                        message: 'تم رصد محاولة دخول مشبوهة من IP: 192.168.1.100',
-                        timestamp: new Date(Date.now() - 86400000),
-                        type: 'security_alert',
-                        read: true
+                historyContainer.innerHTML = '<div class="text-center py-4 loading-shimmer"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('history_load_start', {
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                let loadedHistory = [];
+
+                // Try to load from Firebase (simplified query to avoid index requirement)
+                if (window.db && currentUser) {
+                    try {
+                        // Query the real notifications collection; avoid orderBy to skip composite index
+                        const snapshot = await db.collection('notifications')
+                            .where('userId', '==', currentUser.uid)
+                            .limit(20)
+                            .get();
+
+                        snapshot.forEach(doc => {
+                            const data = doc.data() || {};
+                            // Normalize timestamp from createdAt (Firestore Timestamp) or timestamp
+                            let ts = data.createdAt || data.timestamp || null;
+                            if (ts && typeof ts.toDate === 'function') ts = ts.toDate();
+                            if (!ts) {
+                                // fallback to now if missing
+                                ts = new Date();
+                            }
+
+                            loadedHistory.push({
+                                id: doc.id,
+                                title: data.title || '',
+                                message: data.message || '',
+                                type: data.type || 'info',
+                                priority: data.priority || 'normal',
+                                read: (data.read !== undefined ? data.read : (data.isRead !== undefined ? data.isRead : false)),
+                                timestamp: ts
+                            });
+                        });
+
+                        // Sort locally if data exists
+                        if (loadedHistory.length > 0) {
+                            loadedHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        }
+
+                    } catch (error) {
+                        console.warn('لا يمكن تحميل السجل من Firebase:', error);
                     }
-                ];
+                }
 
-                notificationHistory = mockHistory;
+                // Fallback to mock data if no real data
+                if (loadedHistory.length === 0) {
+                    loadedHistory = generateMockHistory();
+                }
+
+                notificationHistory = loadedHistory;
                 renderNotificationHistory();
+
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('history_loaded', {
+                        count: loadedHistory.length,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
             } catch (error) {
                 console.error('خطأ في تحميل سجل الإشعارات:', error);
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('history_load_error', {
+                        error: error.message,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                const historyContainer = document.getElementById('notificationHistory');
+                if (historyContainer) {
+                    historyContainer.innerHTML = '<div class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle"></i><p class="mt-2">حدث خطأ في تحميل السجل</p></div>';
+                }
             }
         }
 
-        // عرض سجل الإشعارات
+        // Generate mock history data
+        function generateMockHistory() {
+            const now = Date.now();
+            return [
+                {
+                    id: 1,
+                    title: 'تم تحميل ملف جديد',
+                    message: 'تم تحميل ملف "تقرير مالي Q3" بواسطة أحمد محمد في القسم المالي',
+                    timestamp: new Date(now - 1800000), // 30 minutes ago
+                    type: 'file_upload',
+                    read: true,
+                    priority: 'normal'
+                },
+                {
+                    id: 2,
+                    title: 'حركة ملف عاجلة',
+                    message: 'تم نقل الملف #12345 من الإدارة المالية إلى الإدارة القانونية - يتطلب مراجعة فورية',
+                    timestamp: new Date(now - 3600000), // 1 hour ago
+                    type: 'file_movement',
+                    read: false,
+                    priority: 'urgent'
+                },
+                {
+                    id: 3,
+                    title: 'تنبيه أمني',
+                    message: 'تم رصد محاولة دخول مشبوهة من IP: 192.168.1.100 - تم حظر المحاولة',
+                    timestamp: new Date(now - 7200000), // 2 hours ago
+                    type: 'security_alert',
+                    read: true,
+                    priority: 'high'
+                },
+                {
+                    id: 4,
+                    title: 'انتهاء صلاحية وثيقة',
+                    message: 'ستنتهي صلاحية الوثيقة #DOC-2024-891 خلال 7 أيام - يرجى التجديد',
+                    timestamp: new Date(now - 86400000), // 1 day ago
+                    type: 'document_expiry',
+                    read: false,
+                    priority: 'high'
+                },
+                {
+                    id: 5,
+                    title: 'صيانة النظام',
+                    message: 'سيتم إجراء صيانة دورية للنظام يوم الجمعة من 2:00 ص إلى 4:00 ص',
+                    timestamp: new Date(now - 172800000), // 2 days ago
+                    type: 'system_maintenance',
+                    read: true,
+                    priority: 'normal'
+                }
+            ];
+        }
+
+        // Enhanced notification history rendering
         function renderNotificationHistory() {
             const container = document.getElementById('notificationHistory');
+            if (!container) return;
             
             if (notificationHistory.length === 0) {
-                container.innerHTML = '<div class="text-center py-4"><i class="fas fa-bell-slash text-muted"></i><p class="text-muted mt-2">لا توجد إشعارات في السجل</p></div>';
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-bell-slash text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-3 mb-0">لا توجد إشعارات في السجل</p>
+                        <small class="text-muted">ستظهر إشعاراتك هنا عند وصولها</small>
+                    </div>
+                `;
                 return;
             }
 
-            const historyHTML = notificationHistory.map(item => `
-                <div class="history-item">
-                    <div class="history-header">
-                        <h6 class="history-title">${item.title}</h6>
-                        <span class="history-time">${formatTime(item.timestamp)}</span>
+            const historyHTML = notificationHistory.map(item => {
+                const timeStr = formatTime(item.timestamp);
+                const priorityClass = getPriorityClass(item.priority);
+                const typeIcon = getTypeIcon(item.type);
+                
+                return `
+                    <div class="history-item" data-id="${item.id}">
+                        <div class="history-header">
+                            <h6 class="history-title">
+                                <i class="${typeIcon} me-2 text-${priorityClass}"></i>
+                                ${escapeHtml(item.title)}
+                            </h6>
+                            <span class="history-time">${timeStr}</span>
+                        </div>
+                        <div class="history-message">${escapeHtml(item.message)}</div>
+                        <div class="mt-2">
+                            <span class="badge bg-${item.read ? 'success' : 'warning'}">
+                                <i class="fas ${item.read ? 'fa-check' : 'fa-clock'} me-1"></i>
+                                ${item.read ? 'مقروء' : 'غير مقروء'}
+                            </span>
+                            <span class="badge bg-${priorityClass} ms-2">
+                                ${getPriorityLabel(item.priority)}
+                            </span>
+                            <span class="badge bg-secondary ms-2">
+                                ${getTypeLabel(item.type)}
+                            </span>
+                        </div>
                     </div>
-                    <div class="history-message">${item.message}</div>
-                    <div class="mt-2">
-                        <span class="badge bg-${item.read ? 'success' : 'warning'}">${item.read ? 'مقروء' : 'غير مقروء'}</span>
-                        <span class="badge bg-secondary ms-2">${getTypeLabel(item.type)}</span>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             container.innerHTML = historyHTML;
         }
 
-        // تحميل الإحصائيات
-        function loadStats() {
-            // محاكاة بيانات الإحصائيات
-            stats = {
-                total: 125,
-                read: 98,
-                pending: 27,
-                urgent: 5
-            };
-
-            updateStatsDisplay();
-        }
-
-        // تحديث عرض الإحصائيات
-        function updateStatsDisplay() {
-            document.getElementById('totalNotifications').textContent = stats.total;
-            document.getElementById('readNotifications').textContent = stats.read;
-            document.getElementById('pendingNotifications').textContent = stats.pending;
-            document.getElementById('urgentNotifications').textContent = stats.urgent;
-        }
-
-        // تحديث معاينة الإشعار
-        function updatePreview() {
-            const preview = document.getElementById('notificationPreview');
-            const message = document.getElementById('previewMessage');
-            
-            // التحقق من الإعدادات المفعلة
-            const enabledTypes = [];
-            if (document.getElementById('fileUpload').checked) enabledTypes.push('تحميل الملفات');
-            if (document.getElementById('fileMovement').checked) enabledTypes.push('حركة الملفات');
-            if (document.getElementById('urgentActivity').checked) enabledTypes.push('الأنشطة العاجلة');
-            
-            if (enabledTypes.length > 0) {
-                message.textContent = `ستتلقى إشعارات حول: ${enabledTypes.join(', ')}`;
-                preview.style.display = 'block';
-            } else {
-                preview.style.display = 'none';
-            }
-        }
-
-        // اختبار الإشعار
-        function testNotification() {
-            if (window.advancedAlertSystem) {
-                advancedAlertSystem.createCustomAlert({
-                    title: 'إشعار تجريبي',
-                    message: 'هذا إشعار تجريبي لاختبار الإعدادات الحالية',
-                    type: 'info',
-                    priority: 'normal'
-                });
-            }
-
-            // إظهار رسالة تأكيد
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check me-2"></i>تم الإرسال';
-            btn.disabled = true;
-            
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }, 2000);
-        }
-
-        // إعادة تعيين الإعدادات
-        function resetToDefault() {
-            if (confirm('هل أنت متأكد من إعادة تعيين جميع الإعدادات إلى الافتراضية؟')) {
-                const defaultSettings = {
-                    channels: {
-                        web: true,
-                        email: true,
-                        push: false
-                    },
-                    frequency: {
-                        immediate: true,
-                        daily: true,
-                        weekly: true,
-                        monthly: false
-                    },
-                    types: {
-                        file_upload: true,
-                        file_movement: true,
-                        urgent_activity: true,
-                        security_alert: true,
-                        system_maintenance: true,
-                        document_expiry: true
-                    },
-                    quietHours: {
-                        enabled: false,
-                        start: '22:00',
-                        end: '08:00'
-                    }
-                };
-
-                applySettings(defaultSettings);
-                updatePreview();
-            }
-        }
-
-        // حفظ الإعدادات
-        async function saveSettings() {
+        // Enhanced statistics loading with real calculations
+        async function loadStats() {
             try {
-                const settings = {
-                    channels: {
-                        web: document.getElementById('webChannel').checked,
-                        email: document.getElementById('emailChannel').checked,
-                        push: document.getElementById('pushChannel').checked
-                    },
-                    frequency: {
-                        immediate: document.querySelector('.frequency-option[data-frequency="immediate"]').classList.contains('active'),
-                        daily: document.querySelector('.frequency-option[data-frequency="daily"]').classList.contains('active'),
-                        weekly: document.querySelector('.frequency-option[data-frequency="weekly"]').classList.contains('active'),
-                        monthly: document.querySelector('.frequency-option[data-frequency="monthly"]').classList.contains('active')
-                    },
-                    types: {
-                        file_upload: document.getElementById('fileUpload').checked,
-                        file_movement: document.getElementById('fileMovement').checked,
-                        urgent_activity: document.getElementById('urgentActivity').checked,
-                        security_alert: document.getElementById('securityAlert').checked,
-                        system_maintenance: document.getElementById('systemMaintenance').checked,
-                        document_expiry: document.getElementById('documentExpiry').checked
-                    },
-                    quietHours: {
-                        enabled: document.getElementById('enableQuietHours').checked,
-                        start: document.getElementById('quietStart').value,
-                        end: document.getElementById('quietEnd').value
-                    },
-                    groupSimilar: document.getElementById('groupSimilar').checked
-                };
-
-                if (window.smartNotificationManager && auth.currentUser) {
-                    await smartNotificationManager.updateUserPreferences(auth.currentUser.uid, settings);
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('stats_load_start', {
+                        timestamp: new Date().toISOString()
+                    });
                 }
 
-                // إظهار رسالة نجاح
-                const btn = event.target;
+                let calculatedStats = { total: 0, read: 0, pending: 0, urgent: 0 };
+
+                // Prefer real-time stats from Firestore if available
+                if (window.db && currentUser) {
+                    try {
+                        const uid = currentUser.uid;
+
+                        // Single-field query to avoid composite index; compute counts locally
+                        const snap = await db.collection('notifications')
+                            .where('userId', '==', uid)
+                            .get();
+
+                        calculatedStats.total = snap.size || 0;
+
+                        let readCount = 0;
+                        let urgentCount = 0;
+                        snap.forEach(doc => {
+                            const d = doc.data() || {};
+                            const isRead = (d.read !== undefined ? d.read : (d.isRead !== undefined ? d.isRead : false));
+                            if (isRead) readCount++;
+                            if (d.priority === 'urgent') urgentCount++;
+                        });
+
+                        calculatedStats.read = readCount;
+                        calculatedStats.urgent = urgentCount;
+                        calculatedStats.pending = Math.max(0, calculatedStats.total - calculatedStats.read);
+                    } catch (e) {
+                        console.warn('تعذر تحميل إحصائيات Firebase، سيتم الحساب من السجل المؤقت:', e);
+                        // Fallback to in-memory history if available
+                        if (notificationHistory.length > 0) {
+                            calculatedStats.total = notificationHistory.length;
+                            calculatedStats.read = notificationHistory.filter(n => n.read).length;
+                            calculatedStats.pending = notificationHistory.filter(n => !n.read).length;
+                            calculatedStats.urgent = notificationHistory.filter(n => n.priority === 'urgent').length;
+                        }
+                    }
+                } else if (notificationHistory.length > 0) {
+                    // Calculate from notification history (already loaded)
+                    calculatedStats.total = notificationHistory.length;
+                    calculatedStats.read = notificationHistory.filter(n => n.read).length;
+                    calculatedStats.pending = notificationHistory.filter(n => !n.read).length;
+                    calculatedStats.urgent = notificationHistory.filter(n => n.priority === 'urgent').length;
+                }
+
+                stats = calculatedStats;
+                updateStatsDisplay();
+
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('stats_loaded', {
+                        stats: calculatedStats,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+            } catch (error) {
+                console.error('خطأ في تحميل الإحصائيات:', error);
+                
+                // Fallback stats
+                stats = { total: 0, read: 0, pending: 0, urgent: 0 };
+                updateStatsDisplay();
+            }
+        }
+
+        // Enhanced statistics display with animation
+        function updateStatsDisplay() {
+            try {
+                animateNumber('totalNotifications', stats.total);
+                animateNumber('readNotifications', stats.read);
+                animateNumber('pendingNotifications', stats.pending);
+                animateNumber('urgentNotifications', stats.urgent);
+            } catch (error) {
+                console.error('خطأ في تحديث عرض الإحصائيات:', error);
+            }
+        }
+
+        // Animate number changes
+        function animateNumber(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const currentValue = parseInt(element.textContent) || 0;
+            const difference = targetValue - currentValue;
+            const duration = 1000; // 1 second
+            const steps = 20;
+            const stepValue = difference / steps;
+            const stepDuration = duration / steps;
+
+            let currentStep = 0;
+            const timer = setInterval(() => {
+                currentStep++;
+                const newValue = Math.round(currentValue + (stepValue * currentStep));
+                element.textContent = newValue;
+
+                if (currentStep >= steps) {
+                    element.textContent = targetValue;
+                    clearInterval(timer);
+                }
+            }, stepDuration);
+        }
+
+        // Enhanced preview update with better user feedback
+        function updatePreview() {
+            try {
+                const preview = document.getElementById('notificationPreview');
+                const message = document.getElementById('previewMessage');
+                
+                if (!preview || !message) return;
+
+                // التحقق من الإعدادات المفعلة
+                const enabledTypes = [];
+                const enabledChannels = [];
+                
+                // Check notification types
+                if (document.getElementById('fileUpload')?.checked) enabledTypes.push('تحميل الملفات');
+                if (document.getElementById('fileMovement')?.checked) enabledTypes.push('حركة الملفات');
+                if (document.getElementById('urgentActivity')?.checked) enabledTypes.push('الأنشطة العاجلة');
+                if (document.getElementById('securityAlert')?.checked) enabledTypes.push('التنبيهات الأمنية');
+                if (document.getElementById('systemMaintenance')?.checked) enabledTypes.push('صيانة النظام');
+                if (document.getElementById('documentExpiry')?.checked) enabledTypes.push('انتهاء الصلاحية');
+
+                // Check channels
+                if (document.getElementById('webChannel')?.checked) enabledChannels.push('الويب');
+                if (document.getElementById('emailChannel')?.checked) enabledChannels.push('البريد الإلكتروني');
+                if (document.getElementById('pushChannel')?.checked) enabledChannels.push('الإشعارات الفورية');
+
+                // Check active priorities
+                const activePriorities = Array.from(document.querySelectorAll('.priority-badge.active'))
+                    .map(badge => {
+                        const priority = badge.dataset.priority;
+                        const labels = { low: 'عادي', normal: 'متوسط', high: 'مهم', urgent: 'عاجل' };
+                        return labels[priority] || priority;
+                    });
+
+                if (enabledTypes.length > 0 || enabledChannels.length > 0) {
+                    let previewText = 'إعداداتك الحالية:\n\n';
+                    
+                    if (enabledTypes.length > 0) {
+                        previewText += `📋 أنواع الإشعارات: ${enabledTypes.join(', ')}\n\n`;
+                    }
+                    
+                    if (enabledChannels.length > 0) {
+                        previewText += `📢 قنوات الإرسال: ${enabledChannels.join(', ')}\n\n`;
+                    }
+                    
+                    if (activePriorities.length > 0) {
+                        previewText += `⚡ الأولويات المفعلة: ${activePriorities.join(', ')}`;
+                    }
+
+                    message.textContent = previewText;
+                    preview.classList.remove('hidden');
+                    preview.style.display = 'block';
+                } else {
+                    preview.classList.add('hidden');
+                    preview.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('خطأ في تحديث المعاينة:', error);
+            }
+        }
+
+        // Enhanced test notification with multiple options
+    window.testNotification = async function(event) {
+            try {
+        const btn = event && event.target ? event.target : document.querySelector('.test-notification-btn');
                 const originalText = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check me-2"></i>تم الحفظ';
-                btn.classList.add('btn-success');
+                
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الإرسال...';
                 btn.disabled = true;
+
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('test_notification', {
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                // Test different notification systems
+                const testMessages = [
+                    {
+                        title: 'إشعار تجريبي - الملفات',
+                        message: 'تم تحميل ملف تجريبي بنجاح في النظام',
+                        type: 'info',
+                        priority: 'normal'
+                    },
+                    {
+                        title: 'إشعار تجريبي - التنبيهات',
+                        message: 'هذا تنبيه تجريبي لاختبار نظام الإشعارات المتقدم',
+                        type: 'success',
+                        priority: 'high'
+                    }
+                ];
+
+                const randomMessage = testMessages[Math.floor(Math.random() * testMessages.length)];
+
+                // Test browser notification if enabled
+                if (document.getElementById('enableDesktop')?.checked && 'Notification' in window) {
+                    if (Notification.permission === 'granted') {
+                        new Notification(randomMessage.title, {
+                            body: randomMessage.message,
+                            icon: '/favicon.ico'
+                        });
+                    } else if (Notification.permission !== 'denied') {
+                        const permission = await Notification.requestPermission();
+                        if (permission === 'granted') {
+                            new Notification(randomMessage.title, {
+                                body: randomMessage.message,
+                                icon: '/favicon.ico'
+                            });
+                        }
+                    }
+                }
+
+                // Test advanced alert system
+                if (window.advancedAlertSystem) {
+                    advancedAlertSystem.createCustomAlert(randomMessage);
+                }
+
+                // Test smart notification system via processNotification (rule-based)
+                if (window.smartNotificationManager) {
+                    // Map to a known rule and provide minimal data
+                    const data = {
+                        type: 'file_upload',
+                        fileName: 'ملف تجريبي',
+                        uploaderName: currentUser?.email || 'مستخدم',
+                        uploaderId: currentUser?.uid || 'demo_user',
+                        timestamp: new Date().toISOString(),
+                        priority: randomMessage.priority || 'normal',
+                        department: 'archive'
+                    };
+                    smartNotificationManager.processNotification(data);
+                }
+
+                // Success feedback
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>تم الإرسال بنجاح';
+                    btn.classList.add('btn-success');
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove('btn-success');
+                        btn.disabled = false;
+                    }, 2000);
+                }, 1000);
+
+                showAlert('تم إرسال الإشعار التجريبي بنجاح!', 'success');
+
+            } catch (error) {
+                console.error('خطأ في اختبار الإشعار:', error);
+                
+                const btn = event.target;
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>فشل في الإرسال';
+                btn.classList.add('btn-danger');
                 
                 setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.classList.remove('btn-success');
+                    btn.innerHTML = '<i class="fas fa-vial me-2"></i>اختبار الإشعار';
+                    btn.classList.remove('btn-danger');
                     btn.disabled = false;
-                }, 2000);
+                }, 3000);
+
+                showAlert('حدث خطأ في إرسال الإشعار التجريبي', 'error');
+            }
+        }
+
+        // Enhanced reset to default with confirmation
+        window.resetToDefault = function() {
+            if (!confirm('هل أنت متأكد من إعادة تعيين جميع الإعدادات إلى الافتراضية؟\n\nسيتم فقدان جميع التخصيصات الحالية.')) {
+                return;
+            }
+
+            try {
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('settings_reset', {
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                applyDefaultSettings();
+                
+                // Clear saved settings
+                localStorage.removeItem('notificationSettings');
+                
+                showAlert('تم إعادة تعيين الإعدادات بنجاح', 'success');
+                
+            } catch (error) {
+                console.error('خطأ في إعادة تعيين الإعدادات:', error);
+                showAlert('حدث خطأ في إعادة تعيين الإعدادات', 'error');
+            }
+        }
+
+        // Enhanced settings save with multiple storage options
+        window.saveSettings = async function(event) {
+            try {
+                const btn = event ? event.target : document.querySelector('.save-settings-btn');
+                const originalText = btn.innerHTML;
+                
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
+                btn.disabled = true;
+
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('settings_save_start', {
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                // Collect all settings
+                const settings = {
+                    // التفضيلات العامة
+                    sound: getCheckboxValue('enableSound'),
+                    groupSimilar: getCheckboxValue('groupSimilar'),
+                    
+                    // قنوات الإرسال
+                    channels: {
+                        web: getCheckboxValue('webChannel'),
+                        email: getCheckboxValue('emailChannel'),
+                        push: getCheckboxValue('pushChannel'),
+                        desktop: getCheckboxValue('enableDesktop'),
+                        badges: getCheckboxValue('enableBadges')
+                    },
+                    
+                    // تكرار الإشعارات
+                    frequency: {
+                        immediate: document.querySelector('.frequency-option[data-frequency="immediate"]')?.classList.contains('active') || false,
+                        daily: document.querySelector('.frequency-option[data-frequency="daily"]')?.classList.contains('active') || false,
+                        weekly: document.querySelector('.frequency-option[data-frequency="weekly"]')?.classList.contains('active') || false,
+                        monthly: document.querySelector('.frequency-option[data-frequency="monthly"]')?.classList.contains('active') || false
+                    },
+                    
+                    // أنواع الإشعارات
+                    types: {
+                        file_upload: getCheckboxValue('fileUpload'),
+                        file_movement: getCheckboxValue('fileMovement'),
+                        urgent_activity: getCheckboxValue('urgentActivity'),
+                        security_alert: getCheckboxValue('securityAlert'),
+                        system_maintenance: getCheckboxValue('systemMaintenance'),
+                        document_expiry: getCheckboxValue('documentExpiry')
+                    },
+                    
+                    // الساعات الهادئة
+                    quietHours: {
+                        enabled: getCheckboxValue('enableQuietHours'),
+                        start: getInputValue('quietStart') || '22:00',
+                        end: getInputValue('quietEnd') || '08:00'
+                    },
+                    
+                    // الأولويات المفعلة
+                    priorities: {
+                        low: document.querySelector('.priority-badge[data-priority="low"]')?.classList.contains('active') || false,
+                        normal: document.querySelector('.priority-badge[data-priority="normal"]')?.classList.contains('active') || false,
+                        high: document.querySelector('.priority-badge[data-priority="high"]')?.classList.contains('active') || false,
+                        urgent: document.querySelector('.priority-badge[data-priority="urgent"]')?.classList.contains('active') || false
+                    },
+                    
+                    // البيانات التعريفية
+                    lastUpdated: new Date().toISOString(),
+                    version: '2.0'
+                };
+
+                let saveSuccess = false;
+
+                // Try saving to Firebase first
+                if (window.smartNotificationManager && window.smartNotificationManager.updateUserPreferences && currentUser) {
+                    try {
+                        await smartNotificationManager.updateUserPreferences(currentUser.uid, settings);
+                        console.log('✅ تم حفظ الإعدادات في Firebase');
+                        saveSuccess = true;
+                    } catch (error) {
+                        console.warn('فشل في حفظ الإعدادات في Firebase:', error);
+                    }
+                }
+
+                // Fallback to localStorage
+                try {
+                    localStorage.setItem('notificationSettings', JSON.stringify(settings));
+                    console.log('✅ تم حفظ الإعدادات في التخزين المحلي');
+                    saveSuccess = true;
+                } catch (error) {
+                    console.warn('فشل في حفظ الإعدادات في التخزين المحلي:', error);
+                }
+
+                if (saveSuccess) {
+                    currentSettings = settings;
+                    
+                    // Success feedback
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>تم الحفظ بنجاح';
+                    btn.classList.add('btn-success');
+                    
+                    if (localActivityLogger) {
+                        localActivityLogger.logActivity('settings_saved', {
+                            settings_count: Object.keys(settings).length,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                    
+                    showAlert('تم حفظ إعدادات الإشعارات بنجاح', 'success');
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove('btn-success');
+                        btn.disabled = false;
+                    }, 2500);
+                } else {
+                    throw new Error('فشل في حفظ الإعدادات في جميع وسائل التخزين المتاحة');
+                }
 
             } catch (error) {
                 console.error('خطأ في حفظ الإعدادات:', error);
-                alert('حدث خطأ في حفظ الإعدادات. يرجى المحاولة مرة أخرى.');
+                
+                if (localActivityLogger) {
+                    localActivityLogger.logActivity('settings_save_error', {
+                        error: error.message,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                const btn = event ? event.target : document.querySelector('.save-settings-btn');
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>فشل الحفظ';
+                btn.classList.add('btn-danger');
+                
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-save me-2"></i>حفظ الإعدادات';
+                    btn.classList.remove('btn-danger');
+                    btn.disabled = false;
+                }, 3000);
+                
+                showAlert('حدث خطأ في حفظ الإعدادات. يرجى المحاولة مرة أخرى.', 'error');
             }
         }
 
-        // دوال مساعدة
-        function formatTime(timestamp) {
-            const now = new Date();
-            const time = new Date(timestamp);
-            const diff = now - time;
+        // Helper functions for safe value retrieval
+        function getCheckboxValue(id) {
+            const element = document.getElementById(id);
+            return element ? element.checked : false;
+        }
 
-            if (diff < 60000) return 'الآن';
-            if (diff < 3600000) return `${Math.floor(diff / 60000)} دقيقة`;
-            if (diff < 86400000) return `${Math.floor(diff / 3600000)} ساعة`;
-            return `${Math.floor(diff / 86400000)} يوم`;
+        function getInputValue(id) {
+            const element = document.getElementById(id);
+            return element ? element.value : '';
+        }
+
+        // Enhanced utility functions
+        function formatTime(timestamp) {
+            try {
+                const now = new Date();
+                const time = new Date(timestamp);
+                const diff = now - time;
+
+                if (diff < 60000) return 'منذ لحظات';
+                if (diff < 3600000) return `منذ ${Math.floor(diff / 60000)} دقيقة`;
+                if (diff < 86400000) return `منذ ${Math.floor(diff / 3600000)} ساعة`;
+                if (diff < 2592000000) return `منذ ${Math.floor(diff / 86400000)} يوم`;
+                return time.toLocaleDateString('ar-SA');
+            } catch (error) {
+                return 'وقت غير معروف';
+            }
         }
 
         function getTypeLabel(type) {
@@ -1359,7 +2387,121 @@
             };
             return labels[type] || type;
         }
+
+        function getPriorityLabel(priority) {
+            const labels = {
+                low: 'عادي',
+                normal: 'متوسط',
+                high: 'مهم',
+                urgent: 'عاجل'
+            };
+            return labels[priority] || priority;
+        }
+
+        function getPriorityClass(priority) {
+            const classes = {
+                low: 'info',
+                normal: 'success',
+                high: 'warning',
+                urgent: 'danger'
+            };
+            return classes[priority] || 'secondary';
+        }
+
+        function getTypeIcon(type) {
+            const icons = {
+                file_upload: 'fas fa-upload',
+                file_movement: 'fas fa-exchange-alt',
+                urgent_activity: 'fas fa-exclamation-triangle',
+                security_alert: 'fas fa-shield-alt',
+                system_maintenance: 'fas fa-tools',
+                document_expiry: 'fas fa-calendar-times'
+            };
+            return icons[type] || 'fas fa-bell';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showLoading(show) {
+            const loadingElements = document.querySelectorAll('.btn-primary, .save-settings-btn, .test-notification-btn');
+            loadingElements.forEach(btn => {
+                if (show) {
+                    btn.disabled = true;
+                    const originalText = btn.innerHTML;
+                    btn.setAttribute('data-original-text', originalText);
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحميل...';
+                } else {
+                    btn.disabled = false;
+                    const originalText = btn.getAttribute('data-original-text');
+                    if (originalText) {
+                        btn.innerHTML = originalText;
+                        btn.removeAttribute('data-original-text');
+                    }
+                }
+            });
+        }
+
+        function showAlert(message, type = 'info') {
+            // Remove existing alerts
+            const existingAlerts = document.querySelectorAll('.custom-alert');
+            existingAlerts.forEach(alert => alert.remove());
+
+            const alertClass = {
+                'success': 'alert-success',
+                'error': 'alert-danger',
+                'warning': 'alert-warning',
+                'info': 'alert-info'
+            }[type] || 'alert-info';
+
+            const alertIcon = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-triangle',
+                'warning': 'fa-exclamation-circle',
+                'info': 'fa-info-circle'
+            }[type] || 'fa-info-circle';
+
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show custom-alert" 
+                     style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 350px; max-width: 500px;">
+                    <i class="fas ${alertIcon} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', alertHtml);
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                const alert = document.querySelector('.custom-alert');
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        // Logout function
+        function logout() {
+            if (localActivityLogger) {
+                localActivityLogger.logActivity('user_logout', {
+                    page: 'notification-settings',
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            if (unifiedAuth) {
+                unifiedAuth.signOut();
+            }
+        }
+        // Safety: provide a global fallback for notify/show if other modules not loaded
+        if (!window.notify) {
+            window.notify = function(msg, type){ try { console.log(`[${type||'info'}]`, msg); } catch(e){} };
+        }
     </script>
 </body>
 </html>
-

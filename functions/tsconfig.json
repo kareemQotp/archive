@@ -8,8 +8,10 @@
     "strict": true,
     "target": "es2017",
     "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true
+  "esModuleInterop": true,
+  "skipLibCheck": true,
+  "allowJs": true,
+  "isolatedModules": true
   },
   "compileOnSave": true,
   "include": [

@@ -1,0 +1,33 @@
+/* Landing page specific styles: ensure high-contrast buttons on light backgrounds */
+
+body.landing-page .btn-primary {
+  background: linear-gradient(135deg, #0d6efd 0%, #1a73e8 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3);
+}
+
+body.landing-page .btn-primary:hover,
+body.landing-page .btn-primary:focus {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(13, 110, 253, 0.35);
+}
+
+body.landing-page .btn-outline-primary {
+  border: 2px solid #0d6efd;
+  color: #0d6efd;
+  background: transparent;
+}
+
+body.landing-page .btn-outline-primary:hover,
+body.landing-page .btn-outline-primary:focus {
+  background: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+}
+
+/* Ensure navbar buttons are also visible on landing */
+body.landing-page .navbar .btn-primary,
+body.landing-page .navbar .btn-outline-primary {
+  margin-inline-start: .5rem;
+}

@@ -1,5 +1,11 @@
 class BarcodeScanner {
-    constructor() {
+    constructor(options = {}) {
+        this.videoElement = options.videoElement;
+        this.onScanSuccess = options.onScanSuccess;
+        this.onScanError = options.onScanError;
+        this.authSystem = options.authSystem;
+        
+        // Scanner state
         this.codeReader = null;
         this.currentStream = null;
         this.isScanning = false;
@@ -26,16 +32,20 @@ class BarcodeScanner {
 
     async init() {
         try {
-            // Initialize the barcode reader with specific formats
+            // Initialize ZXing code reader
             this.codeReader = new ZXing.BrowserMultiFormatReader();
             
-            // Set up hints for better recognition
-            const hints = new Map();
-            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, this.supportedFormats);
-            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-            hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'UTF-8');
-            
-            this.codeReader.setHints(hints);
+            // Set up hints for better recognition (check if setHints exists)
+            if (this.codeReader.setHints) {
+                const hints = new Map();
+                hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, this.supportedFormats);
+                hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+                hints.set(ZXing.DecodeHintType.CHARACTER_SET, 'UTF-8');
+                
+                this.codeReader.setHints(hints);
+            } else {
+                console.log('⚠️ setHints غير متوفرة في هذا الإصدار من ZXing');
+            }
             
             console.log('Barcode Scanner initialized successfully');
             this.updateStatus('جاهز للمسح', 'info');
@@ -340,10 +350,12 @@ class BarcodeScanner {
     }
 
     displayDocumentInfo(fileData, docId, collection = 'files') {
-        const createdAt = fileData.createdAt ? new Date(fileData.createdAt.seconds * 1000) : new Date();
-        const updatedAt = fileData.updatedAt ? new Date(fileData.updatedAt.seconds * 1000) : createdAt;
-        
-        const documentHtml = `
+    const createdAt = fileData.createdAt ? new Date(fileData.createdAt.seconds * 1000) : new Date();
+    const updatedAt = fileData.updatedAt ? new Date(fileData.updatedAt.seconds * 1000) : createdAt;
+    const F = window.FormatUtils || {};
+    const fmtDT = d => (F.formatArabicDateTime ? F.formatArabicDateTime(d) : (d.toLocaleDateString('ar-SA')+ ' ' + d.toLocaleTimeString('ar-SA')));
+    const esc = s => { if(s===undefined||s===null) return ''; if(F.escapeHtml) return F.escapeHtml(String(s)); return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); };
+    const documentHtml = `
             <div class="card document-info-card">
                 <div class="card-header bg-success text-white">
                     <h5 class="card-title mb-0">
@@ -358,25 +370,25 @@ class BarcodeScanner {
                                 <label class="form-label fw-bold text-primary">
                                     <i class="fas fa-file-signature me-1"></i> اسم الملف:
                                 </label>
-                                <p class="form-control-plaintext">${fileData.fileName || 'غير محدد'}</p>
+                                <p class="form-control-plaintext">${esc(fileData.fileName || 'غير محدد')}</p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold text-primary">
                                     <i class="fas fa-tag me-1"></i> النوع:
                                 </label>
-                                <p class="form-control-plaintext">${fileData.type || 'غير محدد'}</p>
+                                <p class="form-control-plaintext">${esc(fileData.type || 'غير محدد')}</p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold text-primary">
                                     <i class="fas fa-weight-hanging me-1"></i> الحجم:
                                 </label>
-                                <p class="form-control-plaintext">${this.formatFileSize(fileData.size || 0)}</p>
+                                <p class="form-control-plaintext">${esc(this.formatFileSize(fileData.size || 0))}</p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold text-primary">
                                     <i class="fas fa-building me-1"></i> القسم:
                                 </label>
-                                <p class="form-control-plaintext">${fileData.department || 'غير محدد'}</p>
+                                <p class="form-control-plaintext">${esc(fileData.department || 'غير محدد')}</p>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -384,25 +396,25 @@ class BarcodeScanner {
                                 <label class="form-label fw-bold text-success">
                                     <i class="fas fa-calendar-plus me-1"></i> تاريخ الإنشاء:
                                 </label>
-                                <p class="form-control-plaintext">${createdAt.toLocaleDateString('ar-EG')} ${createdAt.toLocaleTimeString('ar-EG')}</p>
+                                <p class="form-control-plaintext">${fmtDT(createdAt)}</p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold text-warning">
                                     <i class="fas fa-calendar-edit me-1"></i> آخر تحديث:
                                 </label>
-                                <p class="form-control-plaintext">${updatedAt.toLocaleDateString('ar-EG')} ${updatedAt.toLocaleTimeString('ar-EG')}</p>
+                                <p class="form-control-plaintext">${fmtDT(updatedAt)}</p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold text-info">
                                     <i class="fas fa-user me-1"></i> المستخدم:
                                 </label>
-                                <p class="form-control-plaintext">${fileData.uploadedBy || 'غير محدد'}</p>
+                                <p class="form-control-plaintext">${esc(fileData.uploadedBy || 'غير محدد')}</p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold text-secondary">
                                     <i class="fas fa-qrcode me-1"></i> رمز QR:
                                 </label>
-                                <p class="form-control-plaintext font-monospace">${fileData.qrCode || 'غير محدد'}</p>
+                                <p class="form-control-plaintext font-monospace">${esc(fileData.qrCode || 'غير محدد')}</p>
                             </div>
                         </div>
                     </div>
@@ -411,19 +423,17 @@ class BarcodeScanner {
                             <label class="form-label fw-bold text-dark">
                                 <i class="fas fa-comment-alt me-1"></i> الوصف:
                             </label>
-                            <div class="p-3 bg-light rounded">
-                                ${fileData.description}
-                            </div>
+                            <div class="p-3 bg-light rounded">${esc(fileData.description)}</div>
                         </div>
                     ` : ''}
                     <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                        <button class="btn btn-primary btn-lg me-md-2" onclick="window.open('${fileData.downloadURL}', '_blank')">
+                        <button class="btn btn-primary btn-lg me-md-2" onclick="window.open('${esc(fileData.downloadURL)}', '_blank')">
                             <i class="fas fa-download me-2"></i> تحميل الملف
                         </button>
-                        <button class="btn btn-secondary btn-lg" onclick="barcodeScanner.copyToClipboard('${fileData.downloadURL}')">
+                        <button class="btn btn-secondary btn-lg" onclick="barcodeScanner.copyToClipboard('${esc(fileData.downloadURL)}')">
                             <i class="fas fa-copy me-2"></i> نسخ الرابط
                         </button>
-                        <button class="btn btn-info btn-lg" onclick="window.open('file-tracking.html?id=${docId}', '_blank')">
+                        <button class="btn btn-info btn-lg" onclick="window.open('file-tracking.html?id=${esc(docId)}', '_blank')">
                             <i class="fas fa-search me-2"></i> تتبع الملف
                         </button>
                     </div>

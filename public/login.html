@@ -13,11 +13,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <!-- تطبيق الألوان الجديدة -->
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <link rel="stylesheet" href="assets/css/permissions.css">
+    <script>window.__ALLOW_GUEST_ACCESS__ = true; window.__HIDE_SIDEBAR__ = true;</script>
     
     <style>
         /* Login page specific animations */
+        /* Hide global UI on auth pages for a clean layout */
+        .navbar, #sidebar, #sidebarOverlay { display: none !important; }
+
         body {
             background: linear-gradient(135deg, 
                 var(--primary) 0%,
@@ -475,9 +479,12 @@
             }
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
-<body>
-    <div class="auth-container">
+<body class="auth-page">
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <div class="auth-container" id="mainContent" role="main" tabindex="-1">
         <div class="auth-box">
             <!-- Header -->
             <div class="auth-header">
@@ -556,7 +563,8 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js"></script>
     
     <!-- Firebase v10.7.1 - الإصدار الموحد -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -569,12 +577,25 @@
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
     <script src="assets/js/unified-auth.js"></script>
+    
+    <!-- Role-Based Routing System -->
+    <script src="assets/js/role-based-routing.js"></script>
+    
+    <!-- Redirect Protection System -->
+    <script src="assets/js/redirect-protection.js"></script>
+    
+    <!-- Auth Diagnostics System -->
+    <script src="assets/js/auth-diagnostics.js"></script>
 
     <script>
         // Initialize unified auth system
         let authSystem;
         
         document.addEventListener('DOMContentLoaded', async function() {
+            // Unified UI auto-initializes; do not instantiate to avoid duplicate navbars
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                try { await window.unifiedUI.updateSidebar(); } catch (_) { /* ignore */ }
+            }
             // Wait for unified auth to initialize
             await new Promise(resolve => {
                 const checkAuth = () => {
@@ -591,7 +612,33 @@
             // Check if user is already logged in
             if (authSystem.isAuthenticated) {
                 console.log('المستخدم مسجل دخول مسبقاً، جاري التوجيه...');
-                window.location.href = 'dashboard.html';
+                
+                try {
+                    const userData = await authSystem.getCurrentUserData();
+                    
+                    if (userData && window.redirectToDashboard) {
+                        console.log('🚀 تفعيل التوجيه الذكي للمستخدم المسجل بالفعل:', {
+                            email: userData.email,
+                            role: userData.role,
+                            department: userData.department
+                        });
+                        await window.redirectToDashboard(userData);
+                    } else {
+                        console.log('🔄 توجيه افتراضي لوحة التحكم للمستخدم المسجل');
+                        if (window.redirectProtection && window.redirectProtection.safeRedirect) {
+                            window.redirectProtection.safeRedirect('dashboard.html', 'مستخدم مسجل مسبقاً');
+                        } else {
+                            window.location.href = 'dashboard.html';
+                        }
+                    }
+                } catch (error) {
+                    console.error('خطأ في التوجيه التلقائي للمستخدم المسجل:', error);
+                    if (window.redirectProtection && window.redirectProtection.safeRedirect) {
+                        window.redirectProtection.safeRedirect('dashboard.html', 'خطأ في التوجيه - احتياطي');
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
+                }
                 return;
             }
 
@@ -611,6 +658,29 @@
             clearAlert();
             
             try {
+                // Ensure authSystem is ready before attempting to sign in
+                if (!authSystem || typeof authSystem.signIn !== 'function') {
+                    await new Promise(resolve => {
+                        const start = Date.now();
+                        const waitForAuth = () => {
+                            if (window.unifiedAuth && window.unifiedAuth.isInitialized) {
+                                authSystem = window.unifiedAuth;
+                                return resolve();
+                            }
+                            if (Date.now() - start > 3000) { // 3s max wait
+                                return resolve();
+                            }
+                            setTimeout(waitForAuth, 100);
+                        };
+                        waitForAuth();
+                    });
+                }
+                if (!authSystem || typeof authSystem.signIn !== 'function') {
+                    showLoading(false);
+                    showAlert('نظام المصادقة لم يكتمل تحميله بعد. يرجى المحاولة خلال ثوانٍ قليلة.', 'warning');
+                    return;
+                }
+
                 // Use unified auth system for login
                 const result = await authSystem.signIn(email, password);
                 
@@ -618,20 +688,64 @@
                 showAlert('تم تسجيل الدخول بنجاح! جاري الانتقال...', 'success');
                 
                 // Redirect after successful login
-                setTimeout(() => {
-                    // Try to redirect to saved page first
-                    const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
-                    if (redirectUrl && 
-                        redirectUrl !== window.location.href && 
-                        !redirectUrl.includes('login.html') &&
-                        !redirectUrl.includes('register.html')) {
-                        sessionStorage.removeItem('redirectAfterLogin');
-                        console.log('توجيه لصفحة محفوظة:', redirectUrl);
-                        window.location.href = redirectUrl;
-                    } else {
-                        // Default redirect to dashboard
-                        console.log('توجيه لوحة التحكم');
+                setTimeout(async () => {
+                    try {
+                        console.log('🔍 بدء عملية التوجيه بعد تسجيل الدخول الناجح');
+                        
+                        // جلب بيانات المستخدم من unified auth
+                        const userData = await authSystem.getCurrentUserData();
+                        console.log('📊 بيانات المستخدم المستلمة:', {
+                            email: userData?.email,
+                            role: userData?.role,
+                            department: userData?.department,
+                            departmentId: userData?.departmentId
+                        });
+                        
+                        // Try to redirect to saved page first
+                        const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+                        if (redirectUrl && 
+                            redirectUrl !== window.location.href && 
+                            !redirectUrl.includes('login.html') &&
+                            !redirectUrl.includes('register.html')) {
+                            sessionStorage.removeItem('redirectAfterLogin');
+                            console.log('🔄 توجيه لصفحة محفوظة:', redirectUrl);
+                            
+                            if (window.redirectProtection && window.redirectProtection.safeRedirect) {
+                                return window.redirectProtection.safeRedirect(redirectUrl, 'صفحة محفوظة');
+                            } else {
+                                window.location.href = redirectUrl;
+                                return;
+                            }
+                        }
+                        
+                        // استخدام الراوتر المركزي مباشرة بعد تسجيل الدخول
+                        if (userData && typeof window.redirectToDashboard === 'function') {
+                            console.log('🚀 توجيه مباشر عبر الراوتر المركزي بناءً على بيانات المستخدم');
+                            return window.redirectToDashboard(userData);
+                        }
+
+                        // احتياطي: حساب المسار عبر الراوتر إن وُجد
+                        if (userData && window.roleBasedRouter) {
+                            const target = window.roleBasedRouter.getDashboardRoute(userData);
+                            console.log('🎯 مسار محسوب عبر الراوتر:', target);
+                            if (window.roleBasedRouter.isValidRoute(target)) {
+                                window.location.href = target;
+                                return;
+                            }
+                        }
+
+                        // احتياطي نهائي: التوجيه للوحة العامة
+                        console.log('ℹ️ احتياطي: التوجيه إلى لوحة التحكم العامة');
                         window.location.href = 'dashboard.html';
+                        
+                    } catch (error) {
+                        console.error('❌ خطأ في التوجيه:', error);
+                        // Fallback to default dashboard with protection
+                        if (window.redirectProtection && window.redirectProtection.safeRedirect) {
+                            window.redirectProtection.safeRedirect('dashboard.html', 'خطأ في التوجيه - احتياطي');
+                        } else {
+                            window.location.href = 'dashboard.html';
+                        }
                     }
                 }, 1000);
                 
@@ -672,8 +786,30 @@
         function handleUrlMessages() {
             const urlParams = new URLSearchParams(window.location.search);
             const message = urlParams.get('message');
+            const redirect = urlParams.get('redirect');
             
-            if (message === 'password-reset-success') {
+            // Store redirect URL for after login if provided
+            if (redirect && !redirect.includes('login.html') && !redirect.includes('register.html')) {
+                sessionStorage.setItem('redirectAfterLogin', decodeURIComponent(redirect));
+                console.log('تم حفظ رابط التوجيه:', decodeURIComponent(redirect));
+            }
+            
+            if (message === 'session-expired') {
+                showAlert('انتهت صلاحية جلسة العمل. يرجى تسجيل الدخول مرة أخرى للمتابعة.', 'warning');
+                // Clear any existing authentication data
+                localStorage.removeItem('demo_mode');
+                sessionStorage.removeItem('userSession');
+                // Clear URL parameters
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // Focus on email field for quick re-login
+                setTimeout(() => {
+                    const emailField = document.getElementById('email');
+                    if (emailField) {
+                        emailField.focus();
+                    }
+                }, 500);
+            } else if (message === 'password-reset-success') {
                 showAlert('تم تغيير كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة', 'success');
                 window.history.replaceState({}, document.title, window.location.pathname);
             } else if (message === 'registration-pending') {
@@ -684,6 +820,12 @@
                 window.history.replaceState({}, document.title, window.location.pathname);
             } else if (message === 'logout') {
                 showAlert('تم تسجيل الخروج بنجاح.', 'info');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (message === 'unauthorized') {
+                showAlert('يجب تسجيل الدخول للوصول إلى هذه الصفحة.', 'info');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (message === 'account-disabled') {
+                showAlert('تم تعطيل حسابك. يرجى التواصل مع مدير النظام.', 'danger');
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
@@ -765,3 +907,5 @@
     </script>
 </body>
 </html>
+
+

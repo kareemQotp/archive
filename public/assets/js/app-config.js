@@ -15,6 +15,11 @@ const APP_CONFIG = {
         measurementId: "G-1PQMDXZ714"
     },
 
+    // App Check (reCAPTCHA v3) – ضع مفتاح الموقع هنا أو اتركه فارغاً للاختبار
+    // للحصول على مفتاح: Google Cloud Console → reCAPTCHA v3 → Site Key
+    // مؤقتاً: استخدام وضع التطوير
+    appCheckSiteKey: 'debug',
+
     // إعدادات النظام
     system: {
         name: 'نظام الأرشيف الذكي',
@@ -213,27 +218,22 @@ const AppUtils = {
 
     // تنسيق التاريخ
     formatDate(date, format = null) {
-        const dateObj = new Date(date);
-        const fmt = format || APP_CONFIG.system.dateFormat;
-        
-        if (fmt === 'DD/MM/YYYY') {
-            return dateObj.toLocaleDateString('ar-SA');
-        }
-        return dateObj.toLocaleDateString();
+    const F = window.FormatUtils || {};
+    const dateObj = new Date(date);
+    const fmt = format || APP_CONFIG.system.dateFormat;
+    if (F.formatArabicDate) return F.formatArabicDate(dateObj);
+    if (fmt === 'DD/MM/YYYY') return dateObj.toLocaleDateString('ar-SA');
+    return dateObj.toLocaleDateString();
     },
 
     // تنسيق الوقت
     formatTime(date, format = null) {
-        const dateObj = new Date(date);
-        const fmt = format || APP_CONFIG.system.timeFormat;
-        
-        if (fmt === 'HH:mm') {
-            return dateObj.toLocaleTimeString('ar-SA', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-        }
-        return dateObj.toLocaleTimeString();
+    const F = window.FormatUtils || {};
+    const dateObj = new Date(date);
+    const fmt = format || APP_CONFIG.system.timeFormat;
+    if (F.formatArabicTime) return F.formatArabicTime(dateObj);
+    if (fmt === 'HH:mm') return dateObj.toLocaleTimeString('ar-SA', { hour:'2-digit', minute:'2-digit' });
+    return dateObj.toLocaleTimeString();
     },
 
     // تنسيق حجم الملف

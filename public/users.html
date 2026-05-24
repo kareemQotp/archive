@@ -13,34 +13,136 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <!-- تطبيق الألوان الجديدة -->
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
+    <link rel="stylesheet" href="assets/css/sidebar-enhancements.css">
+    <!-- CSS خاص بصفحة المستخدمين -->
+    <link rel="stylesheet" href="assets/css/users-sidebar.css">
     
     <style>
         /* Users page specific styles */
-
         * {
             font-family: 'Cairo', 'Tajawal', sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--ocean-light) 0%, var(--wave-foam) 100%);
             min-height: 100vh;
         }
 
-        .navbar {
+        .main-content {
+            margin-right: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+            transition: margin-right 0.3s ease;
+        }
+
+        /* تأكيد ظهور القائمة الجانبية */
+        #sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 280px;
+            height: 100vh;
             background: rgba(255, 255, 255, 0.95);
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+            z-index: 1050;
+            overflow-y: auto;
+            transition: right 0.3s ease;
         }
 
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.5rem;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+        #sidebar.hidden {
+            right: -280px;
+        }
+
+        /* تحسين مظهر عناصر القائمة الجانبية */
+        .sidebar-nav-link {
+            text-decoration: none;
+            color: #4a5568;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+
+        .sidebar-nav-link:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(240, 147, 251, 0.1) 100%);
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .sidebar-nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #f093fb 100%);
+            color: white;
+        }
+
+        /* زر التبديل */
+        #sidebarToggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #f093fb 100%);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            z-index: 1060;
+            transition: all 0.3s ease;
+        }
+
+        #sidebarToggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* طبقة التغطية */
+        #sidebarOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        #sidebarOverlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* تصميم متجاوب */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-right: 0;
+                padding: 1rem;
+            }
+
+            #sidebar {
+                width: 100%;
+                right: -100%;
+            }
+
+            #sidebar.hidden {
+                right: -100%;
+            }
+
+            #sidebar:not(.hidden) {
+                right: 0;
+            }
+        }
+
+        .page-header {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 180, 216, 0.1);
+            border-left: 4px solid var(--primary);
         }
 
         .card {
@@ -49,6 +151,7 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 180, 216, 0.1);
         }
 
         .btn {
@@ -75,22 +178,6 @@
             padding: 0.5em 0.75em;
         }
 
-        .menu-toggle {
-            background: none;
-            border: none;
-            font-size: 1.25rem;
-            color: var(--text-primary);
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .menu-toggle:hover {
-            background: rgba(102, 126, 234, 0.1);
-            color: var(--primary);
-        }
-
         .user-card {
             transition: all 0.3s ease;
         }
@@ -104,42 +191,100 @@
             width: 250px;
         }
 
+        .role-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .role-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--primary);
+        }
+
+        .role-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 180, 216, 0.2);
+        }
+
+        .role-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
         @media (max-width: 768px) {
+            .main-content {
+                margin-right: 0;
+                padding: 1rem;
+            }
+
             .search-input {
                 width: 100%;
                 margin-bottom: 10px;
             }
+
+            .role-cards {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <div class="d-flex align-items-center">
-                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="index.html">
-                    <i class="fas fa-archive me-2"></i>
-                    نظام الأرشيف
-                </a>
-            </div>
-            <div class="navbar-nav ms-auto">
-                <button class="btn btn-outline-danger btn-sm" id="logoutBtn">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    خروج
-                </button>
-            </div>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    
+    <!-- Include Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <!-- Sidebar content will be loaded here -->
+    </div>
+
+    <!-- زر تبديل القائمة الجانبية -->
+    <button id="sidebarToggle" class="sidebar-toggle" aria-label="تبديل القائمة الجانبية">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Main Content with Sidebar Layout -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h2 mb-1">
+                        <i class="fas fa-users-cog text-primary me-3"></i>
+                        إدارة المستخدمين والأدوار
+                    </h1>
+                    <p class="text-muted mb-0">إدارة حسابات المستخدمين وصلاحياتهم في النظام</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" onclick="loadUsersPage()" title="إعادة تحميل">
+                        <i class="fas fa-sync me-2"></i>
+                        تحديث
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt me-1"></i>
+                        خروج
+                    </button>
+                </div>
         </div>
-    </nav>
+    </div>
 
     <div class="container py-5">
         <div class="row">
             <div class="col-12">
                 <div class="card p-4 shadow-lg">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3 class="mb-0">إدارة المستخدمين والأدوار</h3>
+                        <h3 class="mb-0">
+                            <i class="fas fa-user-plus me-2"></i>
+                            إضافة وإدارة المستخدمين
+                        </h3>
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
                             <i class="fas fa-user-plus me-2"></i>
                             إضافة مستخدم جديد
@@ -149,67 +294,34 @@
                     <!-- الأدوار المتاحة -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <h5 class="mb-3">الأدوار المتاحة:</h5>
-                            <div class="row">
-                                <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card user-card h-100">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-crown text-warning fs-1 mb-3"></i>
-                                            <h6 class="card-title">مدير النظام</h6>
-                                            <span class="badge bg-warning">Admin</span>
-                                            <p class="card-text small mt-2">صلاحيات كاملة لإدارة النظام</p>
-                                        </div>
-                                    </div>
+                            <h5 class="mb-3">
+                                <i class="fas fa-shield-alt me-2 text-primary"></i>
+                                الأدوار والصلاحيات المتاحة:
+                            </h5>
+                            <div class="role-cards">
+                                <div class="role-card">
+                                    <i class="fas fa-crown text-warning role-icon"></i>
+                                    <h6 class="card-title">مدير النظام</h6>
+                                    <span class="badge bg-warning">Admin</span>
+                                    <p class="card-text small mt-2">صلاحيات كاملة لإدارة النظام والمستخدمين</p>
                                 </div>
-                                <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card user-card h-100">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-gavel text-primary fs-1 mb-3"></i>
-                                            <h6 class="card-title">قانوني</h6>
-                                            <span class="badge bg-primary">Legal</span>
-                                            <p class="card-text small mt-2">إدارة الوثائق القانونية</p>
-                                        </div>
-                                    </div>
+                                <div class="role-card">
+                                    <i class="fas fa-users-gear text-primary role-icon"></i>
+                                    <h6 class="card-title">مدراء الإدارات</h6>
+                                    <span class="badge bg-primary">Manager</span>
+                                    <p class="card-text small mt-2">إدارة صلاحيات وإعدادات الإدارات والفرق</p>
                                 </div>
-                                <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card user-card h-100">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-archive text-info fs-1 mb-3"></i>
-                                            <h6 class="card-title">ضابط الأرشيف</h6>
-                                            <span class="badge bg-info">Archive Officer</span>
-                                            <p class="card-text small mt-2">إدارة وتنظيم الأرشيف</p>
-                                        </div>
-                                    </div>
+                                <div class="role-card">
+                                    <i class="fas fa-id-badge text-info role-icon"></i>
+                                    <h6 class="card-title">الموظفين</h6>
+                                    <span class="badge bg-info">Employee</span>
+                                    <p class="card-text small mt-2">الوصول إلى مهام ووثائق الإدارة الخاصة به</p>
                                 </div>
-                                <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card user-card h-100">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-clipboard-check text-success fs-1 mb-3"></i>
-                                            <h6 class="card-title">الحوكمة</h6>
-                                            <span class="badge bg-success">Governance</span>
-                                            <p class="card-text small mt-2">مراجعة وتدقيق العمليات</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card user-card h-100">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-money-bill-wave text-secondary fs-1 mb-3"></i>
-                                            <h6 class="card-title">التحصيل</h6>
-                                            <span class="badge bg-secondary">Collection</span>
-                                            <p class="card-text small mt-2">إدارة وثائق التحصيل</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 col-lg-4 mb-3">
-                                    <div class="card user-card h-100">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-certificate text-dark fs-1 mb-3"></i>
-                                            <h6 class="card-title">التوريق</h6>
-                                            <span class="badge bg-dark">Securitization</span>
-                                            <p class="card-text small mt-2">إدارة وثائق التوريق</p>
-                                        </div>
-                                    </div>
+                                <div class="role-card">
+                                    <i class="fas fa-eye text-secondary role-icon"></i>
+                                    <h6 class="card-title">المستعرضين</h6>
+                                    <span class="badge bg-secondary">Viewer</span>
+                                    <p class="card-text small mt-2">عرض الصفحات الأساسية وقراءة الوثائق المسموح بها</p>
                                 </div>
                             </div>
                         </div>
@@ -220,10 +332,15 @@
                         <h5 class="mb-0">
                             <i class="fas fa-users me-2"></i>
                             قائمة المستخدمين
+                            <span id="usersCountBadge" class="badge bg-secondary ms-2" title="عدد المستخدمين المعروضين"></span>
                         </h5>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center">
                             <input type="text" class="form-control search-input" id="searchUsers" placeholder="البحث عن مستخدم...">
-                            <button class="btn btn-outline-primary" onclick="loadUsers()" title="إعادة تحميل">
+                            <div class="form-check form-switch m-0" title="عرض المستخدمين المرتبطين بـ Firebase Authentication فقط">
+                                <input class="form-check-input" type="checkbox" id="authOnlyToggle">
+                                <label class="form-check-label small" for="authOnlyToggle">مصادق فقط</label>
+                            </div>
+                            <button class="btn btn-outline-primary" onclick="loadUsersPage()" title="إعادة تحميل">
                                 <i class="fas fa-sync"></i>
                             </button>
                             <button class="btn btn-outline-warning" onclick="loadUsersAlternative()" title="تحميل بديل">
@@ -260,60 +377,97 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Modal لإضافة/تعديل مستخدم -->
+    </div>    <!-- Modal لإضافة/تعديل مستخدم -->
     <div class="modal fade" id="addUserModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">إضافة مستخدم جديد</h5>
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-plus me-2"></i>
+                        إضافة مستخدم جديد
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق" title="إغلاق"></button>
                 </div>
                 <div class="modal-body">
                     <form id="userForm">
+                        <!-- Hidden fields for edit mode -->
+                        <input type="hidden" id="editUserId">
+                        <input type="hidden" id="originalRole">
+                        <input type="hidden" id="originalDepartment">
                         <div class="mb-3">
-                            <label for="userEmail" class="form-label">البريد الإلكتروني</label>
-                            <input type="email" class="form-control" id="userEmail" required>
+                            <label for="userEmail" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>
+                                البريد الإلكتروني
+                            </label>
+                            <input type="email" class="form-control" id="userEmail" required placeholder="example@archive-tech.com">
                         </div>
                         <div class="mb-3">
-                            <label for="userDisplayName" class="form-label">الاسم</label>
-                            <input type="text" class="form-control" id="userDisplayName" required>
+                            <label for="userDisplayName" class="form-label">
+                                <i class="fas fa-user me-1"></i>
+                                الاسم الكامل
+                            </label>
+                            <input type="text" class="form-control" id="userDisplayName" required placeholder="أدخل الاسم الكامل">
                         </div>
                         <div class="mb-3">
-                            <label for="userRole" class="form-label">الدور</label>
+                            <label for="userRole" class="form-label">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                الدور
+                            </label>
                             <select class="form-select" id="userRole" required>
                                 <option value="">اختر الدور</option>
                                 <option value="admin">مدير النظام</option>
-                                <option value="legal">قانوني</option>
-                                <option value="archive-officer">ضابط الأرشيف</option>
-                                <option value="governance">الحوكمة</option>
-                                <option value="collection">التحصيل</option>
-                                <option value="securitization">التوريق</option>
+                                <option value="manager">مدراء الإدارات</option>
+                                <option value="employee" selected>الموظفين</option>
+                                <option value="viewer">المستعرضين</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="userPassword" class="form-label">كلمة المرور</label>
-                            <input type="password" class="form-control" id="userPassword" required>
+                            <label for="userDepartment" class="form-label">
+                                <i class="fas fa-building me-1"></i>
+                                الإدارة
+                            </label>
+                            <select class="form-select" id="userDepartment" required>
+                                <option value="">اختر الإدارة</option>
+                            </select>
+                            <div class="form-text">اختر الإدارة المناسبة للمستخدم</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userPassword" class="form-label">
+                                <i class="fas fa-lock me-1"></i>
+                                كلمة المرور
+                            </label>
+                            <input type="password" class="form-control" id="userPassword" required placeholder="كلمة مرور قوية (6 أحرف على الأقل)">
+                            <div class="form-text">يجب أن تحتوي على 6 أحرف على الأقل</div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-primary" onclick="saveUser()">حفظ</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>
+                        إلغاء
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveUser()">
+                        <i class="fas fa-save me-1"></i>
+                        حفظ المستخدم
+                    </button>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js"></script>
+    <script src="assets/js/sidebar-enhancements.js"></script>
+    <script src="assets/js/users-sidebar-enhanced.js"></script>
     
     <!-- Firebase v10.7.1 - الإصدار الموحد -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
     
     <!-- Firebase Configuration -->
     <script src="assets/js/firebase-config.js"></script>
@@ -323,50 +477,43 @@
     <script src="assets/js/unified-auth.js"></script>
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBn9zLcodNLKWlUPfqsnEGoA1z7QZw_Ezk",
-            authDomain: "archive-tech.firebaseapp.com",
-            projectId: "archive-tech",
-            storageBucket: "archive-tech.firebasestorage.app",
-            messagingSenderId: "911076711034",
-            appId: "1:911076711034:web:7f190eed397becfe6779c3",
-            measurementId: "G-1PQMDXZ714"
-        };
-
         // Firebase will be initialized by firebase-init.js
         // Variables will be available globally
 
         // Global reference for unified auth
         let currentAuthUser = null;
         let authSystem = null;
+    // Departments cache
+    let departmentsCache = [];
+    let departmentsMap = new Map();
 
         // Helper function to get current user ID
         function getCurrentUserId() {
             return currentAuthUser?.uid || authSystem?.currentUser?.uid || 'system';
         }
 
-        // Role mappings
+        // Role mappings (standardized)
         const roleNames = {
             'admin': 'مدير النظام',
-            'legal': 'قانوني',
-            'archive-officer': 'ضابط الأرشيف',
-            'governance': 'الحوكمة',
-            'collection': 'التحصيل',
-            'securitization': 'التوريق'
+            'manager': 'مدراء الإدارات',
+            'employee': 'الموظفين',
+            'viewer': 'المستعرضين'
         };
 
         const roleBadges = {
             'admin': 'bg-warning',
-            'legal': 'bg-primary',
-            'archive-officer': 'bg-info',
-            'governance': 'bg-success',
-            'collection': 'bg-secondary',
-            'securitization': 'bg-dark'
+            'manager': 'bg-primary',
+            'employee': 'bg-info',
+            'viewer': 'bg-secondary'
         };
 
         // Auth State Observer with Unified Auth
         document.addEventListener('DOMContentLoaded', async function() {
+            // Refresh Unified UI if available; avoid instantiating to prevent duplicates
+            const unifiedUI = window.unifiedUI;
+            if (unifiedUI && typeof unifiedUI.updateSidebar === 'function') {
+                try { await unifiedUI.updateSidebar(); } catch (_) { /* ignore */ }
+            }
             // Wait for unified auth to initialize
             await new Promise(resolve => {
                 const checkAuth = () => {
@@ -379,81 +526,765 @@
                 checkAuth();
             });
 
-            // Check authentication and permissions
-            if (!unifiedAuth.isAuthenticated) {
+            // Check authentication and permissions with timeout
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Wait for auth to initialize
+            
+            const isAuthenticated = unifiedAuth?.isAuthenticated || 
+                                   unifiedAuth?.currentUser ||
+                                   localStorage.getItem('demo_mode') === 'true';
+            
+            if (!isAuthenticated && unifiedAuth?.isInitialized) {
+                console.log('❌ غير مصادق عليه، التوجيه لتسجيل الدخول');
                 window.location.href = 'login.html';
                 return;
             }
             
+            if (!isAuthenticated) {
+                console.log('🔄 وضع العرض التوضيحي - نظام المصادقة غير متاح');
+                localStorage.setItem('demo_mode', 'true');
+                showUsersDemoNotice();
+            }
+            
             // Set global reference
             authSystem = unifiedAuth;
-            currentAuthUser = unifiedAuth.currentUser;
+            currentAuthUser = unifiedAuth?.currentUser;
             
-            // Check if user has admin permissions
-            const userRole = unifiedAuth.getCurrentUserRole();
-            if (userRole !== 'admin') {
+            // Check if user has admin permissions (or demo mode)
+            const userRole = unifiedAuth?.getCurrentUserRole?.() || 'admin'; // default to admin in demo
+            if (userRole !== 'admin' && localStorage.getItem('demo_mode') !== 'true') {
                 alert('ليس لديك صلاحية للوصول لهذه الصفحة');
                 window.location.href = 'index.html';
                 return;
             }
             
-            // Update sidebar
-            if (window.sidebarManager) {
-                window.sidebarManager.updateSidebarNav(true);
-            }
+            // Initialize sidebar
+            await initializeSidebar();
+            
+            // تأكيد إضافي لتهيئة القائمة الجانبية
+            setTimeout(async () => {
+                if (!window.sidebarManager && window.SidebarManager) {
+                    console.log('🔄 إعادة محاولة تهيئة القائمة الجانبية...');
+                    await initializeSidebar();
+                }
+            }, 2000);
             
             // Load users
-            loadUsers();
+            loadUsersPage();
+
+            // Load departments for the modal select (best-effort)
+            try { await loadDepartmentsList(); } catch (_) {}
 
             // إعداد البحث
             setupSearch();
+
+            // تهيئة مفتاح "مصادق فقط"
+            const authOnlyToggle = document.getElementById('authOnlyToggle');
+            if (authOnlyToggle) {
+                const saved = localStorage.getItem('users_auth_only');
+                const defaultAuthOnly = saved === null ? 'true' : saved; // افتراضي مفعّل
+                const isEnabled = defaultAuthOnly === 'true';
+                authOnlyToggle.checked = isEnabled;
+                authOnlyToggle.addEventListener('change', () => {
+                    localStorage.setItem('users_auth_only', authOnlyToggle.checked ? 'true' : 'false');
+                    loadUsersPage();
+                });
+            }
             
             // فحص المستخدمين المفقودين
             setTimeout(() => checkMissingUsers(), 2000);
         });
 
-        // إعداد وظيفة البحث
-        function setupSearch() {
-            const searchInput = document.getElementById('searchUsers');
-            if (searchInput) {
-                searchInput.addEventListener('input', function() {
-                    const searchTerm = this.value.toLowerCase().trim();
-                    filterUsers(searchTerm);
-                });
+        // Initialize sidebar
+        async function initializeSidebar() {
+            if (window.SidebarManager) {
+                try {
+                    window.sidebarManager = new window.SidebarManager();
+                    await window.sidebarManager.init();
+                    
+                    // تحديث القائمة الجانبية مع معلومات المستخدم
+                    const userRole = unifiedAuth?.getCurrentUserRole?.() || 'admin';
+                    const isAuthenticated = unifiedAuth?.isAuthenticated || unifiedAuth?.currentUser || localStorage.getItem('demo_mode') === 'true';
+                    
+                    if (isAuthenticated) {
+                        const unifiedUI = window.unifiedUITemplate;
+            if (unifiedUI) {
+                unifiedUI.updateSidebar();
+            };
+                    }
+                    
+                    console.log('✅ تم تهيئة القائمة الجانبية بنجاح');
+                } catch (error) {
+                    console.error('❌ خطأ في تهيئة القائمة الجانبية:', error);
+                }
+            } else {
+                // انتظار تحميل SidebarManager
+                setTimeout(async () => {
+                    if (window.SidebarManager) {
+                        try {
+                            window.sidebarManager = new window.SidebarManager();
+                            await window.sidebarManager.init();
+                            
+                            const userRole = unifiedAuth?.getCurrentUserRole?.() || 'admin';
+                            const isAuthenticated = unifiedAuth?.isAuthenticated || unifiedAuth?.currentUser || localStorage.getItem('demo_mode') === 'true';
+                            
+                            if (isAuthenticated) {
+                                const unifiedUI = window.unifiedUITemplate;
+            if (unifiedUI) {
+                unifiedUI.updateSidebar();
+            };
+                            }
+                            
+                            console.log('✅ تم تهيئة القائمة الجانبية بنجاح (متأخر)');
+                        } catch (error) {
+                            console.error('❌ خطأ في تهيئة القائمة الجانبية (متأخر):', error);
+                        }
+                    }
+                }, 1000);
             }
         }
 
-        // فلترة المستخدمين حسب البحث
-        function filterUsers(searchTerm) {
-            const userRows = document.querySelectorAll('.user-row');
+        // Main load users function for this page
+        async function loadUsersPage() {
+            // Check if we have a real database connection
+            if (window.db && unifiedAuth?.isAuthenticated && !localStorage.getItem('demo_mode')) {
+                try {
+                    await loadUsersReal();
+                } catch (error) {
+                    console.error('خطأ في تحميل المستخدمين الحقيقيين:', error);
+                    loadUsersDemo();
+                }
+            } else {
+                console.log('تحميل المستخدمين التجريبيين - لا يوجد اتصال بقاعدة البيانات');
+                loadUsersDemo();
+            }
+        }
+
+        // Helper: normalize and deduplicate users
+        function normalizeUsers(rawUsers) {
+            // استبعاد المحذوف/المؤرشف إن وُجدت حقول منطقية مختلفة
+            const filtered = rawUsers.filter(u =>
+                u &&
+                u.email &&
+                !u.isDeleted &&
+                !u.deleted &&
+                u.status !== 'deleted' &&
+                u.status !== 'archived' &&
+                u.isArchived !== true &&
+                u.archived !== true
+            );
+
+            // إزالة التكرار بحسب uid أولاً ثم البريد الإلكتروني (يُحافظ على الأحدث)
+            const byUid = new Map();
+            const byEmail = new Map();
+
+            const getTime = (u) => {
+                try {
+                    if (u.createdAt?.toDate) return u.createdAt.toDate().getTime();
+                    if (u.createdAt instanceof Date) return u.createdAt.getTime();
+                    if (typeof u.createdAt === 'string') return new Date(u.createdAt).getTime();
+                } catch (_) {}
+                return 0;
+            };
+
+            // اختر الأحدث من المكررات
+            const preferLatest = (oldU, newU) => (getTime(newU) >= getTime(oldU) ? newU : oldU);
+
+            filtered.forEach(u => {
+                if (u.uid) {
+                    if (!byUid.has(u.uid)) byUid.set(u.uid, u); else byUid.set(u.uid, preferLatest(byUid.get(u.uid), u));
+                }
+            });
+
+            const uniques = [];
+            filtered.forEach(u => {
+                // إذا كان هناك uid وتمت إضافته بالفعل، لا تضف نسخة البريد
+                if (u.uid && byUid.has(u.uid)) return;
+                const key = (u.email || '').toLowerCase();
+                if (!key) return;
+                if (!byEmail.has(key)) byEmail.set(key, u); else byEmail.set(key, preferLatest(byEmail.get(key), u));
+            });
+
+            byUid.forEach(v => uniques.push(v));
+            byEmail.forEach(v => uniques.push(v));
+
+            return uniques;
+        }
+
+        // Helper: filter to Auth-linked users if toggle is ON
+        async function getAuthUsersSet() {
+            try {
+                if (!window.functions?.httpsCallable) return null;
+                const callable = window.functions.httpsCallable('listAuthUsersSummary');
+                const res = await callable();
+                const list = res?.data?.data?.users || res?.data?.users || []; // buildResponse(true,{users}) vs raw
+                const set = new Set(list.map(u => u.uid));
+                return set;
+            } catch (e) {
+                console.warn('تعذر جلب قائمة مستخدمي Auth، سيتم استخدام أسلوب بديل:', e);
+                return null;
+            }
+        }
+
+        async function applyAuthOnlyFilter(users) {
+            const toggle = document.getElementById('authOnlyToggle');
+            const authOnly = toggle ? toggle.checked : (localStorage.getItem('users_auth_only') !== 'false');
+            if (!authOnly) return users;
+
+            // جرّب استخدام القائمة الدقيقة من الدالة السحابية
+            const authSet = await getAuthUsersSet();
+            if (authSet && authSet.size > 0) {
+                const filteredAccurate = users.filter(u => authSet.has(u.uid) || authSet.has(u.id));
+                return filteredAccurate;
+            }
+
+            // إذا كان لدينا إشارة syncedFromAuth أو uid يبدو كـ Firebase UID، نستخدمها كمعيار
+            const looksLikeFirebaseUid = (val) => typeof val === 'string' && val.length >= 20;
+
+            const filtered = users.filter(u => {
+                // استبعد الإضافات اليدوية/السريعة التي لا تملك حساب Auth
+                if (u.quickAdded === true || u.manuallyAdded === true) return false;
+
+                // إشارات صريحة من النظام
+                if (u.syncedFromAuth === true || u.createdViaAuth === true) return true;
+
+                // UID في الحقل أو في معرف المستند
+                if (looksLikeFirebaseUid(u.uid) || looksLikeFirebaseUid(u.id)) return true;
+
+                // uid موجود وليس مُعرّفاً مؤقتاً من الإضافة السريعة
+                if (typeof u.uid === 'string' && u.uid && !u.uid.startsWith('user_')) return true;
+
+                // وجود حقول تأتي عادة من Auth
+                if (typeof u.emailVerified === 'boolean') return true;
+                if (u.lastLogin) return true;
+
+                return false;
+            });
+            return filtered;
+        }
+
+        function setUsersVisibleCount(n) {
+            const badge = document.getElementById('usersCountBadge');
+            if (badge) badge.textContent = `${n}`;
+        }
+
+        // Real users loading function
+        async function loadUsersReal() {
+            const usersTableBody = document.getElementById('usersTableBody');
             
-            if (!searchTerm) {
-                // إظهار جميع الصفوف
-                userRows.forEach(row => {
-                    row.style.display = '';
+            try {
+                // إظهار حالة التحميل
+                usersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">جاري التحميل...</span>
+                            </div>
+                            <div class="mt-2">جاري تحميل المستخدمين الحقيقيين...</div>
+                        </td>
+                    </tr>
+                `;
+
+                // استعلام بدون ترتيب لتجنب مشكلة الفهرس
+                const usersSnapshot = await db.collection('users').get();
+                
+                if (usersSnapshot.empty) {
+                    usersTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <i class="fas fa-users-slash text-muted fs-1 mb-3"></i>
+                                <div class="h5 text-muted">لا يوجد مستخدمين</div>
+                                <p class="text-muted">لم يتم العثور على أي مستخدمين في النظام</p>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                    <i class="fas fa-user-plus me-2"></i>
+                                    إضافة مستخدم جديد
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                // تحويل البيانات إلى مصفوفة
+                const raw = [];
+                usersSnapshot.forEach(doc => {
+                    raw.push({ id: doc.id, ...doc.data() });
                 });
+                // تطبيع وإزالة التكرار والاستبعاد المنطقي
+                let users = normalizeUsers(raw);
+                // تطبيق فلتر المصادقة فقط (مصادق فقط)
+                users = await applyAuthOnlyFilter(users);
+                // ترتيب المستخدمين محلياً حسب تاريخ الإنشاء
+                users.sort((a, b) => {
+                    if (a.createdAt && b.createdAt) {
+                        return b.createdAt.toDate() - a.createdAt.toDate();
+                    } else if (a.createdAt) {
+                        return -1;
+                    } else if (b.createdAt) {
+                        return 1;
+                    }
+                    return 0;
+                });
+                
+                let html = '';
+                users.forEach(userData => {
+                    const createdAt = userData.createdAt ? 
+                        new Date(userData.createdAt.toDate()).toLocaleDateString('ar-SA', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        }) : 'غير محدد';
+                    
+                    const roleName = roleNames[userData.role] || userData.role || 'غير محدد';
+                    const badgeClass = roleBadges[userData.role] || 'bg-secondary';
+                    const isActive = userData.isActive !== false;
+                    
+                    html += `
+                        <tr class="user-row" data-user-id="${userData.id}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-3">
+                                        <i class="fas fa-user-circle text-primary fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <strong class="d-block">${userData.displayName || userData.email?.split('@')[0] || 'غير محدد'}</strong>
+                                        <small class="text-muted">ID: ${userData.id.substring(0, 8)}...</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${userData.email}">
+                                    ${userData.email}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge ${badgeClass}">${roleName}</span>
+                            </td>
+                            <td>
+                                <small>${createdAt}</small>
+                            </td>
+                            <td>
+                                <span class="badge ${isActive ? 'bg-success' : 'bg-danger'}">
+                                    <i class="fas fa-${isActive ? 'check-circle' : 'times-circle'} me-1"></i>
+                                    ${isActive ? 'نشط' : 'معطل'}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="editUserReal('${userData.id}')" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-${isActive ? 'warning' : 'success'} btn-sm" 
+                                            onclick="toggleUserStatusReal('${userData.id}', ${isActive})" 
+                                            title="${isActive ? 'تعطيل' : 'تفعيل'}">
+                                        <i class="fas fa-${isActive ? 'ban' : 'check'}"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="deleteUserReal('${userData.id}')" title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                usersTableBody.innerHTML = html;
+                setUsersVisibleCount(users.length);
+                
+                // إضافة عداد المستخدمين الحقيقيين
+                updateUserStatsReal(users);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل المستخدمين الحقيقيين:', error);
+                
+                let errorMessage = 'خطأ في تحميل البيانات';
+                
+                if (error.code === 'failed-precondition' || error.message.includes('index')) {
+                    errorMessage = 'يتطلب النظام إعداد فهرس قاعدة البيانات. جاري المحاولة بطريقة بديلة...';
+                } else if (error.code === 'permission-denied') {
+                    errorMessage = 'ليس لديك صلاحية للوصول لهذه البيانات';
+                } else if (error.code === 'unavailable') {
+                    errorMessage = 'الخدمة غير متاحة حالياً. يرجى المحاولة لاحقاً.';
+                }
+                
+                usersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>خطأ:</strong> ${errorMessage}
+                                <br><small class="text-muted mt-2 d-block">تفاصيل تقنية: ${error.message}</small>
+                                <div class="mt-3">
+                                    <button class="btn btn-outline-danger btn-sm me-2" onclick="loadUsersPage()">
+                                        <i class="fas fa-redo me-1"></i> إعادة المحاولة
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm" onclick="loadUsersDemo()">
+                                        <i class="fas fa-eye me-1"></i> عرض البيانات التجريبية
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                
+                // إعادة رمي الخطأ للتعامل معه في loadUsersPage
+                throw error;
+            }
+        }
+
+        // Load departments list from Firestore and populate the modal select
+        async function loadDepartmentsList() {
+            if (!window.db) return;
+            try {
+                const snap = await db.collection('departments').orderBy('name').get();
+                departmentsCache = [];
+                departmentsMap = new Map();
+                snap.forEach(doc => {
+                    const d = { id: doc.id, ...(doc.data() || {}) };
+                    if (d.active === false) return; // ignore inactive departments
+                    departmentsCache.push(d);
+                    const name = d.name || d.nameAr || d.nameEn || d.id;
+                    departmentsMap.set(d.id, name);
+                });
+
+                // Populate select
+                const select = document.getElementById('userDepartment');
+                if (select) {
+                    const currentVal = select.value;
+                    // Reset options
+                    select.innerHTML = '<option value="">اختر الإدارة</option>';
+                    departmentsCache.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.id;
+                        opt.textContent = d.name || d.nameAr || d.nameEn || d.id;
+                        select.appendChild(opt);
+                    });
+                    // Restore previous value if existed
+                    if (currentVal && !select.value) {
+                        select.value = currentVal;
+                    }
+                }
+            } catch (e) {
+                console.warn('تعذر تحميل الإدارات:', e?.message || e);
+            }
+        }
+
+        // Update real user statistics
+        function updateUserStatsReal(users) {
+            const totalUsers = users.length;
+            const activeUsers = users.filter(user => user.isActive !== false).length;
+            const inactiveUsers = totalUsers - activeUsers;
+            
+            // إحصائيات حسب الأدوار
+            const roleStats = {};
+            users.forEach(user => {
+                const role = user.role || 'غير محدد';
+                roleStats[role] = (roleStats[role] || 0) + 1;
+            });
+
+            console.log('إحصائيات المستخدمين الحقيقيين:', {
+                total: totalUsers,
+                active: activeUsers,
+                inactive: inactiveUsers,
+                byRole: roleStats
+            });
+
+            // إضافة معلومات في عنوان الصفحة
+            const pageTitle = document.querySelector('h3');
+            if (pageTitle) {
+                pageTitle.innerHTML = `
+                    <i class="fas fa-user-plus me-2"></i>
+                    إضافة وإدارة المستخدمين 
+                    <span class="badge bg-success ms-2">${totalUsers} مستخدم حقيقي</span>
+                    <span class="badge bg-primary ms-1">${activeUsers} نشط</span>
+                `;
+            }
+            setUsersVisibleCount(totalUsers);
+        }
+
+        // Real user action functions
+        async function editUserReal(userId) {
+            try {
+                if (!window.db) {
+                    alert('لا يوجد اتصال بقاعدة البيانات');
+                    return;
+                }
+
+                // جلب بيانات المستخدم
+                const docRef = db.collection('users').doc(userId);
+                const snap = await docRef.get();
+                if (!snap.exists) {
+                    alert('لم يتم العثور على بيانات هذا المستخدم');
+                    return;
+                }
+                const user = { id: snap.id, ...snap.data() };
+
+                // عناصر النموذج
+                const modalEl = document.getElementById('addUserModal');
+                const titleEl = modalEl.querySelector('.modal-title');
+                const saveBtn = modalEl.querySelector('.btn-primary');
+                const emailInput = document.getElementById('userEmail');
+                const nameInput = document.getElementById('userDisplayName');
+                const roleSelect = document.getElementById('userRole');
+                const passInput = document.getElementById('userPassword');
+                const editIdInput = document.getElementById('editUserId');
+                const originalRoleInput = document.getElementById('originalRole');
+                const deptSelect = document.getElementById('userDepartment');
+                const originalDeptInput = document.getElementById('originalDepartment');
+
+                // وضع التحرير
+                editIdInput.value = user.id;
+                originalRoleInput.value = user.role || '';
+                if (originalDeptInput) originalDeptInput.value = user.department || '';
+                if (titleEl) titleEl.innerHTML = '<i class="fas fa-user-edit me-2"></i> تعديل المستخدم';
+                if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i> تحديث المستخدم';
+
+                // تعبئة البيانات
+                emailInput.value = user.email || '';
+                nameInput.value = user.displayName || user.name || '';
+                if (roleSelect && user.role) roleSelect.value = user.role;
+
+                // تأكد من تحميل الإدارات ثم اضبط القيمة
+                try {
+                    if (!departmentsCache.length) {
+                        await loadDepartmentsList();
+                    }
+                    if (deptSelect) {
+                        // إذا لم تُملأ الخيارات (حالة إعادة فتح المودال)، عبئها الآن
+                        if (deptSelect.options.length <= 1 && departmentsCache.length) {
+                            deptSelect.innerHTML = '<option value="">اختر الإدارة</option>';
+                            departmentsCache.forEach(d => {
+                                const opt = document.createElement('option');
+                                opt.value = d.id;
+                                opt.textContent = d.name || d.nameAr || d.nameEn || d.id;
+                                deptSelect.appendChild(opt);
+                            });
+                        }
+                        if (user.department) deptSelect.value = user.department;
+                    }
+                } catch (_) {}
+
+                // إخفاء كلمة المرور في وضع التعديل
+                if (passInput) {
+                    passInput.value = '';
+                    const passWrapper = passInput.closest('.mb-3');
+                    if (passWrapper) passWrapper.classList.add('d-none');
+                }
+
+                // إذا كان مرتبطاً بـ Auth لا نسمح بتعديل البريد هنا
+                const isAuthLinked = (user.uid && String(user.uid).length >= 20) || user.syncedFromAuth === true;
+                emailInput.disabled = !!isAuthLinked;
+                emailInput.title = isAuthLinked ? 'مستخدم مرتبط بـ Firebase Auth، لتغيير البريد استخدم أدوات المسؤول.' : '';
+
+                // عرض النافذة
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            } catch (err) {
+                console.error('خطأ في فتح نافذة التعديل:', err);
+                alert('حدث خطأ أثناء فتح نافذة التعديل');
+            }
+        }
+
+        async function toggleUserStatusReal(userId, currentStatus) {
+            if (!confirm(`هل أنت متأكد من ${currentStatus ? 'تعطيل' : 'تفعيل'} هذا المستخدم؟`)) {
                 return;
             }
 
-            userRows.forEach(row => {
-                const userName = row.querySelector('strong').textContent.toLowerCase();
-                const userEmail = row.cells[1].textContent.toLowerCase();
-                const userRole = row.cells[2].textContent.toLowerCase();
-                
-                const matches = userName.includes(searchTerm) || 
-                               userEmail.includes(searchTerm) || 
-                               userRole.includes(searchTerm);
-                
-                row.style.display = matches ? '' : 'none';
-            });
+            try {
+                await db.collection('users').doc(userId).update({
+                    isActive: !currentStatus,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: getCurrentUserId()
+                });
 
-            // عداد النتائج
-            const visibleRows = Array.from(userRows).filter(row => row.style.display !== 'none');
-            console.log(`عرض ${visibleRows.length} من ${userRows.length} مستخدم`);
+                // إعادة تحميل القائمة
+                loadUsersPage();
+                
+                alert(`تم ${!currentStatus ? 'تفعيل' : 'تعطيل'} المستخدم بنجاح`);
+
+            } catch (error) {
+                console.error('خطأ في تحديث حالة المستخدم:', error);
+                alert('حدث خطأ في تحديث حالة المستخدم: ' + error.message);
+            }
         }
 
-        // مزامنة المستخدمين من Firebase Authentication إلى Firestore
+        async function deleteUserReal(userId) {
+            // التحقق من عدم حذف المستخدم الحالي
+            if (userId === getCurrentUserId()) {
+                alert('لا يمكنك حذف حسابك الخاص');
+                return;
+            }
+
+            if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟\n\nهذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع البيانات المرتبطة بالمستخدم.')) {
+                return;
+            }
+
+            try {
+                // الحصول على بيانات المستخدم قبل الحذف
+                const userDoc = await db.collection('users').doc(userId).get();
+                const userData = userDoc.data();
+
+                // حذف المستخدم من Firestore
+                await db.collection('users').doc(userId).delete();
+
+                // تسجيل العملية في سجل التدقيق
+                await db.collection('audit_logs').add({
+                    action: 'user_deleted',
+                    targetType: 'user',
+                    targetId: userId,
+                    details: {
+                        email: userData?.email || 'غير محدد',
+                        displayName: userData?.displayName || 'غير محدد',
+                        role: userData?.role || 'غير محدد'
+                    },
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    performedBy: getCurrentUserId()
+                });
+
+                alert('تم حذف المستخدم بنجاح');
+                
+                // إعادة تحميل قائمة المستخدمين
+                loadUsersPage();
+                
+            } catch (error) {
+                console.error('خطأ في حذف المستخدم:', error);
+                
+                let errorMessage = 'حدث خطأ في حذف المستخدم';
+                
+                if (error.code === 'permission-denied') {
+                    errorMessage = 'ليس لديك صلاحية لحذف هذا المستخدم';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                alert(errorMessage);
+            }
+        }
+
+        // Demo users function
+        function loadUsersDemo() {
+            const usersTableBody = document.getElementById('usersTableBody');
+            
+            // Demo users data
+            const demoUsers = [
+                {
+                    id: 'demo-1',
+                    displayName: 'أحمد محمد',
+                    email: 'ahmed@example.com',
+                    role: 'admin',
+                    createdAt: '2024-01-15',
+                    isActive: true
+                },
+                {
+                    id: 'demo-2',
+                    displayName: 'فاطمة علي',
+                    email: 'fatima@example.com',
+                    role: 'employee',
+                    createdAt: '2024-02-20',
+                    isActive: true
+                },
+                {
+                    id: 'demo-3',
+                    displayName: 'عمر حسان',
+                    email: 'omar@example.com',
+                    role: 'viewer',
+                    createdAt: '2024-03-10',
+                    isActive: false
+                }
+            ];
+
+            let html = '';
+            demoUsers.forEach(userData => {
+                const roleName = roleNames[userData.role] || userData.role || 'غير محدد';
+                const badgeClass = roleBadges[userData.role] || 'bg-secondary';
+                const isActive = userData.isActive !== false;
+                
+                html += `
+                    <tr class="user-row" data-user-id="${userData.id}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="user-avatar me-3">
+                                    <i class="fas fa-user-circle text-primary fs-4"></i>
+                                </div>
+                                <div>
+                                    <strong class="d-block">${userData.displayName}</strong>
+                                    <small class="text-muted">ID: ${userData.id}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${userData.email}">
+                                ${userData.email}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge ${badgeClass}">${roleName}</span>
+                        </td>
+                        <td>
+                            <small>${userData.createdAt}</small>
+                        </td>
+                        <td>
+                            <span class="badge ${isActive ? 'bg-success' : 'bg-danger'}">
+                                <i class="fas fa-${isActive ? 'check-circle' : 'times-circle'} me-1"></i>
+                                ${isActive ? 'نشط' : 'معطل'}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-outline-primary btn-sm" onclick="editUserDemo('${userData.id}')" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-${isActive ? 'warning' : 'success'} btn-sm" 
+                                        onclick="toggleUserStatusDemo('${userData.id}', ${isActive})" 
+                                        title="${isActive ? 'تعطيل' : 'تفعيل'}">
+                                    <i class="fas fa-${isActive ? 'ban' : 'check'}"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteUserDemo('${userData.id}')" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            usersTableBody.innerHTML = html;
+            setUsersVisibleCount(demoUsers.length);
+            
+            // Update page title with count
+            const pageTitle = document.querySelector('h3');
+            if (pageTitle) {
+                pageTitle.innerHTML = `
+                    <i class="fas fa-user-plus me-2"></i>
+                    إضافة وإدارة المستخدمين 
+                    <span class="badge bg-primary ms-2">${demoUsers.length} مستخدم (تجريبي)</span>
+                `;
+            }
+        }
+
+        // Demo functions for user actions
+        function editUserDemo(userId) {
+            alert('وضع العرض التوضيحي - خاصية التعديل غير متاحة');
+        }
+
+        function toggleUserStatusDemo(userId, currentStatus) {
+            alert(`وضع العرض التوضيحي - سيتم ${currentStatus ? 'تعطيل' : 'تفعيل'} المستخدم`);
+        }
+
+        function deleteUserDemo(userId) {
+            if (confirm('وضع العرض التوضيحي - هل تريد حذف هذا المستخدم؟')) {
+                alert('تم حذف المستخدم (تجريبي)');
+                loadUsersPage();
+            }
+        }
+
+        // Real sync function
         async function syncUsersFromAuth() {
+            // في وضع العرض التوضيحي
+            if (localStorage.getItem('demo_mode') === 'true' || !window.db || !window.auth) {
+                alert('وضع العرض التوضيحي - مزامنة المستخدمين من Firebase Authentication\n\nفي الواقع، سيتم مزامنة المستخدمين الموجودين في Firebase Auth مع قاعدة بيانات Firestore.');
+                return;
+            }
+
             if (!confirm('هل تريد مزامنة المستخدمين من Firebase Authentication؟\n\nسيتم إنشاء ملفات شخصية لجميع المستخدمين المفقودين في قاعدة البيانات.')) {
                 return;
             }
@@ -468,7 +1299,7 @@
                             <div class="spinner-border text-info" role="status">
                                 <span class="visually-hidden">جاري المزامنة...</span>
                             </div>
-                            <div class="mt-2 text-info">جاري مزامنة المستخدمين من Authentication...</div>
+                            <div class="mt-2 text-info">جاري فحص المستخدمين في Firebase Authentication...</div>
                             <small class="text-muted d-block mt-1">قد تستغرق هذه العملية بعض الوقت</small>
                         </td>
                     </tr>
@@ -484,7 +1315,7 @@
                 console.log(`المستخدمون الموجودون في Firestore: ${existingUserIds.size}`);
 
                 // الحصول على المستخدم الحالي
-                const currentUser = unifiedAuth.currentUser;
+                const currentUser = unifiedAuth.currentUser || authSystem?.currentUser;
                 if (!currentUser) {
                     throw new Error('لم يتم العثور على مستخدم مسجل دخول');
                 }
@@ -492,63 +1323,16 @@
                 // قائمة المستخدمين المفقودين
                 const missingUsers = [];
 
-                // ملاحظة: Firebase Client SDK لا يسمح بقائمة جميع المستخدمين
-                // لذلك سنضطر للاعتماد على طرق أخرى
-                
-                // طريقة بديلة: فحص المستخدمين المحتملين
-                // يمكنك إدخال معرفات المستخدمين المعروفين يدوياً
-                
-                // أولاً: التحقق من المستخدم الحالي
+                // فحص المستخدم الحالي
                 if (!existingUserIds.has(currentUser.uid)) {
                     missingUsers.push({
                         uid: currentUser.uid,
                         email: currentUser.email,
-                        displayName: currentUser.displayName || 'مستخدم',
+                        displayName: currentUser.displayName || currentUser.email?.split('@')[0] || 'مستخدم',
                         emailVerified: currentUser.emailVerified,
                         createdAt: new Date(currentUser.metadata.creationTime),
                         lastLogin: new Date(currentUser.metadata.lastSignInTime)
                     });
-                }
-
-                // طريقة للعثور على المستخدمين الآخرين:
-                // نحتاج لقائمة بعناوين البريد الإلكتروني المحتملة
-                const potentialEmails = [];
-                
-                // يمكن الحصول على هذه القائمة من:
-                // 1. سجلات النظام القديم
-                // 2. قوائم الموظفين
-                // 3. دعوات مرسلة مسبقاً
-                
-                // للاختبار، سنستخدم prompt لإدخال الإيميلات
-                const additionalEmailsInput = prompt(
-                    'أدخل عناوين البريد الإلكتروني للمستخدمين الآخرين (مفصولة بفواصل):\n\n' +
-                    'مثال: user1@example.com, user2@example.com\n\n' +
-                    'أو اتركها فارغة للمتابعة مع المستخدم الحالي فقط:'
-                );
-
-                if (additionalEmailsInput && additionalEmailsInput.trim()) {
-                    const additionalEmails = additionalEmailsInput
-                        .split(',')
-                        .map(email => email.trim())
-                        .filter(email => email && email.includes('@'));
-                    
-                    potentialEmails.push(...additionalEmails);
-                }
-
-                // محاولة العثور على المستخدمين الإضافيين
-                for (const email of potentialEmails) {
-                    // إنشاء مستخدم للإيميلات المدخلة
-                    const tempUserId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                    missingUsers.push({
-                        uid: tempUserId,
-                        email: email,
-                        displayName: email.split('@')[0],
-                        emailVerified: false,
-                        createdAt: new Date(),
-                        lastLogin: null
-                    });
-                    
-                    console.log(`إضافة مستخدم: ${email}`);
                 }
 
                 console.log(`المستخدمون المفقودون: ${missingUsers.length}`);
@@ -561,17 +1345,12 @@
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>لا توجد مزامنة مطلوبة</strong>
                                     <br>المستخدم الحالي موجود في قاعدة البيانات
-                                    <div class="mt-3">
-                                        <button class="btn btn-warning btn-sm" onclick="showManualSync()">
-                                            <i class="fas fa-plus me-1"></i> إضافة مستخدمين آخرين يدوياً
-                                        </button>
-                                    </div>
                                 </div>
                             </td>
                         </tr>
                     `;
                     
-                    setTimeout(() => loadUsers(), 3000);
+                    setTimeout(() => loadUsersPage(), 3000);
                     return;
                 }
 
@@ -581,7 +1360,7 @@
 
                 for (const user of missingUsers) {
                     // تحديد الدور الافتراضي
-                    let defaultRole = 'archive-officer'; // الدور الافتراضي
+                    let defaultRole = 'employee'; // الدور الافتراضي
                     
                     // إذا كان هذا أول مستخدم، اجعله مدير
                     if (existingUserIds.size === 0 && syncedCount === 0) {
@@ -600,6 +1379,7 @@
                         lastLogin: user.lastLogin ? firebase.firestore.Timestamp.fromDate(user.lastLogin) : null,
                         syncedFromAuth: true,
                         syncedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        syncedBy: currentUser.uid,
                         profilePicture: null
                     });
 
@@ -647,7 +1427,7 @@
 
                 // إعادة تحميل قائمة المستخدمين بعد 2 ثانية
                 setTimeout(() => {
-                    loadUsers();
+                    loadUsersPage();
                     alert(`تم مزامنة ${syncedCount} مستخدم بنجاح!`);
                 }, 2000);
 
@@ -672,7 +1452,7 @@
                                 <strong>خطأ في المزامنة:</strong> ${errorMessage}
                                 <br><small class="text-muted mt-2 d-block">تفاصيل تقنية: ${error.message}</small>
                                 <div class="mt-3">
-                                    <button class="btn btn-outline-danger btn-sm me-2" onclick="loadUsers()">
+                                    <button class="btn btn-outline-danger btn-sm me-2" onclick="loadUsersPage()">
                                         <i class="fas fa-undo me-1"></i> العودة للقائمة
                                     </button>
                                     <button class="btn btn-outline-info btn-sm" onclick="syncUsersFromAuth()">
@@ -686,783 +1466,24 @@
             }
         }
 
-        // فحص وعرض المستخدمين المفقودين
-        async function checkMissingUsers() {
-            try {
-                const firestoreUsers = await db.collection('users').get();
-                const existingUserIds = new Set();
-                firestoreUsers.forEach(doc => {
-                    existingUserIds.add(doc.id);
-                });
-
-                const currentUser = unifiedAuth.currentUser;
-                if (currentUser && !existingUserIds.has(currentUser.uid)) {
-                    // إظهار تنبيه للمستخدمين المفقودين
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-3';
-                    alertDiv.innerHTML = `
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>تنبيه:</strong> يوجد مستخدمون في Firebase Authentication غير موجودين في قاعدة البيانات.
-                        <button type="button" class="btn btn-sm btn-outline-warning ms-2" onclick="syncUsersFromAuth()">
-                            <i class="fas fa-sync-alt me-1"></i> مزامنة الآن
-                        </button>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
-                    
-                    const container = document.querySelector('.card p-4');
-                    container.insertBefore(alertDiv, container.children[1]);
-                }
-
-            } catch (error) {
-                console.error('خطأ في فحص المستخدمين المفقودين:', error);
-            }
-        }
-
-        // عرض نافذة المزامنة اليدوية
-        function showManualSync() {
-            const modal = `
-                <div class="modal fade" id="manualSyncModal" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header bg-info text-white">
-                                <h5 class="modal-title">
-                                    <i class="fas fa-users-cog me-2"></i>
-                                    إضافة مستخدمين من Authentication
-                                </h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <strong>ملاحظة:</strong> Firebase Client SDK لا يسمح بعرض قائمة جميع المستخدمين تلقائياً.
-                                    يمكنك إدخال عناوين البريد الإلكتروني للمستخدمين الموجودين في Authentication.
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">عناوين البريد الإلكتروني (كل واحد في سطر منفصل):</label>
-                                    <textarea class="form-control" id="emailsList" rows="6" 
-                                              placeholder="user1@example.com&#10;user2@example.com&#10;user3@example.com"></textarea>
-                                    <small class="text-muted">أدخل عنوان بريد إلكتروني واحد في كل سطر</small>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">الدور الافتراضي للمستخدمين الجدد:</label>
-                                    <select class="form-select" id="defaultRole">
-                                        <option value="archive-officer">ضابط الأرشيف</option>
-                                        <option value="legal">قانوني</option>
-                                        <option value="governance">الحوكمة</option>
-                                        <option value="collection">التحصيل</option>
-                                        <option value="securitization">التوريق</option>
-                                        <option value="admin">مدير النظام</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                                <button type="button" class="btn btn-info" onclick="processManualSync()">
-                                    <i class="fas fa-sync-alt me-2"></i>
-                                    بدء المزامنة
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // إزالة النافذة إذا كانت موجودة
-            const existingModal = document.getElementById('manualSyncModal');
-            if (existingModal) {
-                existingModal.remove();
-            }
-
-            // إضافة النافذة الجديدة
-            document.body.insertAdjacentHTML('beforeend', modal);
-            
-            // إظهار النافذة
-            const modalElement = new bootstrap.Modal(document.getElementById('manualSyncModal'));
-            modalElement.show();
-        }
-
-        // معالجة المزامنة اليدوية
-        async function processManualSync() {
-            const emailsList = document.getElementById('emailsList').value.trim();
-            const defaultRole = document.getElementById('defaultRole').value;
-
-            if (!emailsList) {
-                alert('يرجى إدخال عناوين بريد إلكتروني واحد على الأقل');
-                return;
-            }
-
-            // تحليل قائمة الإيميلات
-            const emails = emailsList
-                .split('\n')
-                .map(email => email.trim())
-                .filter(email => email && email.includes('@'));
-
-            if (emails.length === 0) {
-                alert('لم يتم العثور على عناوين بريد إلكتروني صحيحة');
-                return;
-            }
-
-            // إغلاق النافذة
-            const modal = bootstrap.Modal.getInstance(document.getElementById('manualSyncModal'));
-            modal.hide();
-
-            const usersTableBody = document.getElementById('usersTableBody');
-
-            try {
-                // إظهار حالة المعالجة
-                usersTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <div class="spinner-border text-success" role="status">
-                                <span class="visually-hidden">جاري المعالجة...</span>
-                            </div>
-                            <div class="mt-2 text-success">جاري إنشاء ملفات شخصية للمستخدمين...</div>
-                            <small class="text-muted d-block mt-1">معالجة ${emails.length} مستخدم</small>
-                        </td>
-                    </tr>
-                `;
-
-                // الحصول على المستخدمين الموجودين
-                const firestoreUsers = await db.collection('users').get();
-                const existingEmails = new Set();
-                firestoreUsers.forEach(doc => {
-                    const data = doc.data();
-                    if (data.email) {
-                        existingEmails.add(data.email.toLowerCase());
-                    }
-                });
-
-                // فلترة الإيميلات الجديدة فقط
-                const newEmails = emails.filter(email => 
-                    !existingEmails.has(email.toLowerCase())
-                );
-
-                if (newEmails.length === 0) {
-                    usersTableBody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="text-center py-4">
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <strong>لا توجد مستخدمين جدد</strong>
-                                    <br>جميع عناوين البريد الإلكتروني المدخلة موجودة مسبقاً في النظام
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    setTimeout(() => loadUsers(), 3000);
-                    return;
-                }
-
-                // إنشاء ملفات شخصية للمستخدمين الجدد
-                const batch = db.batch();
-                let successCount = 0;
-
-                for (const email of newEmails) {
-                    // إنشاء معرف فريد للمستخدم
-                    const userId = `manual_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                    
-                    const userRef = db.collection('users').doc(userId);
-                    batch.set(userRef, {
-                        uid: userId,
-                        email: email,
-                        displayName: email.split('@')[0], // استخدام اسم المستخدم من البريد
-                        role: defaultRole,
-                        isActive: true,
-                        emailVerified: false,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastLogin: null,
-                        syncedFromAuth: false,
-                        manuallyAdded: true,
-                        addedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        addedBy: unifiedAuth.currentUser?.uid || 'system',
-                        profilePicture: null
-                    });
-
-                    successCount++;
-                }
-
-                // تنفيذ العمليات
-                await batch.commit();
-
-                // تسجيل العملية
-                await db.collection('audit_logs').add({
-                    action: 'users_added_manually',
-                    targetType: 'system',
-                    details: {
-                        addedUsersCount: successCount,
-                        defaultRole: defaultRole,
-                        addedEmails: newEmails
-                    },
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    performedBy: unifiedAuth.currentUser?.uid || 'system'
-                });
-
-                // إظهار النتيجة
-                usersTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                <strong>تم إنشاء الملفات الشخصية بنجاح!</strong>
-                                <br>تم إضافة ${successCount} مستخدم جديد بدور "${roleNames[defaultRole]}"
-                                <div class="mt-2">
-                                    <small class="text-muted">
-                                        يمكن للمستخدمين الآن تسجيل الدخول وسيتم ربطهم بملفاتهم الشخصية تلقائياً
-                                    </small>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-
-                setTimeout(() => {
-                    loadUsers();
-                    alert(`تم إضافة ${successCount} مستخدم بنجاح!`);
-                }, 2000);
-
-            } catch (error) {
-                console.error('خطأ في المزامنة اليدوية:', error);
-                
-                usersTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                <strong>خطأ في إضافة المستخدمين:</strong> ${error.message}
-                                <div class="mt-3">
-                                    <button class="btn btn-outline-danger btn-sm" onclick="loadUsers()">
-                                        <i class="fas fa-undo me-1"></i> العودة للقائمة
-                                    </button>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }
-        }
-
-        // Load users from Firestore
-        async function loadUsers() {
-            const usersTableBody = document.getElementById('usersTableBody');
-            
-            try {
-                // إظهار حالة التحميل
-                usersTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">جاري التحميل...</span>
-                            </div>
-                            <div class="mt-2">جاري تحميل المستخدمين...</div>
-                        </td>
-                    </tr>
-                `;
-
-                // استعلام بدون ترتيب لتجنب مشكلة الفهرس
-                const usersSnapshot = await db.collection('users').get();
-                
-                if (usersSnapshot.empty) {
-                    usersTableBody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="text-center py-4">
-                                <i class="fas fa-users-slash text-muted fs-1 mb-3"></i>
-                                <div class="h5 text-muted">لا يوجد مستخدمين</div>
-                                <p class="text-muted">لم يتم العثور على أي مستخدمين في النظام</p>
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-
-                // تحويل البيانات إلى مصفوفة وترتيبها محلياً
-                const users = [];
-                usersSnapshot.forEach(doc => {
-                    users.push({ id: doc.id, ...doc.data() });
-                });
-
-                // ترتيب المستخدمين محلياً حسب تاريخ الإنشاء
-                users.sort((a, b) => {
-                    if (a.createdAt && b.createdAt) {
-                        return b.createdAt.toDate() - a.createdAt.toDate();
-                    } else if (a.createdAt) {
-                        return -1;
-                    } else if (b.createdAt) {
-                        return 1;
-                    }
-                    return 0;
-                });
-                
-                let html = '';
-                users.forEach(userData => {
-                    const createdAt = userData.createdAt ? 
-                        new Date(userData.createdAt.toDate()).toLocaleDateString('ar-SA', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        }) : 'غير محدد';
-                    
-                    const roleName = roleNames[userData.role] || userData.role || 'غير محدد';
-                    const badgeClass = roleBadges[userData.role] || 'bg-secondary';
-                    const isActive = userData.isActive !== false;
-                    
-                    html += `
-                        <tr class="user-row" data-user-id="${userData.id}">
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="user-avatar me-3">
-                                        <i class="fas fa-user-circle text-primary fs-4"></i>
-                                    </div>
-                                    <div>
-                                        <strong class="d-block">${userData.displayName || 'غير محدد'}</strong>
-                                        <small class="text-muted">ID: ${userData.id.substring(0, 8)}...</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${userData.email}">
-                                    ${userData.email}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge ${badgeClass}">${roleName}</span>
-                            </td>
-                            <td>
-                                <small>${createdAt}</small>
-                            </td>
-                            <td>
-                                <span class="badge ${isActive ? 'bg-success' : 'bg-danger'}">
-                                    <i class="fas fa-${isActive ? 'check-circle' : 'times-circle'} me-1"></i>
-                                    ${isActive ? 'نشط' : 'معطل'}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <button class="btn btn-outline-primary btn-sm" onclick="editUser('${userData.id}')" title="تعديل">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-outline-${isActive ? 'warning' : 'success'} btn-sm" 
-                                            onclick="toggleUserStatus('${userData.id}', ${isActive})" 
-                                            title="${isActive ? 'تعطيل' : 'تفعيل'}">
-                                        <i class="fas fa-${isActive ? 'ban' : 'check'}"></i>
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm" onclick="deleteUser('${userData.id}')" title="حذف">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                usersTableBody.innerHTML = html;
-                
-                // إضافة عداد المستخدمين
-                updateUserStats(users);
-                
-            } catch (error) {
-                console.error('خطأ في تحميل المستخدمين:', error);
-                
-                let errorMessage = 'خطأ في تحميل البيانات';
-                
-                if (error.code === 'failed-precondition' || error.message.includes('index')) {
-                    errorMessage = 'يتطلب النظام إعداد فهرس قاعدة البيانات. جاري المحاولة بطريقة بديلة...';
-                    // محاولة التحميل البديل
-                    setTimeout(() => loadUsersAlternative(), 1000);
-                } else if (error.code === 'permission-denied') {
-                    errorMessage = 'ليس لديك صلاحية للوصول لهذه البيانات';
-                } else if (error.code === 'unavailable') {
-                    errorMessage = 'الخدمة غير متاحة حالياً. يرجى المحاولة لاحقاً.';
-                }
-                
-                usersTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                <strong>خطأ:</strong> ${errorMessage}
-                                <br><small class="text-muted mt-2 d-block">تفاصيل تقنية: ${error.message}</small>
-                                <div class="mt-3">
-                                    <button class="btn btn-outline-danger btn-sm me-2" onclick="loadUsers()">
-                                        <i class="fas fa-redo me-1"></i> إعادة المحاولة
-                                    </button>
-                                    <button class="btn btn-outline-warning btn-sm" onclick="loadUsersAlternative()">
-                                        <i class="fas fa-download me-1"></i> تحميل بديل
-                                    </button>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }
-        }
-
-        // دالة تحميل بديلة في حالة فشل الاستعلام الأساسي
-        async function loadUsersAlternative() {
-            const usersTableBody = document.getElementById('usersTableBody');
-            
-            try {
-                usersTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <div class="spinner-border text-warning" role="status">
-                                <span class="visually-hidden">جاري التحميل البديل...</span>
-                            </div>
-                            <div class="mt-2 text-warning">جاري تحميل المستخدمين بالطريقة البديلة...</div>
-                        </td>
-                    </tr>
-                `;
-
-                // تحميل المستخدمين بدون فلاتر
-                const usersSnapshot = await db.collection('users').get();
-                
-                if (usersSnapshot.empty) {
-                    usersTableBody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="text-center py-4">
-                                <i class="fas fa-users-slash text-muted fs-1 mb-3"></i>
-                                <div class="h5 text-muted">لا يوجد مستخدمين</div>
-                                <p class="text-muted">لم يتم العثور على أي مستخدمين في النظام</p>
-                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                                    <i class="fas fa-user-plus me-2"></i>
-                                    إضافة مستخدم جديد
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-
-                const users = [];
-                usersSnapshot.forEach(doc => {
-                    users.push({ id: doc.id, ...doc.data() });
-                });
-
-                // ترتيب محلي
-                users.sort((a, b) => {
-                    if (a.createdAt && b.createdAt) {
-                        return b.createdAt.toDate() - a.createdAt.toDate();
-                    }
-                    return 0;
-                });
-
-                // عرض النتائج
-                let html = '';
-                users.forEach(userData => {
-                    const createdAt = userData.createdAt ? 
-                        new Date(userData.createdAt.toDate()).toLocaleDateString('ar-SA', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        }) : 'غير محدد';
-                    
-                    const roleName = roleNames[userData.role] || userData.role || 'غير محدد';
-                    const badgeClass = roleBadges[userData.role] || 'bg-secondary';
-                    const isActive = userData.isActive !== false;
-                    
-                    html += `
-                        <tr class="user-row" data-user-id="${userData.id}">
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="user-avatar me-3">
-                                        <i class="fas fa-user-circle text-primary fs-4"></i>
-                                    </div>
-                                    <div>
-                                        <strong class="d-block">${userData.displayName || 'غير محدد'}</strong>
-                                        <small class="text-muted">ID: ${userData.id.substring(0, 8)}...</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${userData.email}">
-                                    ${userData.email}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge ${badgeClass}">${roleName}</span>
-                            </td>
-                            <td>
-                                <small>${createdAt}</small>
-                            </td>
-                            <td>
-                                <span class="badge ${isActive ? 'bg-success' : 'bg-danger'}">
-                                    <i class="fas fa-${isActive ? 'check-circle' : 'times-circle'} me-1"></i>
-                                    ${isActive ? 'نشط' : 'معطل'}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <button class="btn btn-outline-primary btn-sm" onclick="editUser('${userData.id}')" title="تعديل">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-outline-${isActive ? 'warning' : 'success'} btn-sm" 
-                                            onclick="toggleUserStatus('${userData.id}', ${isActive})" 
-                                            title="${isActive ? 'تعطيل' : 'تفعيل'}">
-                                        <i class="fas fa-${isActive ? 'ban' : 'check'}"></i>
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm" onclick="deleteUser('${userData.id}')" title="حذف">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                usersTableBody.innerHTML = html;
-                updateUserStats(users);
-
-            } catch (error) {
-                console.error('خطأ في التحميل البديل:', error);
-                usersTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                فشل في تحميل البيانات بالطريقة البديلة أيضاً
-                                <br><small class="text-muted mt-2 d-block">${error.message}</small>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }
-        }
-
-        // تحديث إحصائيات المستخدمين
-        function updateUserStats(users) {
-            const totalUsers = users.length;
-            const activeUsers = users.filter(user => user.isActive !== false).length;
-            const inactiveUsers = totalUsers - activeUsers;
-            const syncedUsers = users.filter(user => user.syncedFromAuth === true).length;
-            
-            // إحصائيات حسب الأدوار
-            const roleStats = {};
-            users.forEach(user => {
-                const role = user.role || 'غير محدد';
-                roleStats[role] = (roleStats[role] || 0) + 1;
-            });
-
-            console.log('إحصائيات المستخدمين:', {
-                total: totalUsers,
-                active: activeUsers,
-                inactive: inactiveUsers,
-                synced: syncedUsers,
-                byRole: roleStats
-            });
-
-            // إضافة معلومات في عنوان الصفحة
-            const pageTitle = document.querySelector('h3');
-            if (pageTitle) {
-                pageTitle.innerHTML = `
-                    إدارة المستخدمين والأدوار 
-                    <span class="badge bg-primary ms-2">${totalUsers} مستخدم</span>
-                    ${syncedUsers > 0 ? `<span class="badge bg-info ms-1">${syncedUsers} مزامن</span>` : ''}
-                `;
-            }
-        }
-
-        // تفعيل/تعطيل المستخدم
-        async function toggleUserStatus(userId, currentStatus) {
-            if (!confirm(`هل أنت متأكد من ${currentStatus ? 'تعطيل' : 'تفعيل'} هذا المستخدم؟`)) {
-                return;
-            }
-
-            try {
-                await db.collection('users').doc(userId).update({
-                    isActive: !currentStatus,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // إعادة تحميل القائمة
-                loadUsers();
-                
-                alert(`تم ${!currentStatus ? 'تفعيل' : 'تعطيل'} المستخدم بنجاح`);
-
-            } catch (error) {
-                console.error('خطأ في تحديث حالة المستخدم:', error);
-                alert('حدث خطأ في تحديث حالة المستخدم');
-            }
-        }
-
-        // Save user
-        async function saveUser() {
-            const email = document.getElementById('userEmail').value.trim();
-            const displayName = document.getElementById('userDisplayName').value.trim();
-            const role = document.getElementById('userRole').value;
-            const password = document.getElementById('userPassword').value;
-
-            if (!email || !displayName || !role || !password) {
-                alert('يرجى ملء جميع الحقول');
-                return;
-            }
-
-            // التحقق من صحة البريد الإلكتروني
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                alert('يرجى إدخال بريد إلكتروني صحيح');
-                return;
-            }
-
-            // التحقق من قوة كلمة المرور
-            if (password.length < 6) {
-                alert('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-                return;
-            }
-
-            const saveButton = document.querySelector('#addUserModal .btn-primary');
-            const originalText = saveButton.innerHTML;
-            
-            try {
-                // تعطيل الزر وإظهار حالة التحميل
-                saveButton.disabled = true;
-                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
-
-                // التحقق من وجود المستخدم مسبقاً
-                const existingUsers = await db.collection('users').where('email', '==', email).get();
-                if (!existingUsers.empty) {
-                    throw new Error('هذا البريد الإلكتروني مستخدم مسبقاً');
-                }
-
-                // إنشاء المستخدم
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-
-                // تحديث الملف الشخصي
-                await user.updateProfile({
-                    displayName: displayName
-                });
-
-                // حفظ بيانات المستخدم في Firestore
-                await db.collection('users').doc(user.uid).set({
-                    uid: user.uid,
-                    email: email,
-                    displayName: displayName,
-                    role: role,
-                    isActive: true,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdBy: unifiedAuth.currentUser?.uid || 'system',
-                    lastLogin: null,
-                    profilePicture: null
-                });
-
-                // تسجيل العملية في سجل التدقيق
-                await db.collection('audit_logs').add({
-                    action: 'user_created',
-                    targetType: 'user',
-                    targetId: user.uid,
-                    details: {
-                        email: email,
-                        displayName: displayName,
-                        role: role
-                    },
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    performedBy: unifiedAuth.currentUser?.uid || 'system'
-                });
-
-                alert('تم إنشاء المستخدم بنجاح');
-                
-                // إغلاق النافذة وإعادة تعيين النموذج
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
-                modal.hide();
-                document.getElementById('userForm').reset();
-                
-                // إعادة تحميل قائمة المستخدمين
-                loadUsers();
-
-            } catch (error) {
-                console.error('خطأ في إنشاء المستخدم:', error);
-                
-                let errorMessage = 'حدث خطأ في إنشاء المستخدم';
-                
-                if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'هذا البريد الإلكتروني مستخدم مسبقاً';
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = 'كلمة المرور ضعيفة جداً';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'البريد الإلكتروني غير صحيح';
-                } else if (error.message) {
-                    errorMessage = error.message;
-                }
-                
-                alert(errorMessage);
-            } finally {
-                // إعادة تفعيل الزر
-                saveButton.disabled = false;
-                saveButton.innerHTML = originalText;
-            }
-        }
-
-        // Edit user (placeholder for future implementation)
-        function editUser(userId) {
-            alert('سيتم تطوير خاصية التعديل قريباً');
-        }
-
-        // Delete user
-        async function deleteUser(userId) {
-            // التحقق من عدم حذف المستخدم الحالي
-            if (userId === unifiedAuth.currentUser?.uid) {
-                alert('لا يمكنك حذف حسابك الخاص');
-                return;
-            }
-
-            if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟\n\nهذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع البيانات المرتبطة بالمستخدم.')) {
-                return;
-            }
-
-            try {
-                // الحصول على بيانات المستخدم قبل الحذف
-                const userDoc = await db.collection('users').doc(userId).get();
-                const userData = userDoc.data();
-
-                // حذف المستخدم من Firestore
-                await db.collection('users').doc(userId).delete();
-
-                // تسجيل العملية في سجل التدقيق
-                await db.collection('audit_logs').add({
-                    action: 'user_deleted',
-                    targetType: 'user',
-                    targetId: userId,
-                    details: {
-                        email: userData?.email || 'غير محدد',
-                        displayName: userData?.displayName || 'غير محدد',
-                        role: userData?.role || 'غير محدد'
-                    },
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    performedBy: unifiedAuth.currentUser?.uid || 'system'
-                });
-
-                alert('تم حذف المستخدم بنجاح');
-                
-                // إعادة تحميل قائمة المستخدمين
-                loadUsers();
-                
-            } catch (error) {
-                console.error('خطأ في حذف المستخدم:', error);
-                
-                let errorMessage = 'حدث خطأ في حذف المستخدم';
-                
-                if (error.code === 'permission-denied') {
-                    errorMessage = 'ليس لديك صلاحية لحذف هذا المستخدم';
-                } else if (error.message) {
-                    errorMessage = error.message;
-                }
-                
-                alert(errorMessage);
-            }
-        }
-
-        // Logout function
-        function logout() {
-            auth.signOut().then(() => {
-                window.location.href = 'index.html';
-            });
-        }
-
-        document.getElementById('logoutBtn').onclick = logout;
-
-        // إضافة سريعة للمستخدمين
+        // Real quick add function
         async function showQuickAddUsers() {
+            // في وضع العرض التوضيحي
+            if (localStorage.getItem('demo_mode') === 'true' || !window.db) {
+                const emails = prompt(
+                    "وضع العرض التوضيحي\n\nأدخل عناوين البريد الإلكتروني (مفصولة بفواصل):\n\n" +
+                    "مثال: user1@example.com, user2@example.com"
+                );
+                
+                if (emails && emails.trim()) {
+                    const emailList = emails.split(',').map(e => e.trim()).filter(e => e.includes('@'));
+                    if (emailList.length > 0) {
+                        alert(`وضع العرض التوضيحي - سيتم إضافة ${emailList.length} مستخدم:\n\n${emailList.join('\n')}`);
+                    }
+                }
+                return;
+            }
+
             const emails = prompt(
                 "أدخل عناوين البريد الإلكتروني للمستخدمين (مفصولة بفواصل):\n\n" +
                 "مثال:\n" +
@@ -1489,31 +1510,27 @@
                 `تم العثور على ${emailList.length} مستخدم.\n\n` +
                 "اختر الدور الافتراضي:\n" +
                 "1. admin (مدير النظام)\n" +
-                "2. legal (قانوني)\n" +
-                "3. archive-officer (ضابط الأرشيف)\n" +
-                "4. governance (الحوكمة)\n" +
-                "5. collection (التحصيل)\n" +
-                "6. securitization (التوريق)\n\n" +
+                "2. manager (مدراء الإدارات)\n" +
+                "3. employee (الموظفين)\n" +
+                "4. viewer (المستعرضين)\n\n" +
                 "أدخل رقم الخيار (الافتراضي: 3):"
             );
 
             const roleMap = {
                 '1': 'admin',
-                '2': 'legal',
-                '3': 'archive-officer',
-                '4': 'governance',
-                '5': 'collection',
-                '6': 'securitization'
+                '2': 'manager',
+                '3': 'employee',
+                '4': 'viewer'
             };
 
-            const selectedRole = roleMap[role] || 'archive-officer';
+            const selectedRole = roleMap[role] || 'employee';
 
             // بدء عملية الإضافة
-            await addUsersQuickly(emailList, selectedRole);
+            await addUsersQuicklyReal(emailList, selectedRole);
         }
 
-        // إضافة المستخدمين بسرعة
-        async function addUsersQuickly(emails, role) {
+        // Add users quickly - Real implementation
+        async function addUsersQuicklyReal(emails, role) {
             const usersTableBody = document.getElementById('usersTableBody');
 
             try {
@@ -1557,11 +1574,11 @@
                             </td>
                         </tr>
                     `;
-                    setTimeout(() => loadUsers(), 2000);
+                    setTimeout(() => loadUsersPage(), 2000);
                     return;
                 }
 
-                // إنشاء المستخدمين الجدد
+                // إنشاء المستخدمين الجدد (ملفات شخصية بدون authentication accounts)
                 const batch = db.batch();
                 
                 for (let i = 0; i < newEmails.length; i++) {
@@ -1580,8 +1597,9 @@
                         lastLogin: null,
                         syncedFromAuth: false,
                         manuallyAdded: true,
+                        quickAdded: true,
                         addedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        addedBy: unifiedAuth.currentUser?.uid || 'system',
+                        addedBy: getCurrentUserId(),
                         profilePicture: null
                     });
                 }
@@ -1599,7 +1617,7 @@
                         emails: newEmails
                     },
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    performedBy: unifiedAuth.currentUser?.uid || 'system'
+                    performedBy: getCurrentUserId()
                 });
 
                 // إظهار النتيجة
@@ -1612,6 +1630,7 @@
                                 <br>تم إضافة ${newEmails.length} مستخدم جديد
                                 <div class="mt-2">
                                     <small class="text-success">الدور: ${roleNames[role]}</small>
+                                    <br><small class="text-muted">ملاحظة: سيحتاج المستخدمون لإنشاء حسابات Firebase Authentication منفصلة</small>
                                 </div>
                             </div>
                         </td>
@@ -1619,7 +1638,7 @@
                 `;
 
                 setTimeout(() => {
-                    loadUsers();
+                    loadUsersPage();
                     alert(`تم إضافة ${newEmails.length} مستخدم بنجاح!`);
                 }, 2000);
 
@@ -1633,7 +1652,7 @@
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 <strong>خطأ في إضافة المستخدمين:</strong> ${error.message}
                                 <div class="mt-3">
-                                    <button class="btn btn-outline-danger btn-sm" onclick="loadUsers()">
+                                    <button class="btn btn-outline-danger btn-sm" onclick="loadUsersPage()">
                                         <i class="fas fa-undo me-1"></i> العودة للقائمة
                                     </button>
                                 </div>
@@ -1643,7 +1662,407 @@
                 `;
             }
         }
+
+        // Alternative load users function
+        function loadUsersAlternative() {
+            alert('وضع العرض التوضيحي - تحميل المستخدمين بالطريقة البديلة');
+            loadUsersPage();
+        }
+
+        // Save user function - Real implementation (create or update)
+        async function saveUser() {
+            const email = document.getElementById('userEmail').value.trim();
+            const displayName = document.getElementById('userDisplayName').value.trim();
+            const role = document.getElementById('userRole').value;
+            const department = document.getElementById('userDepartment')?.value || '';
+            const password = document.getElementById('userPassword').value;
+            const editUserId = (document.getElementById('editUserId')?.value || '').trim();
+            const originalRole = (document.getElementById('originalRole')?.value || '').trim();
+            const originalDepartment = (document.getElementById('originalDepartment')?.value || '').trim();
+
+            if (!email || !displayName || !role || !department) {
+                alert('يرجى ملء الحقول المطلوبة');
+                return;
+            }
+
+            // التحقق من صحة البريد الإلكتروني
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('يرجى إدخال بريد إلكتروني صحيح');
+                return;
+            }
+
+            // التحقق من قوة كلمة المرور (للإنشاء فقط)
+            if (!editUserId) {
+                if (password.length < 6) {
+                    alert('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+                    return;
+                }
+            }
+
+            // في وضع العرض التوضيحي
+            if (localStorage.getItem('demo_mode') === 'true' || !window.db || !window.auth) {
+                if (editUserId) {
+                    alert(`وضع العرض التوضيحي - سيتم تحديث المستخدم:\n\nالاسم: ${displayName}\nالبريد: ${email}\nالدور: ${roleNames[role] || role}\nالإدارة: ${department}`);
+                } else {
+                    alert(`وضع العرض التوضيحي - سيتم إضافة المستخدم:\n\nالاسم: ${displayName}\nالبريد: ${email}\nالدور: ${roleNames[role] || role}\nالإدارة: ${department}`);
+                }
+                
+                // إغلاق النافذة وإعادة تعيين النموذج
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                modal.hide();
+                document.getElementById('userForm').reset();
+                
+                return;
+            }
+
+            const saveButton = document.querySelector('#addUserModal .btn-primary');
+            const originalText = saveButton.innerHTML;
+            
+            try {
+                // تعطيل الزر وإظهار حالة التحميل
+                saveButton.disabled = true;
+                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
+                if (!editUserId) {
+                    // إنشاء مستخدم جديد
+                    // التحقق من وجود المستخدم مسبقاً
+                    const existingUsers = await db.collection('users').where('email', '==', email).get();
+                    if (!existingUsers.empty) {
+                        throw new Error('هذا البريد الإلكتروني مستخدم مسبقاً');
+                    }
+
+                    // إنشاء المستخدم في Firebase Authentication
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    const user = userCredential.user;
+
+                    // تحديث الملف الشخصي
+                    await user.updateProfile({
+                        displayName: displayName
+                    });
+
+                    // تحديد اسم الإدارة إن وُجد
+                    const departmentName = departmentsMap.get(department) || department;
+
+                    // حفظ بيانات المستخدم في Firestore
+                    await db.collection('users').doc(user.uid).set({
+                        uid: user.uid,
+                        email: email,
+                        displayName: displayName,
+                        role: role,
+                        department: department,
+                        departmentName: departmentName,
+                        isActive: true,
+                        emailVerified: user.emailVerified || false,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdBy: getCurrentUserId(),
+                        lastLogin: null,
+                        profilePicture: null,
+                        syncedFromAuth: true
+                    });
+
+                    // مزامنة الـ Custom Claims للدور والإدارة للمستخدم الجديد
+                    try {
+                        if (window.functions?.httpsCallable) {
+                            const callable = window.functions.httpsCallable('updateUserRole');
+                            await callable({ userId: user.uid, role, department });
+                        }
+                    } catch (e) {
+                        console.warn('تعذر ضبط صلاحيات المستخدم الجديد عبر الدالة السحابية:', e);
+                    }
+
+                    // تسجيل العملية في سجل التدقيق
+                    await db.collection('audit_logs').add({
+                        action: 'user_created',
+                        targetType: 'user',
+                        targetId: user.uid,
+                        details: {
+                            email: email,
+                            displayName: displayName,
+                            role: role,
+                            createdViaPanel: true
+                        },
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        performedBy: getCurrentUserId()
+                    });
+
+                    alert('تم إنشاء المستخدم بنجاح');
+                } else {
+                    // تحديث مستخدم موجود
+                    const docRef = db.collection('users').doc(editUserId);
+                    const snap = await docRef.get();
+                    if (!snap.exists) {
+                        throw new Error('المستخدم غير موجود');
+                    }
+                    const existing = snap.data();
+
+                    // تحديث البيانات في Firestore
+                    const departmentName = departmentsMap.get(department) || department;
+                    await docRef.update({
+                        email: email,
+                        displayName: displayName,
+                        role: role,
+                        department: department,
+                        departmentName: departmentName,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: getCurrentUserId()
+                    });
+
+                    // إذا تغير الدور أو الإدارة، حاول استدعاء الدالة السحابية لتحديث الـ Custom Claims
+                    if ((originalRole && originalRole !== role) || (originalDepartment && originalDepartment !== department)) {
+                        try {
+                            if (window.functions?.httpsCallable) {
+                                const callable = window.functions.httpsCallable('updateUserRole');
+                                const userId = existing.uid || editUserId;
+                                await callable({ userId, role, department });
+                            }
+                        } catch (e) {
+                            console.warn('تعذر تحديث دور المستخدم عبر الدالة السحابية:', e);
+                        }
+                    }
+
+                    // تسجيل العملية
+                    await db.collection('audit_logs').add({
+                        action: 'user_updated',
+                        targetType: 'user',
+                        targetId: editUserId,
+                        details: {
+                            oldRole: originalRole,
+                            newRole: role,
+                            oldDepartment: originalDepartment,
+                            newDepartment: department,
+                            email: email,
+                            displayName: displayName
+                        },
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        performedBy: getCurrentUserId()
+                    });
+
+                    alert('تم تحديث بيانات المستخدم بنجاح');
+                }
+
+                // إغلاق النافذة وإعادة تعيين النموذج
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                modal.hide();
+                document.getElementById('userForm').reset();
+                const passWrapper = document.getElementById('userPassword')?.closest('.mb-3');
+                if (passWrapper) passWrapper.classList.remove('d-none');
+                const emailInputEl = document.getElementById('userEmail');
+                if (emailInputEl) { emailInputEl.disabled = false; emailInputEl.title = ''; }
+                document.getElementById('editUserId').value = '';
+                document.getElementById('originalRole').value = '';
+                const origDeptEl = document.getElementById('originalDepartment');
+                if (origDeptEl) origDeptEl.value = '';
+
+                // إعادة تحميل قائمة المستخدمين
+                loadUsersPage();
+
+            } catch (error) {
+                console.error('خطأ في إنشاء المستخدم:', error);
+                
+                let errorMessage = editUserId ? 'حدث خطأ في تعديل المستخدم' : 'حدث خطأ في إنشاء المستخدم';
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'هذا البريد الإلكتروني مستخدم مسبقاً في Firebase Authentication';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'كلمة المرور ضعيفة جداً';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'البريد الإلكتروني غير صحيح';
+                } else if (error.code === 'permission-denied') {
+                    errorMessage = editUserId ? 'ليس لديك صلاحية لتعديل المستخدمين' : 'ليس لديك صلاحية لإنشاء مستخدمين جدد';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                alert(errorMessage);
+            } finally {
+                // إعادة تفعيل الزر
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalText;
+            }
+        }
+
+        // إعادة تهيئة حالة النافذة عند الإغلاق
+        document.addEventListener('DOMContentLoaded', () => {
+            const modalEl = document.getElementById('addUserModal');
+            if (!modalEl) return;
+            modalEl.addEventListener('hidden.bs.modal', () => {
+                try {
+                    const form = document.getElementById('userForm');
+                    form?.reset();
+                    const passWrapper = document.getElementById('userPassword')?.closest('.mb-3');
+                    if (passWrapper) passWrapper.classList.remove('d-none');
+                    const emailInput = document.getElementById('userEmail');
+                    if (emailInput) { emailInput.disabled = false; emailInput.title = ''; }
+                    const titleEl = modalEl.querySelector('.modal-title');
+                    if (titleEl) titleEl.innerHTML = '<i class="fas fa-user-plus me-2"></i> إضافة مستخدم جديد';
+                    const saveBtn = modalEl.querySelector('.btn-primary');
+                    if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i> حفظ المستخدم';
+                    const editIdInput = document.getElementById('editUserId');
+                    const originalRoleInput = document.getElementById('originalRole');
+                    const originalDeptInput = document.getElementById('originalDepartment');
+                    if (editIdInput) editIdInput.value = '';
+                    if (originalRoleInput) originalRoleInput.value = '';
+                    if (originalDeptInput) originalDeptInput.value = '';
+                    const deptSelect = document.getElementById('userDepartment');
+                    if (deptSelect) deptSelect.value = '';
+                } catch (e) {
+                    console.warn('لم يتمكن النظام من إعادة تهيئة نموذج المستخدم بعد إغلاق النافذة:', e);
+                }
+            });
+        });
+
+        // Missing users check function - Real implementation
+        async function checkMissingUsers() {
+            if (localStorage.getItem('demo_mode') === 'true' || !window.db) {
+                console.log('وضع العرض التوضيحي - تخطي فحص المستخدمين المفقودين');
+                return;
+            }
+
+            try {
+                const firestoreUsers = await db.collection('users').get();
+                const existingUserIds = new Set();
+                firestoreUsers.forEach(doc => {
+                    existingUserIds.add(doc.id);
+                });
+
+                const currentUser = unifiedAuth?.currentUser || authSystem?.currentUser;
+                if (currentUser && !existingUserIds.has(currentUser.uid)) {
+                    // إظهار تنبيه للمستخدمين المفقودين
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-3';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>تنبيه:</strong> المستخدم الحالي غير موجود في قاعدة البيانات.
+                        <button type="button" class="btn btn-sm btn-outline-warning ms-2" onclick="syncUsersFromAuth()">
+                            <i class="fas fa-sync-alt me-1"></i> مزامنة الآن
+                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    
+                    const pageHeader = document.querySelector('.page-header');
+                    if (pageHeader) {
+                        pageHeader.appendChild(alertDiv);
+                    }
+                }
+
+            } catch (error) {
+                console.error('خطأ في فحص المستخدمين المفقودين:', error);
+            }
+        }
+
+        // Setup search functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('searchUsers');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    filterUsers(searchTerm);
+                });
+            }
+        }
+
+        // Filter users based on search
+        function filterUsers(searchTerm) {
+            const userRows = document.querySelectorAll('.user-row');
+            
+            if (!searchTerm) {
+                // إظهار جميع الصفوف
+                userRows.forEach(row => {
+                    row.style.display = '';
+                });
+                setUsersVisibleCount(userRows.length);
+                return;
+            }
+
+            userRows.forEach(row => {
+                const userName = row.querySelector('strong').textContent.toLowerCase();
+                const userEmail = row.cells[1].textContent.toLowerCase();
+                const userRole = row.cells[2].textContent.toLowerCase();
+                
+                const matches = userName.includes(searchTerm) || 
+                               userEmail.includes(searchTerm) || 
+                               userRole.includes(searchTerm);
+                
+                row.style.display = matches ? '' : 'none';
+            });
+
+            // عداد النتائج
+            const visibleRows = Array.from(userRows).filter(row => row.style.display !== 'none');
+            setUsersVisibleCount(visibleRows.length);
+            console.log(`عرض ${visibleRows.length} من ${userRows.length} مستخدم`);
+        }
+
+        // Logout function
+        function logout() {
+            if (window.auth && typeof window.auth.signOut === 'function') {
+                window.auth.signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
+            } else {
+                localStorage.removeItem('demo_mode');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Setup logout button
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.onclick = logout;
+            }
+        });
+
+        // Show demo notice
+        function showUsersDemoNotice() {
+            setTimeout(() => {
+                const notice = document.createElement('div');
+                notice.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    max-width: 300px;
+                    font-family: 'Cairo', sans-serif;
+                `;
+                notice.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-info-circle"></i>
+                        <div>
+                            <strong>وضع العرض التوضيحي</strong>
+                            <br><small>بيانات المستخدمين تجريبية</small>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
+                    </div>
+                `;
+                document.body.appendChild(notice);
+                
+                setTimeout(() => {
+                    if (notice.parentElement) {
+                        notice.remove();
+                    }
+                }, 8000);
+            }, 500);
+        }
     </script>
+
+    <!-- Enhanced Sidebar System for Users Page -->
+    <script src="assets/js/users-sidebar-complete.js"></script>
+    
+    <!-- Original Scripts -->
+    <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/unified-auth.js"></script>
+    <!-- Unified UI Template System -->
+    
+    <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/activity-logger.js"></script>
+    <script src="assets/js/users-page.js"></script>
 </body>
 </html>
+
+
 

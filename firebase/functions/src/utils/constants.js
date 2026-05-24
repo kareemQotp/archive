@@ -1,1 +1,2 @@
-// Cloud Functions constants skeleton
+// Deprecated legacy utils constants stub.
+module.exports = {};

@@ -67,6 +67,35 @@ class ActivityLogger {
     logActivity(category, action, details = {}, priority = 'normal') {
         if (!this.isEnabled) return;
 
+        // Sanitize details to avoid Firestore undefined field errors
+        const sanitize = (value) => {
+            if (value === undefined) return undefined; // will be dropped by object builder
+            if (value === null) return null;
+            if (Array.isArray(value)) {
+                const arr = value.map(sanitize).filter(v => v !== undefined);
+                return arr;
+            }
+            if (typeof value === 'object') {
+                const result = {};
+                for (const [k, v] of Object.entries(value)) {
+                    const cleaned = sanitize(v);
+                    if (cleaned !== undefined) result[k] = cleaned;
+                }
+                return result;
+            }
+            return value;
+        };
+
+        const baseDetails = {
+            ...details,
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            timestamp: new Date().toISOString()
+        };
+        const safeDetails = sanitize(baseDetails);
+
         const activity = {
             id: this.generateId(),
             timestamp: Date.now(),
@@ -76,14 +105,7 @@ class ActivityLogger {
             userDisplayName: this.currentUser?.displayName || null,
             category,
             action,
-            details: {
-                ...details,
-                url: window.location.href,
-                userAgent: navigator.userAgent,
-                platform: navigator.platform,
-                language: navigator.language,
-                timestamp: new Date().toISOString()
-            },
+            details: safeDetails,
             priority,
             synced: false
         };
@@ -332,6 +354,12 @@ class ActivityLogger {
     async flushActivities() {
         if (this.pendingActivities.length === 0) return;
 
+        // Check if user is authenticated before attempting sync
+        if (!window.unifiedAuth || !window.unifiedAuth.currentUser) {
+            console.log('👤 No authenticated user, keeping activities in local storage');
+            return;
+        }
+
         const activitiesToSync = [...this.pendingActivities];
         this.pendingActivities = [];
 
@@ -379,12 +407,18 @@ class ActivityLogger {
             throw new Error('Firebase not available');
         }
 
+        // Double-check authentication before writing to Firestore
+        if (!window.unifiedAuth || !window.unifiedAuth.currentUser) {
+            throw new Error('User not authenticated - cannot sync activities');
+        }
+
         const batch = window.db.batch();
         
         activities.forEach(activity => {
             const docRef = window.db.collection('activity_logs').doc();
             batch.set(docRef, {
                 ...activity,
+                userId: window.unifiedAuth.currentUser.uid, // Ensure userId is set correctly
                 synced: true,
                 syncedAt: firebase.firestore.FieldValue.serverTimestamp()
             });

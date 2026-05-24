@@ -6,6 +6,9 @@
 const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
+const { buildResponse, checkRateLimit, verifyAppCheck } = require('../utils/helpers');
+const { serverTS } = require('../utils/serverTimestamp');
+const { COLLECTIONS, ROLES, ACTIVITY } = require('../config/constants');
 
 const db = admin.firestore();
 
@@ -17,18 +20,21 @@ exports.processDocumentUpload = onCall({
     enforceAppCheck: false
 }, async (request) => {
     try {
+    await verifyAppCheck(request, 'processDocumentUpload');
         if (!request.auth) {
             throw new HttpsError('unauthenticated', 'Authentication required');
         }
 
-        const {fileName, fileSize, fileType, category, department, description} = request.data;
+    const {fileName, fileSize, fileType, category, department, description} = request.data;
+    await checkRateLimit(request.auth.uid, 'processDocumentUpload', 100);
 
         if (!fileName || !fileSize || !fileType) {
             throw new HttpsError('invalid-argument', 'Missing required file information');
         }
 
         // Generate unique file number
-        const fileNumber = await generateUniqueFileNumber();
+    await checkRateLimit(request.auth.uid, 'generateFileNumber', 80);
+    const fileNumber = await generateUniqueFileNumber();
 
         // Create document record
         const documentData = {
@@ -40,9 +46,9 @@ exports.processDocumentUpload = onCall({
             department: department || '',
             description: description || '',
             status: 'active',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: serverTS(),
             createdBy: request.auth.uid,
-            lastModified: admin.firestore.FieldValue.serverTimestamp(),
+            lastModified: serverTS(),
             downloadCount: 0,
             tags: [],
             metadata: {
@@ -51,18 +57,15 @@ exports.processDocumentUpload = onCall({
             }
         };
 
-        const docRef = await db.collection('documents').add(documentData);
+    const docRef = await db.collection(COLLECTIONS.DOCUMENTS).add(documentData);
 
         logger.info(`Document processed: ${docRef.id} with file number: ${fileNumber}`);
 
-        return {
-            success: true,
-            documentId: docRef.id,
-            fileNumber
-        };
+    return buildResponse(true, { documentId: docRef.id, fileNumber });
 
     } catch (error) {
         logger.error('Error processing document upload:', error);
+        if (error instanceof HttpsError) throw error;
         throw new HttpsError('internal', error.message);
     }
 });
@@ -76,7 +79,7 @@ async function generateUniqueFileNumber() {
     const month = String(new Date().getMonth() + 1).padStart(2, '0');
     
     // Get current counter for this month
-    const counterRef = db.collection('counters').doc(`files-${year}-${month}`);
+    const counterRef = db.collection(COLLECTIONS.COUNTERS).doc(`files-${year}-${month}`);
     
     return db.runTransaction(async (transaction) => {
         const counterDoc = await transaction.get(counterRef);
@@ -90,7 +93,7 @@ async function generateUniqueFileNumber() {
             count: currentCount,
             year,
             month,
-            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+            lastUpdated: serverTS()
         }, {merge: true});
         
         // Format: YYYY-MM-NNNN (e.g., 2025-07-0001)
@@ -99,19 +102,23 @@ async function generateUniqueFileNumber() {
     });
 }
 
+// تدريجي: إيقاف enforceAppCheck مؤقتاً والاعتماد على verifyAppCheck (وضع تحذيري)
+// ملاحظة: إعادة التفعيل إلى true بعد إكمال دمج App Check في الواجهات الأمامية
 exports.generateFileNumber = onCall({
     enforceAppCheck: false
 }, async (request) => {
     try {
+    await verifyAppCheck(request, 'generateFileNumber');
         if (!request.auth) {
             throw new HttpsError('unauthenticated', 'Authentication required');
         }
 
         const fileNumber = await generateUniqueFileNumber();
-        return {fileNumber};
+    return buildResponse(true, { fileNumber });
 
     } catch (error) {
         logger.error('Error generating file number:', error);
+        if (error instanceof HttpsError) throw error;
         throw new HttpsError('internal', error.message);
     }
 });
@@ -124,18 +131,20 @@ exports.updateDocumentMetadata = onCall({
     enforceAppCheck: false
 }, async (request) => {
     try {
+    await verifyAppCheck(request, 'updateDocumentMetadata');
         if (!request.auth) {
             throw new HttpsError('unauthenticated', 'Authentication required');
         }
 
-        const {documentId, updates} = request.data;
+    const {documentId, updates} = request.data;
+    await checkRateLimit(request.auth.uid, 'updateDocumentMetadata', 120);
 
         if (!documentId || !updates) {
             throw new HttpsError('invalid-argument', 'Document ID and updates required');
         }
 
         // Check if user has permission to update
-        const docRef = db.collection('documents').doc(documentId);
+    const docRef = db.collection(COLLECTIONS.DOCUMENTS).doc(documentId);
         const doc = await docRef.get();
 
         if (!doc.exists) {
@@ -143,27 +152,28 @@ exports.updateDocumentMetadata = onCall({
         }
 
         const docData = doc.data();
-        const userDoc = await db.collection('users').doc(request.auth.uid).get();
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
         const userRole = userDoc.data()?.role;
 
         // Check permissions
-        if (docData.createdBy !== request.auth.uid && userRole !== 'admin' && userRole !== 'archive_officer') {
+    if (docData.createdBy !== request.auth.uid && userRole !== ROLES.ADMIN && userRole !== ROLES.ARCHIVE_OFFICER) {
             throw new HttpsError('permission-denied', 'Insufficient permissions');
         }
 
         // Update document
         await docRef.update({
             ...updates,
-            lastModified: admin.firestore.FieldValue.serverTimestamp(),
+            lastModified: serverTS(),
             lastModifiedBy: request.auth.uid
         });
 
         logger.info(`Document updated: ${documentId}`);
 
-        return {success: true};
+    return buildResponse(true);
 
     } catch (error) {
         logger.error('Error updating document:', error);
+        if (error instanceof HttpsError) throw error;
         throw new HttpsError('internal', error.message);
     }
 });
@@ -176,17 +186,19 @@ exports.deleteDocument = onCall({
     enforceAppCheck: false
 }, async (request) => {
     try {
+    await verifyAppCheck(request, 'deleteDocument');
         if (!request.auth) {
             throw new HttpsError('unauthenticated', 'Authentication required');
         }
 
-        const {documentId} = request.data;
+    const {documentId} = request.data;
+    await checkRateLimit(request.auth.uid, 'deleteDocument', 60);
 
         if (!documentId) {
             throw new HttpsError('invalid-argument', 'Document ID required');
         }
 
-        const docRef = db.collection('documents').doc(documentId);
+    const docRef = db.collection(COLLECTIONS.DOCUMENTS).doc(documentId);
         const doc = await docRef.get();
 
         if (!doc.exists) {
@@ -194,27 +206,28 @@ exports.deleteDocument = onCall({
         }
 
         const docData = doc.data();
-        const userDoc = await db.collection('users').doc(request.auth.uid).get();
+    const userDoc = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
         const userRole = userDoc.data()?.role;
 
         // Check permissions
-        if (docData.createdBy !== request.auth.uid && userRole !== 'admin') {
+    if (docData.createdBy !== request.auth.uid && userRole !== ROLES.ADMIN) {
             throw new HttpsError('permission-denied', 'Insufficient permissions');
         }
 
         // Soft delete - mark as deleted
         await docRef.update({
             status: 'deleted',
-            deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+            deletedAt: serverTS(),
             deletedBy: request.auth.uid
         });
 
         logger.info(`Document deleted: ${documentId}`);
 
-        return {success: true};
+    return buildResponse(true);
 
     } catch (error) {
         logger.error('Error deleting document:', error);
+        if (error instanceof HttpsError) throw error;
         throw new HttpsError('internal', error.message);
     }
 });
@@ -223,15 +236,18 @@ exports.deleteDocument = onCall({
  * Create file movement
  * إنشاء حركة ملف
  */
+// تدريجي: تفعيل enforceAppCheck هنا كجزء من الانتقال إلى الوضع الصارم
 exports.createFileMovement = onCall({
-    enforceAppCheck: false
+    enforceAppCheck: true
 }, async (request) => {
     try {
+    await verifyAppCheck(request, 'createFileMovement');
         if (!request.auth) {
             throw new HttpsError('unauthenticated', 'Authentication required');
         }
 
-        const {fileNumber, fileName, fromDepartment, toDepartment, action, priority, notes} = request.data;
+    const {fileNumber, fileName, fromDepartment, toDepartment, action, priority, notes} = request.data;
+    await checkRateLimit(request.auth.uid, 'createFileMovement', 150);
 
         if (!fileNumber || !fromDepartment || !toDepartment || !action) {
             throw new HttpsError('invalid-argument', 'Missing required fields');
@@ -246,22 +262,20 @@ exports.createFileMovement = onCall({
             status: action === 'transfer' ? 'in_transit' : action,
             priority: priority || 'normal',
             notes: notes || '',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: serverTS(),
             createdBy: request.auth.uid,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
+            timestamp: serverTS()
         };
 
-        const movementRef = await db.collection('file_movements').add(movementData);
+    const movementRef = await db.collection(COLLECTIONS.FILE_MOVEMENTS).add(movementData);
 
         logger.info(`File movement created: ${movementRef.id} for file: ${fileNumber}`);
 
-        return {
-            success: true,
-            movementId: movementRef.id
-        };
+    return buildResponse(true, { movementId: movementRef.id });
 
     } catch (error) {
         logger.error('Error creating file movement:', error);
+        if (error instanceof HttpsError) throw error;
         throw new HttpsError('internal', error.message);
     }
 });
@@ -274,17 +288,19 @@ exports.getFileMovementHistory = onCall({
     enforceAppCheck: false
 }, async (request) => {
     try {
+    await verifyAppCheck(request, 'getFileMovementHistory');
         if (!request.auth) {
             throw new HttpsError('unauthenticated', 'Authentication required');
         }
 
-        const {fileNumber} = request.data;
+    const {fileNumber} = request.data;
+    await checkRateLimit(request.auth.uid, 'getFileMovementHistory', 200);
 
         if (!fileNumber) {
             throw new HttpsError('invalid-argument', 'File number required');
         }
 
-        const movementsQuery = await db.collection('file_movements')
+    const movementsQuery = await db.collection(COLLECTIONS.FILE_MOVEMENTS)
             .where('fileNumber', '==', fileNumber)
             .orderBy('timestamp', 'desc')
             .get();
@@ -295,13 +311,11 @@ exports.getFileMovementHistory = onCall({
             timestamp: doc.data().timestamp?.toDate()?.toISOString()
         }));
 
-        return {
-            success: true,
-            movements
-        };
+    return buildResponse(true, { movements });
 
     } catch (error) {
         logger.error('Error getting file movement history:', error);
+        if (error instanceof HttpsError) throw error;
         throw new HttpsError('internal', error.message);
     }
 });
@@ -318,8 +332,8 @@ exports.onDocumentCreate = async (event) => {
         logger.info(`Document created: ${documentId}`);
 
         // Log activity
-        await db.collection('activity_logs').add({
-            category: 'file_management',
+        await db.collection(COLLECTIONS.ACTIVITY_LOGS).add({
+            category: ACTIVITY.CATEGORY.FILES,
             action: 'upload',
             userId: documentData.createdBy,
             details: {
@@ -331,13 +345,13 @@ exports.onDocumentCreate = async (event) => {
                 category: documentData.category,
                 department: documentData.department
             },
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: serverTS(),
             priority: 'normal'
         });
 
         // Create notification for department users
         if (documentData.department) {
-            const departmentUsersQuery = await db.collection('users')
+            const departmentUsersQuery = await db.collection(COLLECTIONS.USERS)
                 .where('department', '==', documentData.department)
                 .where('isActive', '==', true)
                 .get();
@@ -352,13 +366,13 @@ exports.onDocumentCreate = async (event) => {
                     fileNumber: documentData.fileNumber
                 },
                 read: false,
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
+                createdAt: serverTS()
             }));
 
             // Batch write notifications
             const batch = db.batch();
             notifications.forEach(notification => {
-                const notificationRef = db.collection('notifications').doc();
+                const notificationRef = db.collection(COLLECTIONS.NOTIFICATIONS).doc();
                 batch.set(notificationRef, notification);
             });
 
@@ -383,8 +397,8 @@ exports.onDocumentUpdate = async (event) => {
         logger.info(`Document updated: ${documentId}`);
 
         // Log activity
-        await db.collection('activity_logs').add({
-            category: 'file_management',
+        await db.collection(COLLECTIONS.ACTIVITY_LOGS).add({
+            category: ACTIVITY.CATEGORY.FILES,
             action: 'edit',
             userId: afterData.lastModifiedBy,
             details: {
@@ -393,7 +407,7 @@ exports.onDocumentUpdate = async (event) => {
                 fileNumber: afterData.fileNumber,
                 changes: getChanges(beforeData, afterData)
             },
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: serverTS(),
             priority: 'normal'
         });
 
@@ -414,8 +428,8 @@ exports.onDocumentDelete = async (event) => {
         logger.info(`Document deleted: ${documentId}`);
 
         // Log activity
-        await db.collection('activity_logs').add({
-            category: 'file_management',
+        await db.collection(COLLECTIONS.ACTIVITY_LOGS).add({
+            category: ACTIVITY.CATEGORY.FILES,
             action: 'delete',
             userId: documentData.deletedBy || documentData.createdBy,
             details: {
@@ -423,7 +437,7 @@ exports.onDocumentDelete = async (event) => {
                 fileName: documentData.fileName,
                 fileNumber: documentData.fileNumber
             },
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: serverTS(),
             priority: 'high'
         });
 
@@ -444,8 +458,8 @@ exports.onFileMovementCreate = async (event) => {
         logger.info(`File movement created: ${movementId}`);
 
         // Log activity
-        await db.collection('activity_logs').add({
-            category: 'file_management',
+        await db.collection(COLLECTIONS.ACTIVITY_LOGS).add({
+            category: ACTIVITY.CATEGORY.FILES,
             action: 'move',
             userId: movementData.createdBy,
             details: {
@@ -457,12 +471,12 @@ exports.onFileMovementCreate = async (event) => {
                 action: movementData.action,
                 priority: movementData.priority
             },
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: serverTS(),
             priority: movementData.priority === 'urgent' ? 'high' : 'normal'
         });
 
         // Create notification for receiving department
-        const receivingUsersQuery = await db.collection('users')
+    const receivingUsersQuery = await db.collection(COLLECTIONS.USERS)
             .where('department', '==', movementData.toDepartment)
             .where('isActive', '==', true)
             .get();
@@ -478,13 +492,13 @@ exports.onFileMovementCreate = async (event) => {
                 fromDepartment: movementData.fromDepartment
             },
             read: false,
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
+            createdAt: serverTS()
         }));
 
         // Batch write notifications
         const batch = db.batch();
         notifications.forEach(notification => {
-            const notificationRef = db.collection('notifications').doc();
+            const notificationRef = db.collection(COLLECTIONS.NOTIFICATIONS).doc();
             batch.set(notificationRef, notification);
         });
 
@@ -504,12 +518,12 @@ exports.onActivityLogCreate = async (event) => {
         const logData = event.data.data();
 
         // Check for security events
-        if (logData.category === 'security' || logData.priority === 'critical') {
+    if (logData.category === ACTIVITY.CATEGORY.SECURITY || logData.priority === 'critical') {
             logger.warn(`Security event logged:`, logData);
 
             // Create notification for admins
-            const adminUsersQuery = await db.collection('users')
-                .where('role', '==', 'admin')
+            const adminUsersQuery = await db.collection(COLLECTIONS.USERS)
+                .where('role', '==', ROLES.ADMIN)
                 .where('isActive', '==', true)
                 .get();
 
@@ -525,13 +539,13 @@ exports.onActivityLogCreate = async (event) => {
                     priority: logData.priority
                 },
                 read: false,
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
+                createdAt: serverTS()
             }));
 
             // Batch write notifications
             const batch = db.batch();
             notifications.forEach(notification => {
-                const notificationRef = db.collection('notifications').doc();
+                const notificationRef = db.collection(COLLECTIONS.NOTIFICATIONS).doc();
                 batch.set(notificationRef, notification);
             });
 

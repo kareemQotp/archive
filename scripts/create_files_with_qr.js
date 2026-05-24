@@ -1,6 +1,9 @@
 // Script to create sample files with QR codes in Firestore
 // Run this in the browser console after opening any page with Firebase initialized
 
+// NOTE: When running in a browser with the Firebase Web SDK, serverTimestamp() is fine.
+// If adapting to an Admin script, you can replace direct serverTimestamp calls with a safe helper.
+
 const sampleFiles = [
     {
         fileNumber: "FILE001",

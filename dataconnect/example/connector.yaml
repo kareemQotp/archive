@@ -1,0 +1,13 @@
+connectorId: archive-connector
+generate:
+  javascriptSdk:
+    - outputDir: ..\..\public\assets\js\generated\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\public\assets\js\generated
+      react: false
+      angular: false
+    - outputDir: ..\..\public\assets\js\generated\esm\src\dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ..\..\public\assets\js\generated\esm
+      react: false
+      angular: false

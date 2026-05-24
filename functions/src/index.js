@@ -5,8 +5,9 @@
 
 const {onCall, onRequest, HttpsError} = require('firebase-functions/v2/https');
 const {onDocumentCreated, onDocumentUpdated, onDocumentDeleted} = require('firebase-functions/v2/firestore');
-const {onUserCreated, onUserDeleted} = require('firebase-functions/v2/identity');
-const {logger} = require('firebase-functions');
+// NOTE: Reverting to legacy v1 auth user triggers because current firebase-functions version (^5.0.0) does not expose v2 auth trigger helpers (onUserCreated/onUserDeleted) in this build.
+const functions = require('firebase-functions');
+const {logger} = functions;
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin
@@ -25,14 +26,16 @@ exports.createUserWithRole = authFunctions.createUserWithRole;
 exports.updateUserRole = authFunctions.updateUserRole;
 exports.deleteUserAccount = authFunctions.deleteUserAccount;
 exports.validateInvitation = authFunctions.validateInvitation;
+exports.completeRegistration = authFunctions.completeRegistration;
+exports.listAuthUsersSummary = authFunctions.listAuthUsersSummary;
 
-// User lifecycle triggers
-exports.onUserCreate = onUserCreated((event) => {
-    return authFunctions.onUserCreate(event);
+// User lifecycle triggers (legacy v1 style)
+exports.onUserCreate = functions.auth.user().onCreate((user) => {
+    return authFunctions.onUserCreate({ data: user });
 });
 
-exports.onUserDelete = onUserDeleted((event) => {
-    return authFunctions.onUserDelete(event);
+exports.onUserDelete = functions.auth.user().onDelete((user) => {
+    return authFunctions.onUserDelete({ data: user });
 });
 
 // Document Management Functions
@@ -54,8 +57,9 @@ exports.onDocumentDelete = onDocumentDeleted('documents/{documentId}', (event) =
 });
 
 // File movement triggers
-exports.onMovementCreate = onDocumentCreated('file_movements/{movementId}', (event) => {
-    return firestoreFunctions.onMovementCreate(event);
+// File movement triggers (renamed to onFileMovementCreate for consistency)
+exports.onFileMovementCreate = onDocumentCreated('file_movements/{movementId}', (event) => {
+    return firestoreFunctions.onFileMovementCreate(event);
 });
 
 // Storage Functions
@@ -65,11 +69,18 @@ exports.scanDocument = storageFunctions.scanDocument;
 exports.deleteFile = storageFunctions.deleteFile;
 exports.onFileDeleted = storageFunctions.onFileDeleted;
 exports.getDownloadUrl = storageFunctions.getDownloadUrl;
+exports.getStorageFilesCount = storageFunctions.getStorageFilesCount;
+exports.cleanupThumbnails = storageFunctions.cleanupThumbnails;
 exports.getFileInfo = storageFunctions.getFileInfo;
 
 // Utility Functions
 exports.sendNotification = utilsFunctions.sendNotification;
 exports.markNotificationRead = utilsFunctions.markNotificationRead;
+exports.markAllNotificationsRead = utilsFunctions.markAllNotificationsRead;
+exports.getUserNotifications = utilsFunctions.getUserNotifications;
+exports.refreshUserClaims = utilsFunctions.refreshUserClaims;
+exports.receiveFileMovement = utilsFunctions.receiveFileMovement;
+exports.restoreDeletedDocument = utilsFunctions.restoreDeletedDocument;
 exports.generateSystemReport = utilsFunctions.generateSystemReport;
 exports.backupDatabase = utilsFunctions.backupDatabase;
 exports.updateFcmToken = utilsFunctions.updateFcmToken;

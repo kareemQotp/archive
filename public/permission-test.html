@@ -11,9 +11,12 @@
         .permission-granted { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
         .permission-denied { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <div class="container">
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <div class="container" id="mainContent" role="main" tabindex="-1">
         <h1>اختبار نظام الصلاحيات</h1>
         <div id="testResults"></div>
         <button onclick="testUploadAccess()" class="btn btn-primary mt-3">اختبار الوصول لصفحة الرفع</button>

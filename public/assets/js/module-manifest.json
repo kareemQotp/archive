@@ -1,0 +1,36 @@
+{
+  "version": "0.1",
+  "generated": "2025-08-21T00:00:00Z",
+  "stages": ["auth", "permissions", "ui", "notifications", "feature", "deferred"],
+  "modules": [
+    {"name": "ui-permission-controller", "path": "assets/js/ui-permission-controller.js", "stage": "permissions"},
+    {"name": "activity-logger", "path": "assets/js/activity-logger.js", "stage": "ui"},
+  {"name": "roles", "path": "assets/js/roles.js", "stage": "ui"},
+  {"name": "navigation-setup", "path": "assets/js/navigation-setup.js", "stage": "ui", "after": ["roles"]},
+    {"name": "notifications", "path": "assets/js/notifications.js", "stage": "notifications", "lazy": true},
+    {"name": "notification-service", "path": "assets/js/notification-service.js", "stage": "notifications", "after": ["notifications"], "lazy": true},
+    {"name": "notification-badge", "path": "assets/js/notification-badge.js", "stage": "notifications", "after": ["notifications"], "lazy": true},
+    {"name": "smart-notifications", "path": "assets/js/smart-notifications.js", "stage": "notifications", "after": ["notifications"], "lazy": true},
+    {"name": "advanced-alerts", "path": "assets/js/advanced-alerts.js", "stage": "notifications", "after": ["notifications"], "lazy": true},
+    {"name": "notification-integration", "path": "assets/js/notification-integration.js", "stage": "notifications", "after": ["notification-service"], "lazy": true},
+    {"name": "notify-adapter", "path": "assets/js/notify-adapter.js", "stage": "notifications", "after": ["notification-service", "smart-notifications", "event-bus"], "lazy": true},
+    {"name": "ux-core", "path": "assets/js/ux-core.js", "stage": "ui", "after": ["navigation-setup"]},
+    {"name": "theme-switcher", "path": "assets/js/theme-switcher.js", "stage": "ui", "after": ["ux-core"]},
+    {"name": "format-utils", "path": "assets/js/format-utils.js", "stage": "feature"},
+    {"name": "export-utils", "path": "assets/js/export-utils.js", "stage": "feature", "after": ["format-utils"]},
+    {"name": "global-search", "path": "assets/js/global-search.js", "stage": "feature", "after": ["activity-logs-page", "movement-reports-page"]},
+    {"name": "department-router", "path": "assets/js/department-router.js", "stage": "feature"},
+    {"name": "barcode-scanner", "path": "assets/js/barcode-scanner.js", "stage": "feature", "lazy": true},
+    {"name": "file-management-dashboard", "path": "assets/js/file-management-dashboard.js", "stage": "feature", "lazy": true},
+    {"name": "dataconnect-sdk", "path": "assets/js/dataconnect-sdk.js", "stage": "deferred"},
+    {"name": "dataconnect-integration", "path": "assets/js/dataconnect-integration.js", "stage": "deferred", "after": ["dataconnect-sdk"]},
+    {"name": "performance-dashboard", "path": "assets/js/performance-dashboard.js", "stage": "feature"},
+    {"name": "upload-page", "path": "assets/js/upload-page.js", "stage": "feature"},
+    {"name": "file-tracking-page", "path": "assets/js/file-tracking-page.js", "stage": "feature"},
+    {"name": "activity-logs-page", "path": "assets/js/activity-logs-page.js", "stage": "feature"},
+    {"name": "movement-reports-page", "path": "assets/js/movement-reports-page.js", "stage": "feature"}
+    ,{"name": "classification-page", "path": "assets/js/classification-page.js", "stage": "feature"}
+    ,{"name": "archive-reports-page", "path": "assets/js/archive-reports-page.js", "stage": "feature"}
+    ,{"name": "storage-management-page", "path": "assets/js/storage-management-page.js", "stage": "feature"}
+  ]
+}

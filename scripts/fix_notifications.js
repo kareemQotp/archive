@@ -5,6 +5,7 @@
 
 const firebase = require('firebase-admin');
 const serviceAccount = require('../archive-tech-firebase-adminsdk.json');
+const { serverTS } = require('./utils/serverTimestamp');
 
 // تهيئة Firebase Admin إذا لم يكن مُهيأً
 if (!firebase.apps.length) {
@@ -55,7 +56,7 @@ async function createNotificationsCollection() {
                 type: 'system',
                 userId: 'system',
                 isRead: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: serverTS(firebase),
                 priority: 'normal'
             });
             
@@ -155,8 +156,8 @@ async function createSampleNotifications() {
                     userId: userId,
                     userEmail: userData.email,
                     isRead: i === 0 ? true : false, // أول إشعار مقروء
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    readAt: i === 0 ? firebase.firestore.FieldValue.serverTimestamp() : null,
+                    createdAt: serverTS(firebase),
+                    readAt: i === 0 ? serverTS(firebase) : null,
                     id: notificationRef.id
                 });
                 
@@ -221,8 +222,8 @@ async function createNotificationSettings() {
                 batch.set(settingsRef, {
                     ...defaultSettings,
                     userId: userId,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    createdAt: serverTS(firebase),
+                    updatedAt: serverTS(firebase)
                 });
                 settingsCount++;
             }

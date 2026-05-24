@@ -1,0 +1,86 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    /************************************************************
+     * قواعد التخزين - Archive System
+     *
+     * المسارات المستخدمة:
+     * - documents/{fileName}               : ملفات الوثائق المرفوعة
+     * - documents/{userId}/{fileName}      : (استخدام في upload.html) لتنظيم الملفات حسب المستخدم
+     * - users/{userId}/avatar.jpg          : صورة ملف المستخدم
+     *
+     * المبدأ العام:
+     * - القراءة/التحميل (get/download): للمستخدم المصادق فقط، مع تقييد الملكية إن لزم
+     * - الرفع (create/update): للمستخدم المصادق مع تحقق نوع الملف والحجم
+     * - الحذف: يسمح للمالك أو لإداري فقط
+     ************************************************************/
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // حجم أقصى 10MB للوثائق، 2MB للصور الشخصية
+    function validDocSize() { return request.resource.size < 10 * 1024 * 1024; }
+    function validAvatarSize() { return request.resource.size < 2 * 1024 * 1024; }
+
+    // أنواع الملفات المسموحة للوثائق
+    function validDocContentType() {
+      return request.resource.contentType in [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'image/jpeg',
+        'image/png',
+        'image/gif'
+      ];
+    }
+
+    // أنواع الصور المسموحة للأفاتار
+    function validAvatarContentType() {
+      return request.resource.contentType in ['image/jpeg','image/png','image/gif'];
+    }
+
+    // منع تنفيذ ملفات (مثل html/js) من المسارات الحساسة
+    function notExecutable() {
+      return !(request.resource.contentType in ['text/html','application/javascript','text/javascript']);
+    }
+
+    // مستند المستخدم في قاعدة البيانات (للتحقق من الدور مستقبلاً إن لزم)
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() { return isAuthenticated() && userDoc().data.role == 'admin'; }
+
+    // مسار الوثائق العامة documents/{fileName}
+    match /documents/{fileName} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && validDocSize() && validDocContentType() && notExecutable();
+      allow update: if false; // التشجيع على عدم الاستبدال، استخدم إصدار جديد
+      allow delete: if isAdmin();
+    }
+
+    // تنظيم حسب المستخدم documents/{userId}/{fileName}
+    match /documents/{userId}/{fileName} {
+      allow read: if isAuthenticated(); // يمكن تقييده إلى المالك لاحقاً إذا لزم
+      allow create: if isAuthenticated() && request.auth.uid == userId && validDocSize() && validDocContentType() && notExecutable();
+      allow update: if false; // عدم السماح بالاستبدال
+      allow delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // صورة المستخدم users/{userId}/avatar.jpg
+    match /users/{userId}/avatar.jpg {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId && validAvatarSize() && validAvatarContentType() && notExecutable();
+      allow update: if isAuthenticated() && request.auth.uid == userId && validAvatarSize() && validAvatarContentType() && notExecutable();
+      allow delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // منع الوصول لأي مسارات أخرى بشكل افتراضي
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

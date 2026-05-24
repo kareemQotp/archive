@@ -1,6 +1,37 @@
 // Firebase Configuration and Initialization
 console.log('🔄 بدء تهيئة Firebase...');
 
+// 👇 تعطيل وضع الديمو عالمياً (منع القراءة/الكتابة لأي أعلام ديمو)
+(function hardDisableDemoMode() {
+    try {
+        const DEMO_KEYS = ['archiveDemoMode', 'demo_mode'];
+        // إزالة أي أعلام موجودة مسبقاً
+        DEMO_KEYS.forEach(k => {
+            try { localStorage.removeItem(k); } catch (_) {}
+        });
+        // منع ضبط هذه الأعلام لاحقاً
+        const _setItem = localStorage.setItem.bind(localStorage);
+        const _getItem = localStorage.getItem.bind(localStorage);
+        localStorage.setItem = function(key, value) {
+            if (DEMO_KEYS.includes(key)) {
+                console.warn('🚫 Demo mode is globally disabled; ignoring setItem for', key);
+                return; // تجاهل محاولات التفعيل
+            }
+            return _setItem(key, value);
+        };
+        localStorage.getItem = function(key) {
+            if (DEMO_KEYS.includes(key)) {
+                return null; // تصيير الديمو دائماً غير مفعل
+            }
+            return _getItem(key);
+        };
+        // علم عمومي لمنع أي صفحة من تفعيل الديمو
+        try { window.__ALLOW_DEMO_MODE__ = false; } catch (_) {}
+    } catch (e) {
+        console.warn('⚠️ فشل تعطيل وضع الديمو عالمياً:', e);
+    }
+})();
+
 // استخدام الإعدادات من firebase-config.js إذا كانت متوفرة
 let config;
 if (typeof firebaseConfig !== 'undefined') {
@@ -20,7 +51,7 @@ if (typeof firebaseConfig !== 'undefined') {
     console.log('⚠️ استخدام الإعدادات الاحتياطية');
 }
 
-let auth, db, functions, storage, messaging;
+let auth, db, functions, storage, messaging, appCheck;
 
 // دالة التهيئة الرئيسية
 async function initializeFirebase() {
@@ -49,9 +80,66 @@ async function initializeFirebase() {
             console.log('ℹ️ Firebase App مهيئ مسبقاً');
         }
 
+        // Initialize App Check (compat) if available
+        try {
+            if (false && firebase.appCheck) { // Temporarily disabled
+                // Enable debug token for development/testing
+                const debugSetting = localStorage.getItem('APP_CHECK_DEBUG') || 'true';
+                if (debugSetting === 'true' || (typeof debugSetting === 'string' && debugSetting.length > 20)) {
+                    // true => random, or provide fixed token string
+                    window.FIREBASE_APPCHECK_DEBUG_TOKEN = debugSetting === 'true' ? true : debugSetting;
+                    console.warn('⚠️ App Check Debug Token enabled for development');
+                }
+
+                const siteKey = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.appCheckSiteKey) || 
+                               (typeof window.APP_CHECK_SITE_KEY !== 'undefined' ? window.APP_CHECK_SITE_KEY : null);
+                
+                if (siteKey === 'debug') {
+                    // Development mode with debug token
+                    window.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+                    console.warn('🔧 App Check Debug Mode - للتطوير فقط');
+                    
+                    try {
+                        // compat API follows firebase.appCheck().activate
+                        appCheck = firebase.appCheck();
+                        appCheck.activate(siteKey, true);
+                        window.appCheck = appCheck;
+                        console.log('✅ تم تفعيل App Check (وضع التطوير)');
+                    } catch (e) {
+                        console.warn('⚠️ فشل تفعيل App Check (compat):', e);
+                    }
+                } else if (siteKey) {
+                    try {
+                        // compat API follows firebase.appCheck().activate
+                        appCheck = firebase.appCheck();
+                        appCheck.activate(siteKey, true);
+                        window.appCheck = appCheck;
+                        console.log('✅ تم تفعيل App Check (reCAPTCHA v3)');
+                    } catch (e) {
+                        console.warn('⚠️ فشل تفعيل App Check (compat):', e);
+                    }
+                } else {
+                    console.warn('⚠️ لم يتم تعيين مفتاح موقع reCAPTCHA v3 لـ App Check');
+                }
+            } else {
+                console.warn('⚠️ Firebase App Check غير متاح في SDK المحمل');
+            }
+        } catch (e) {
+            console.warn('⚠️ تخطي تهيئة App Check:', e);
+        }
+
         // Initialize Auth
         console.log('🔧 بدء تهيئة Firebase Auth...');
         auth = firebase.auth();
+        
+        // Set auth immediately to window
+        window.auth = auth;
+        console.log('✅ تم تعيين window.auth فوراً');
+        
+        // إرسال حدث أولي للإشارة إلى تهيئة Auth
+        window.dispatchEvent(new CustomEvent('firebaseAuthReady', {
+            detail: { auth: window.auth }
+        }));
         
         // Set auth persistence to LOCAL to maintain session across browser restarts
         try {
@@ -61,8 +149,7 @@ async function initializeFirebase() {
             console.warn('⚠️ فشل في تعيين استمرارية الجلسة:', error);
         }
         
-        window.auth = auth;
-        console.log('✅ تم تهيئة Firebase Auth وتعيين window.auth');
+        console.log('✅ تم تهيئة Firebase Auth بنجاح');
 
         // Initialize Firestore
         db = firebase.firestore();
@@ -85,7 +172,11 @@ async function initializeFirebase() {
         // Initialize Firebase Functions only if available
         try {
             if (firebase.functions) {
-                functions = firebase.functions();
+                // Use explicit region to match deployed Cloud Functions and prevent CORS/region mismatches
+                const FUNCTIONS_REGION = 'us-central1';
+                // compat API: pass region via app.functions('region')
+                const app = firebase.app();
+                functions = app.functions(FUNCTIONS_REGION);
                 window.functions = functions;
                 console.log('✅ تم تهيئة Firebase Functions');
             } else {
@@ -119,6 +210,7 @@ async function initializeFirebase() {
                     functions: window.functions, 
                     storage: window.storage, 
                     messaging: window.messaging,
+                    appCheck: window.appCheck,
                     initialized: !!(firebase && firebase.apps && firebase.apps.length)
                 }
             }));
@@ -143,7 +235,7 @@ initializeFirebase();
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         console.log('📄 DOM ready - فحص إذا كانت التهيئة مطلوبة...');
-        if (!firebase.apps.length) {
+        if (!firebase.apps.length || !window.auth) {
             console.log('🔄 إعادة محاولة التهيئة...');
             initializeFirebase();
         }
@@ -151,7 +243,7 @@ if (document.readyState === 'loading') {
 } else {
     // إذا كان DOM جاهز والصفحة محملة
     setTimeout(() => {
-        if (!firebase.apps.length) {
+        if (!firebase.apps.length || !window.auth) {
             console.log('🔄 إعادة محاولة التهيئة بعد تأخير...');
             initializeFirebase();
         }

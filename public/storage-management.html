@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة التخزين - نظام الأرشيف</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="assets/css/unified-sidebar.css" />
+  <link rel="stylesheet" href="assets/css/permissions.css" />
+  <link rel="stylesheet" href="assets/css/ux-core.css" />
+  <style>
+    body { background:#f5f7fa; }
+    .hero { background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; padding:2rem 0; margin-bottom:2rem; border-radius:0 0 28px 28px; }
+    .stat-tile { background:#fff; border-radius:18px; padding:1.25rem 1rem; display:flex; flex-direction:column; gap:.25rem; position:relative; overflow:hidden; box-shadow:0 4px 18px rgba(0,0,0,.08); }
+    .stat-tile .icon { position:absolute; left:-12px; top:-12px; font-size:4.5rem; opacity:.08; }
+    .stat-value { font-size:1.9rem; font-weight:600; color:#312e81; }
+    .admin-tools-card { background:#fff; border-radius:18px; padding:1.25rem 1rem; box-shadow:0 4px 18px rgba(0,0,0,.07); }
+    .progress { height:10px; }
+    .file-list { max-height:340px; overflow:auto; }
+  </style>
+  <script defer src="assets/js/format-utils.js"></script>
+  <script defer src="assets/js/ux-core.js"></script>
+</head>
+<body>
+  <a href="#mainContent" class="visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+  <div class="hero">
+    <div class="container d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="h3 mb-2"><i class="fas fa-database me-2"></i> إدارة التخزين</h1>
+        <p class="mb-0 opacity-75">مراقبة ملفات النظام وإدارة الموارد</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-light btn-sm" id="btnRefresh"><i class="fas fa-sync me-1"></i> تحديث</button>
+        <button class="btn btn-outline-light btn-sm" id="btnExportStorage"><i class="fas fa-file-export me-1"></i> تصدير</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="container" id="mainContent">
+    <div class="mb-3 small text-muted" id="smStatus" aria-live="polite"></div>
+    <div class="row g-3 mb-4">
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-tile">
+          <i class="fas fa-file-alt icon"></i>
+            <span class="small text-muted">إجمالي الوثائق</span>
+            <span class="stat-value" id="sTotalDocs">-</span>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-tile">
+          <i class="fas fa-folder-open icon"></i>
+            <span class="small text-muted">عدد الملفات (Storage)</span>
+            <span class="stat-value" id="sStorageFiles">-</span>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-tile">
+          <i class="fas fa-weight-hanging icon"></i>
+            <span class="small text-muted">حجم تقديري</span>
+            <span class="stat-value" id="sEstimatedSize">-</span>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-tile">
+          <i class="fas fa-layer-group icon"></i>
+            <span class="small text-muted">تصنيفات مميزة</span>
+            <span class="stat-value" id="sDistinctClassifications">-</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-lg-8">
+        <div class="admin-tools-card h-100">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="mb-0"><i class="fas fa-toolbox text-primary me-2"></i> الأدوات الإدارية</h5>
+            <span class="badge bg-primary-subtle text-primary border">Admin</span>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="p-3 rounded border bg-light-subtle h-100">
+                <h6 class="fw-semibold mb-2"><i class="fas fa-broom text-secondary me-1"></i> تنظيف المصغرات</h6>
+                <p class="small text-muted mb-2">حذف ملفات الصور المصغرة القديمة لتقليل التكلفة.</p>
+                <button class="btn btn-sm btn-outline-danger w-100" id="btnCleanupThumbnails">
+                  <i class="fas fa-trash-can me-1"></i> تشغيل التنظيف
+                </button>
+                <div class="small mt-2" id="cleanupResult" aria-live="polite"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="p-3 rounded border bg-light-subtle h-100">
+                <h6 class="fw-semibold mb-2"><i class="fas fa-database text-secondary me-1"></i> فحص سلامة البيانات</h6>
+                <p class="small text-muted mb-2">التحقق من الحقول الأساسية والروابط المفقودة.</p>
+                <button class="btn btn-sm btn-outline-primary w-100" id="btnIntegrityCheck">
+                  <i class="fas fa-shield-alt me-1"></i> تنفيذ الفحص
+                </button>
+                <div class="small mt-2" id="integrityResult" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+          <hr class="my-4" />
+          <h6 class="fw-semibold mb-3"><i class="fas fa-list me-1 text-secondary"></i> أحدث الملفات</h6>
+          <div class="table-responsive small file-list" aria-label="قائمة أحدث الملفات">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>المعرف</th>
+                  <th>الاسم</th>
+                  <th>القسم</th>
+                  <th>التصنيف</th>
+                  <th>التاريخ</th>
+                </tr>
+              </thead>
+              <tbody id="recentStorageFilesBody">
+                <tr><td colspan="5" class="text-center text-muted">لا توجد بيانات بعد</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="admin-tools-card mb-4">
+          <h6 class="fw-semibold mb-3"><i class="fas fa-chart-pie text-success me-1"></i> توزيع حسب القسم</h6>
+          <div id="departmentDistribution" class="small text-muted">--- لا توجد بيانات ---</div>
+        </div>
+        <div class="admin-tools-card">
+          <h6 class="fw-semibold mb-3"><i class="fas fa-tags text-warning me-1"></i> أهم التصنيفات</h6>
+          <div id="topClassifications" class="small text-muted">--- لا توجد بيانات ---</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/firebase-init.js"></script>
+  <script src="assets/js/unified-auth.js"></script>
+  <!-- Access guard delay to prevent premature redirect if auth state not yet resolved -->
+  <script>
+    // Increase wait time before unified-ui-template enforces redirect
+    window.__ACCESS_GUARD_DELAY_MS__ = 6000;
+    // Optionally delay guard start until auth ready fires
+    window.__DELAY_PAGE_GUARD__ = true;
+    document.addEventListener('firebaseAuthReady', ()=>{
+      setTimeout(()=>{ try { delete window.__DELAY_PAGE_GUARD__; } catch(e){} }, 300);
+    }, { once:true });
+  </script>
+  <script src="assets/js/unified-ui-template.js"></script>
+  <script src="assets/js/cloud-services.js"></script>
+  <script src="assets/js/storage-management-page.js" defer></script>
+</body>
+</html>

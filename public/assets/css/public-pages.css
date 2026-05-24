@@ -1,0 +1,57 @@
+/* Public pages theme: Consistent, high-contrast buttons and UI accents (RTL friendly) */
+
+/* Primary button */
+body.public-page .btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+  border-color: #0b5ed7;
+  box-shadow: 0 2px 6px rgba(13, 110, 253, 0.35);
+}
+body.public-page .btn-primary:hover,
+body.public-page .btn-primary:focus {
+  color: #fff;
+  background: linear-gradient(135deg, #0b5ed7 0%, #0a58ca 100%);
+  border-color: #0a58ca;
+}
+body.public-page .btn-primary:active {
+  color: #fff;
+  background: #0a58ca;
+  border-color: #0a53be;
+}
+
+/* Outline primary */
+body.public-page .btn-outline-primary {
+  color: #0d6efd;
+  border-color: #0d6efd;
+  background: rgba(13, 110, 253, 0.06);
+}
+body.public-page .btn-outline-primary:hover,
+body.public-page .btn-outline-primary:focus {
+  color: #fff;
+  background: #0d6efd;
+  border-color: #0d6efd;
+}
+
+/* Sometimes navbar actions use outline-light on pale backgrounds */
+body.public-page .btn-outline-light {
+  color: #0d6efd;
+  border-color: #0d6efd;
+  background: transparent;
+}
+body.public-page .btn-outline-light:hover,
+body.public-page .btn-outline-light:focus {
+  color: #fff;
+  background: #0d6efd;
+  border-color: #0d6efd;
+}
+
+/* Focus ring improvement */
+body.public-page .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 .25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Disabled state remains readable */
+body.public-page .btn:disabled, body.public-page .btn.disabled {
+  opacity: .7;
+}

@@ -88,3 +88,7 @@ process.on('uncaughtException', (error) => {
     logger.error('Uncaught Exception:', error);
     process.exit(1);
 });
+
+// DEPRECATED LEGACY FUNCTIONS ENTRYPOINT
+// This code path is obsolete. All functions are defined under ../../functions/src/index.js
+throw new Error('Deprecated legacy functions entrypoint. Use functions/src/index.js');

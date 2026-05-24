@@ -8,6 +8,10 @@ module.exports = {
     "eslint:recommended",
     "google",
   ],
+  plugins: [
+    // pseudo plugin namespace for our local custom rules under eslint-rules/
+    "local-firestore"
+  ],
   rules: {
     "no-restricted-globals": ["error", "name", "length"],
     "prefer-arrow-callback": "error",
@@ -17,7 +21,9 @@ module.exports = {
     "comma-dangle": ["error", "never"],
     "no-unused-vars": ["error", {"argsIgnorePattern": "^_"}],
     "require-jsdoc": "off",
-    "valid-jsdoc": "off"
+    "valid-jsdoc": "off",
+    // Enforce using constants & serverTS helper
+    "local-firestore/no-raw-firestore": "error"
   },
   overrides: [
     {

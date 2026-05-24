@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>إدارة الإدارات</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-messaging-compat.js"></script>
+  <style>
+    body { background: #f8f9fa; }
+    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 1rem; }
+    .role-badge { margin-inline-end: .25rem; margin-bottom: .25rem; }
+    .card-hover:hover { box-shadow: 0 0.5rem 1rem rgba(0,0,0,.08); }
+    .empty-state { text-align:center; padding: 3rem 1rem; color:#6c757d; }
+    .w-40 { width: 40%; }
+    .w-20 { width: 20%; }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <div class="page-header">
+      <div>
+        <h3 class="mb-0"><i class="fas fa-building-gear me-2 text-primary"></i>إدارة الإدارات</h3>
+        <small class="text-muted">التحكم بالأقسام وأدوارها داخل النظام</small>
+      </div>
+      <div>
+        <button id="btnAddDept" class="btn btn-success me-2">
+          <i class="fas fa-plus ms-1"></i> إضافة إدارة
+        </button>
+        <button id="btnSeedDefaults" class="btn btn-outline-secondary me-2">
+          <i class="fas fa-list-check ms-1"></i> تطبيق الهيكل الافتراضي
+        </button>
+        <button id="btnRefresh" class="btn btn-outline-primary">
+          <i class="fas fa-rotate ms-1"></i> تحديث
+        </button>
+      </div>
+    </div>
+
+    <div id="alertHost"></div>
+
+    <div id="loading" class="alert alert-info d-flex align-items-center" role="alert">
+      <div class="spinner-border spinner-border-sm ms-2" role="status"></div>
+      <div>جاري تحميل البيانات...</div>
+    </div>
+
+    <div id="departmentsGrid" class="row g-3"></div>
+
+    <div id="emptyState" class="empty-state d-none">
+      <p class="mb-2">لا توجد إدارات مُسجلة حتى الآن.</p>
+      <button class="btn btn-primary" id="btnSeedDefaultsEmpty"><i class="fas fa-bolt ms-1"></i> إنشاء الإدارات الافتراضية</button>
+    </div>
+  </div>
+
+  <!-- Edit Roles Modal -->
+  <div class="modal fade" id="editRolesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-user-gear me-2"></i>تعديل الأدوار</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="editRolesAlert"></div>
+          <div class="mb-3">
+            <label class="form-label">اسم الإدارة</label>
+            <input type="text" class="form-control" id="er_deptName" />
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label mb-0">الأدوار داخل الإدارة</label>
+            <button id="btnAddRoleRow" class="btn btn-sm btn-outline-primary"><i class="fas fa-plus"></i> إضافة دور</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead>
+                <tr>
+                  <th class="w-40">المسمى (AR)</th>
+                  <th class="w-40">المفتاح (EN)</th>
+                  <th class="w-20">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="er_rolesBody"></tbody>
+            </table>
+          </div>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" id="er_active">
+            <label class="form-check-label" for="er_active">الإدارة نشطة</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="button" id="btnSaveRoles" class="btn btn-primary">
+            <span class="save-text">حفظ</span>
+            <span class="save-spinner d-none"><span class="spinner-border spinner-border-sm"></span></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-triangle-exclamation me-2 text-danger"></i>تأكيد حذف الإدارة</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="deleteDeptAlert" class="mb-2"></div>
+          <p class="mb-1">هل أنت متأكد من حذف هذه الإدارة؟</p>
+          <small class="text-muted">لن يتم تعديل حسابات المستخدمين تلقائيًا. إن كان هناك مستخدمون مرتبطون بهذه الإدارة، ستفشل عملية الحذف لحمايتهم.</small>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="button" id="btnConfirmDelete" class="btn btn-danger">
+            <span class="del-text">حذف</span>
+            <span class="del-spinner d-none"><span class="spinner-border spinner-border-sm"></span></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Department Modal -->
+  <div class="modal fade" id="addDeptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-building-circle-arrow-right me-2"></i>إضافة إدارة جديدة</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="addDeptAlert"></div>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label">معرف الإدارة (EN)</label>
+              <input type="text" class="form-control" id="ad_deptId" placeholder="مثال: archive" />
+              <div class="form-text">أحرف إنجليزية صغيرة وأرقام و"-" و"_" فقط</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">اسم الإدارة (AR)</label>
+              <input type="text" class="form-control" id="ad_deptName" placeholder="مثال: الأرشيف" />
+            </div>
+          </div>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" id="ad_active" checked>
+            <label class="form-check-label" for="ad_active">الإدارة نشطة</label>
+          </div>
+          <hr/>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label mb-0">الأدوار داخل الإدارة</label>
+            <button id="btnAddRoleRowNew" class="btn btn-sm btn-outline-primary"><i class="fas fa-plus"></i> إضافة دور</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead>
+                <tr>
+                  <th class="w-40">المسمى (AR)</th>
+                  <th class="w-40">المفتاح (EN)</th>
+                  <th class="w-20">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="ad_rolesBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="button" id="btnCreateDept" class="btn btn-primary">
+            <span class="create-text">إنشاء</span>
+            <span class="create-spinner d-none"><span class="spinner-border spinner-border-sm"></span></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/unified-auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function(){
+  let fsDb, editRolesModal, currentDeptId = null;
+  let addDeptModal, confirmDeleteModal, pendingDeleteDeptId = null;
+
+    function showAlert(hostId, msg, type = 'info') {
+      const host = document.getElementById(hostId);
+      if (!host) return;
+      if (!msg) { host.innerHTML = ''; return; }
+      host.innerHTML = `<div class="alert alert-${type} alert-dismissible" role="alert">
+        ${msg}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>`;
+    }
+
+    function roleRowTemplate(role = { name: '', key: '' }) {
+      return `<tr>
+        <td><input type="text" class="form-control er_role_name" placeholder="مثال: مدير الأرشيف" value="${role.name || ''}"></td>
+        <td><input type="text" class="form-control er_role_key" placeholder="مثال: archive-admin" value="${role.key || ''}"></td>
+        <td>
+          <button class="btn btn-sm btn-outline-danger er_delete"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`;
+    }
+
+    function departmentCardTemplate(doc) {
+      const d = doc.data();
+      const roles = Array.isArray(d.roles) ? d.roles : [];
+      const badges = roles.map(r => `<span class="badge text-bg-secondary role-badge">${r.name}</span>`).join(' ');
+      const active = d.active !== false;
+      return `<div class="col-12 col-md-6 col-xl-4">
+        <div class="card card-hover h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h5 class="card-title mb-1">${d.name || doc.id}</h5>
+                <small class="text-muted">${doc.id}</small>
+              </div>
+              <span class="badge ${active ? 'text-bg-success' : 'text-bg-secondary'}">${active ? 'نشط' : 'غير نشط'}</span>
+            </div>
+            <div class="mt-3">${badges || '<span class="text-muted">لا توجد أدوار</span>'}</div>
+          </div>
+          <div class="card-footer d-flex gap-2">
+            <button class="btn btn-sm btn-outline-primary" data-action="edit" data-id="${doc.id}"><i class="fas fa-pen"></i> تعديل</button>
+            <button class="btn btn-sm btn-outline-secondary" data-action="toggle" data-id="${doc.id}"><i class="fas fa-power-off"></i> تبديل الحالة</button>
+            <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${doc.id}"><i class="fas fa-trash"></i> حذف</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function getDefaultDepartments() {
+      return [
+        {
+          id: 'archive',
+          name: 'الأرشيف',
+          active: true,
+          roles: [
+            { key: 'archive-admin', name: 'مدير الأرشيف' },
+            { key: 'archive-officer', name: 'موظف أرشيف' },
+            { key: 'archive-viewer', name: 'قارئ أرشيف' }
+          ]
+        },
+        {
+          id: 'collection',
+          name: 'التحصيل',
+          active: true,
+          roles: [
+            { key: 'collection-admin', name: 'مدير التحصيل' },
+            { key: 'collection-officer', name: 'موظف تحصيل' },
+            { key: 'collection-viewer', name: 'قارئ' }
+          ]
+        },
+        {
+          id: 'legal',
+          name: 'الشؤون القانونية',
+          active: true,
+          roles: [
+            { key: 'legal-admin', name: 'مدير الشؤون القانونية' },
+            { key: 'lawyer', name: 'محام' },
+            { key: 'legal-viewer', name: 'قارئ' }
+          ]
+        },
+        {
+          id: 'internal_audit',
+          name: 'المراجعة الداخلية',
+          active: true,
+          roles: [
+            { key: 'audit-admin', name: 'مدير المراجعة الداخلية' },
+            { key: 'audit-officer', name: 'موظف مراجعة' },
+            { key: 'audit-viewer', name: 'قارئ' }
+          ]
+        },
+        {
+          id: 'securitization',
+          name: 'التوريق',
+          active: true,
+          roles: [
+            { key: 'securitization-viewer', name: 'قارئ' }
+          ]
+        }
+      ];
+    }
+
+  async function seedDefaults() {
+      try {
+        toggleLoading(true);
+        const batch = fsDb.batch();
+        const defaults = getDefaultDepartments();
+        for (const d of defaults) {
+          batch.set(fsDb.collection('departments').doc(d.id), {
+            name: d.name,
+            active: d.active,
+            roles: d.roles,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        }
+        await batch.commit();
+        showAlert('alertHost', 'تم تطبيق الهيكل الافتراضي بنجاح', 'success');
+        await loadDepartments();
+      } catch (e) {
+        console.error(e);
+        showAlert('alertHost', 'تعذر تطبيق الهيكل الافتراضي', 'danger');
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    function toggleLoading(isLoading) {
+      document.getElementById('loading').classList.toggle('d-none', !isLoading);
+    }
+
+    async function loadDepartments() {
+      toggleLoading(true);
+      try {
+        const snap = await fsDb.collection('departments').orderBy('name').get();
+        const grid = document.getElementById('departmentsGrid');
+        grid.innerHTML = '';
+        if (snap.empty) {
+          document.getElementById('emptyState').classList.remove('d-none');
+        } else {
+          document.getElementById('emptyState').classList.add('d-none');
+          snap.forEach(doc => {
+            grid.insertAdjacentHTML('beforeend', departmentCardTemplate(doc));
+          });
+        }
+      } catch (e) {
+        console.error('loadDepartments error', e);
+        showAlert('alertHost', 'فشل تحميل الإدارات', 'danger');
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    function openEditRoles(docId, data) {
+      currentDeptId = docId;
+      document.getElementById('er_deptName').value = data.name || docId;
+      document.getElementById('er_active').checked = data.active !== false;
+      const tbody = document.getElementById('er_rolesBody');
+      tbody.innerHTML = '';
+      const roles = Array.isArray(data.roles) ? data.roles : [];
+      if (roles.length === 0) tbody.insertAdjacentHTML('beforeend', roleRowTemplate());
+      roles.forEach(r => tbody.insertAdjacentHTML('beforeend', roleRowTemplate(r)));
+      if (!editRolesModal && typeof bootstrap !== 'undefined') {
+        editRolesModal = new bootstrap.Modal(document.getElementById('editRolesModal'));
+      }
+      if (editRolesModal) editRolesModal.show();
+    }
+
+    function collectRolesFromTable(containerSelector = '#er_rolesBody') {
+      const rows = Array.from(document.querySelectorAll(`${containerSelector} tr`));
+      return rows.map(tr => ({
+        name: tr.querySelector('.er_role_name').value.trim(),
+        key: tr.querySelector('.er_role_key').value.trim()
+      })).filter(r => r.name && r.key);
+    }
+
+    async function saveRoles() {
+      const name = document.getElementById('er_deptName').value.trim();
+      const active = document.getElementById('er_active').checked;
+      const roles = collectRolesFromTable();
+      if (!currentDeptId) return;
+      if (!name) { showAlert('editRolesAlert', 'يرجى إدخال اسم الإدارة', 'warning'); return; }
+      if (roles.length === 0) { showAlert('editRolesAlert', 'أضف دورًا واحدًا على الأقل', 'warning'); return; }
+      document.querySelector('#btnSaveRoles .save-text').classList.add('d-none');
+      document.querySelector('#btnSaveRoles .save-spinner').classList.remove('d-none');
+      try {
+        await fsDb.collection('departments').doc(currentDeptId).set({
+          name, active, roles, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        showAlert('alertHost', 'تم حفظ التعديلات بنجاح', 'success');
+        if (editRolesModal) editRolesModal.hide();
+        await loadDepartments();
+      } catch (e) {
+        console.error(e);
+        showAlert('editRolesAlert', 'تعذر حفظ التعديلات', 'danger');
+      } finally {
+        document.querySelector('#btnSaveRoles .save-text').classList.remove('d-none');
+        document.querySelector('#btnSaveRoles .save-spinner').classList.add('d-none');
+      }
+    }
+
+    // Initialize after auth is fully ready to avoid false redirects
+    async function initPageAfterAuth() {
+      try {
+        // Prefer unifiedAuth but fall back to Firebase directly
+        const authUser = (window.unifiedAuth && window.unifiedAuth.currentUser) || (firebase.auth && firebase.auth().currentUser);
+        if (!authUser) {
+          // Not logged in
+          window.location.href = 'login.html';
+          return;
+        }
+        // Get user data (role/department) from unified auth if available
+        let userData = null;
+        try { userData = await window.unifiedAuth.getCurrentUserData(); } catch(_) {}
+        // If unifiedAuth failed, try minimal shape using custom claims if present later
+        if (!userData) {
+          userData = { role: (window.unifiedAuth && window.unifiedAuth.userRole) || 'viewer' };
+        }
+        if (!userData || (userData.role !== 'admin' && !String(userData.role).includes('admin'))) {
+          window.location.href = 'index.html';
+          return;
+        }
+        fsDb = firebase.firestore();
+        await loadDepartments();
+      } catch (e) {
+        console.error('init error', e);
+        showAlert('alertHost', 'تعذر تهيئة الصفحة', 'danger');
+      }
+    }
+
+    // Wait for firebaseAuthReady event first, with timeout fallback
+    (function waitForAuthReady() {
+      let initialized = false;
+      const onReady = async () => {
+        if (initialized) return;
+        initialized = true;
+        await initPageAfterAuth();
+      };
+      document.addEventListener('firebaseAuthReady', onReady, { once: true });
+      // Fallback after 5s if event didn't fire
+      setTimeout(() => { if (!initialized) onReady(); }, 5000);
+    })();
+
+    document.addEventListener('click', async (e) => {
+      const action = e.target.closest('[data-action]')?.getAttribute('data-action');
+      const id = e.target.closest('[data-action]')?.getAttribute('data-id');
+      if (action === 'edit' && id) {
+        e.preventDefault();
+        try {
+          const doc = await fsDb.collection('departments').doc(id).get();
+          if (doc.exists) openEditRoles(doc.id, doc.data());
+        } catch (err) {
+          console.error(err);
+          showAlert('alertHost', 'تعذر فتح نافذة التعديل', 'danger');
+        }
+      }
+      if (action === 'toggle' && id) {
+        e.preventDefault();
+        try {
+          const ref = fsDb.collection('departments').doc(id);
+          const snap = await ref.get();
+          const active = snap.exists ? (snap.data().active !== false) : true;
+          await ref.set({ active: !active, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+          await loadDepartments();
+        } catch (err) {
+          console.error(err);
+          showAlert('alertHost', 'تعذر تبديل حالة الإدارة', 'danger');
+        }
+      }
+      if (action === 'delete' && id) {
+        e.preventDefault();
+        pendingDeleteDeptId = id;
+        if (!confirmDeleteModal && typeof bootstrap !== 'undefined') {
+          confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+        }
+        showAlert('deleteDeptAlert', '');
+        if (confirmDeleteModal) confirmDeleteModal.show();
+      }
+    });
+
+    document.getElementById('btnAddRoleRow').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('er_rolesBody').insertAdjacentHTML('beforeend', roleRowTemplate());
+    });
+    document.getElementById('er_rolesBody').addEventListener('click', (e) => {
+      if (e.target.closest('.er_delete')) {
+        e.preventDefault();
+        const tr = e.target.closest('tr');
+        tr?.remove();
+      }
+    });
+    document.getElementById('btnSaveRoles').addEventListener('click', saveRoles);
+    document.getElementById('btnRefresh').addEventListener('click', loadDepartments);
+    document.getElementById('btnSeedDefaults').addEventListener('click', seedDefaults);
+    document.getElementById('btnSeedDefaultsEmpty').addEventListener('click', seedDefaults);
+    document.getElementById('btnAddDept').addEventListener('click', () => {
+      document.getElementById('ad_deptId').value = '';
+      document.getElementById('ad_deptName').value = '';
+      document.getElementById('ad_active').checked = true;
+      document.getElementById('ad_rolesBody').innerHTML = roleRowTemplate();
+      showAlert('addDeptAlert', '');
+      if (!addDeptModal && typeof bootstrap !== 'undefined') {
+        addDeptModal = new bootstrap.Modal(document.getElementById('addDeptModal'));
+      }
+      if (addDeptModal) addDeptModal.show();
+    });
+    document.getElementById('btnAddRoleRowNew').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('ad_rolesBody').insertAdjacentHTML('beforeend', roleRowTemplate());
+    });
+    document.getElementById('ad_rolesBody').addEventListener('click', (e) => {
+      if (e.target.closest('.er_delete')) {
+        e.preventDefault();
+        const tr = e.target.closest('tr');
+        tr?.remove();
+      }
+    });
+    document.getElementById('btnCreateDept').addEventListener('click', async () => {
+      const id = document.getElementById('ad_deptId').value.trim();
+      const name = document.getElementById('ad_deptName').value.trim();
+      const active = document.getElementById('ad_active').checked;
+      const roles = collectRolesFromTable('#ad_rolesBody');
+      if (!id || !name) { showAlert('addDeptAlert', 'يرجى إدخال معرف واسم الإدارة', 'warning'); return; }
+      if (!/^[a-z0-9_-]+$/.test(id)) { showAlert('addDeptAlert', 'معرف الإدارة غير صالح. استخدم أحرفًا إنجليزية صغيرة وأرقام و"-" و"_" فقط', 'warning'); return; }
+      if (roles.length === 0) { showAlert('addDeptAlert', 'أضف دورًا واحدًا على الأقل', 'warning'); return; }
+      document.querySelector('#btnCreateDept .create-text').classList.add('d-none');
+      document.querySelector('#btnCreateDept .create-spinner').classList.remove('d-none');
+      try {
+        const ref = fsDb.collection('departments').doc(id);
+        const snap = await ref.get();
+        if (snap.exists) { showAlert('addDeptAlert', 'هذا المعرف مستخدم بالفعل', 'danger'); return; }
+        await ref.set({ name, active, roles, createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        if (addDeptModal) addDeptModal.hide();
+        showAlert('alertHost', 'تم إنشاء الإدارة بنجاح', 'success');
+        await loadDepartments();
+      } catch (err) {
+        console.error(err);
+        showAlert('addDeptAlert', 'تعذر إنشاء الإدارة', 'danger');
+      } finally {
+        document.querySelector('#btnCreateDept .create-text').classList.remove('d-none');
+        document.querySelector('#btnCreateDept .create-spinner').classList.add('d-none');
+      }
+    });
+    document.getElementById('btnConfirmDelete').addEventListener('click', async () => {
+      if (!pendingDeleteDeptId) return;
+      document.querySelector('#btnConfirmDelete .del-text').classList.add('d-none');
+      document.querySelector('#btnConfirmDelete .del-spinner').classList.remove('d-none');
+      try {
+        const usersSnap = await fsDb.collection('users').where('department', '==', pendingDeleteDeptId).limit(1).get();
+        if (!usersSnap.empty) {
+          showAlert('deleteDeptAlert', 'لا يمكن حذف الإدارة لوجود مستخدمين مرتبطين بها. يرجى نقل المستخدمين أولاً.', 'warning');
+          return;
+        }
+        await fsDb.collection('departments').doc(pendingDeleteDeptId).delete();
+        if (confirmDeleteModal) confirmDeleteModal.hide();
+        showAlert('alertHost', 'تم حذف الإدارة بنجاح', 'success');
+        await loadDepartments();
+      } catch (err) {
+        console.error(err);
+        showAlert('deleteDeptAlert', 'تعذر حذف الإدارة', 'danger');
+      } finally {
+        document.querySelector('#btnConfirmDelete .del-text').classList.remove('d-none');
+        document.querySelector('#btnConfirmDelete .del-spinner').classList.add('d-none');
+        pendingDeleteDeptId = null;
+      }
+    });
+    })();
+  </script>
+</body>
+</html>

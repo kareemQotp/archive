@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة التصنيف - نظام الأرشيف</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="assets/css/unified-sidebar.css" />
+  <link rel="stylesheet" href="assets/css/permissions.css" />
+  <link rel="stylesheet" href="assets/css/ux-core.css" />
+  <style>
+    body { background: #f5f7fa; }
+    .page-header { background: linear-gradient(135deg,#2563eb,#0891b2); color:#fff; padding:2rem 0; margin-bottom:2rem; border-radius:0 0 24px 24px; }
+    .classification-card { background:#fff; border-radius:16px; padding:1.5rem; box-shadow:0 4px 16px rgba(0,0,0,.08); margin-bottom:1.25rem; }
+    .badge-level { font-size:.75rem; letter-spacing:.5px; }
+    .tree-container { max-height:420px; overflow:auto; font-size:.9rem; }
+    .empty-state { padding:3rem 1rem; text-align:center; color:#666; }
+  </style>
+  <script defer src="assets/js/format-utils.js"></script>
+  <script defer src="assets/js/ux-core.js"></script>
+</head>
+<body>
+  <a href="#mainContent" class="visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+  <div class="page-header">
+    <div class="container d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="h3 mb-2"><i class="fas fa-layer-group me-2"></i> إدارة التصنيف</h1>
+        <p class="mb-0 opacity-75">تصنيف الوثائق حسب الفئة والمستوى والأهمية</p>
+      </div>
+      <div class="d-flex gap-2">
+  <button class="btn btn-light btn-sm" id="btnNewCategoryHeader"><i class="fas fa-plus me-1"></i> فئة جديدة</button>
+        <button class="btn btn-outline-light btn-sm" id="btnExportStructure"><i class="fas fa-download me-1"></i> تصدير</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="container" id="mainContent" role="main">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="classification-card">
+          <h5 class="mb-3"><i class="fas fa-sitemap me-2 text-primary"></i> شجرة التصنيف</h5>
+          <div id="classificationTree" class="tree-container small">
+            <div class="empty-state" id="treeEmpty">لا توجد فئات بعد</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-8">
+        <div class="classification-card mb-3">
+          <h5 class="mb-3"><i class="fas fa-folder-plus me-2 text-success"></i> إنشاء / تعديل فئة</h5>
+          <form id="categoryForm" class="row g-3" novalidate aria-describedby="categoryFormHelp">
+            <input type="hidden" id="catId" />
+            <div class="col-md-6">
+              <label class="form-label" for="catName">الاسم <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="catName" required aria-required="true" aria-describedby="catNameHelp" placeholder="مثال: مستندات قانونية" />
+              <div id="catNameHelp" class="form-text">أدخل اسم الفئة الرئيسية أو الفرعية.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="catSlug">المعرف (Slug)</label>
+              <input type="text" class="form-control" id="catSlug" placeholder="archive-files" aria-describedby="catSlugHelp" />
+              <div id="catSlugHelp" class="form-text">يُستخدم في العمليات البرمجية، يترك فارغاً للتوليد التلقائي.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="catLevel">المستوى</label>
+              <select class="form-select" id="catLevel" aria-label="مستوى التصنيف">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="catPriority">الأولوية</label>
+              <input type="number" min="0" step="1" class="form-control" id="catPriority" value="0" aria-label="أولوية العرض" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="catParent">الفئة الأم</label>
+              <select class="form-select" id="catParent" aria-label="الفئة الأم"><option value="">بدون</option></select>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="catDesc">الوصف</label>
+              <textarea class="form-control" id="catDesc" rows="2" placeholder="وصف مختصر للفئة..." aria-label="وصف الفئة"></textarea>
+            </div>
+            <div class="col-12 d-flex gap-2 align-items-center">
+              <button class="btn btn-primary" type="submit" id="btnSaveCategory"><i class="fas fa-save me-1"></i> حفظ</button>
+              <button class="btn btn-outline-secondary" type="button" id="btnNewCategory">جديد</button>
+              <button class="btn btn-danger ms-auto d-none" type="button" id="btnDeleteCategory" aria-label="حذف الفئة المحددة"><i class="fas fa-trash me-1"></i> حذف</button>
+            </div>
+            <div class="col-12">
+              <div id="categoryFormHelp" class="form-text">الحقول الإلزامية محددة بعلامة *. يتم حفظ الوقت والمستخدم تلقائياً.</div>
+            </div>
+            <div class="col-12" id="categoryAlerts" aria-live="polite"></div>
+            <div class="col-12 small text-muted" id="categoryStats"></div>
+          </form>
+        </div>
+        <div class="classification-card">
+          <h5 class="mb-3"><i class="fas fa-tags me-2 text-warning"></i> ربط التصنيف بالوثائق</h5>
+          <form id="assignForm" class="row g-3" aria-describedby="assignHelp">
+            <div class="col-md-4">
+              <label class="form-label" for="assignDocId">رقم / معرّف الوثيقة</label>
+              <input type="text" class="form-control" id="assignDocId" placeholder="مثال: ABC123" />
+            </div>
+            <div class="col-md-5">
+              <label class="form-label" for="assignCategory">اختيار الفئة</label>
+              <select class="form-select" id="assignCategory" aria-label="اختيار الفئة"><option value="">اختر...</option></select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-success w-100" type="submit" id="btnAssignCategory"><i class="fas fa-link me-1"></i> ربط</button>
+            </div>
+            <div class="col-12">
+              <div id="assignHelp" class="form-text small">أدخل معرف الوثيقة الموجود في قاعدة البيانات ثم اختر الفئة واضغط ربط.</div>
+            </div>
+          </form>
+          <div class="mt-3 small text-muted">يتم تخزين الحقول: classification / classificationCode و classificationName في الوثيقة.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/firebase-init.js"></script>
+  <script src="assets/js/unified-auth.js"></script>
+  <!-- Access guard delay to prevent premature redirect if auth not resolved yet -->
+  <script>
+    window.__ACCESS_GUARD_DELAY_MS__ = 6000;
+    window.__DELAY_PAGE_GUARD__ = true;
+    document.addEventListener('firebaseAuthReady', ()=>{
+      setTimeout(()=>{ try { delete window.__DELAY_PAGE_GUARD__; } catch(e){} }, 300);
+    }, { once:true });
+  </script>
+  <script src="assets/js/unified-ui-template.js"></script>
+  <script src="assets/js/classification-page.js" defer></script>
+</body>
+</html>

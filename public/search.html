@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <!-- Permission-based styling system -->
     <link rel="stylesheet" href="assets/css/permissions.css">
     <style>
@@ -121,27 +121,49 @@
             color: var(--primary);
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <!-- Unified navbar is injected by unified-ui-template.js -->
+    
+    <!-- Sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="sidebar" id="sidebar" aria-hidden="true">
+        <div class="sidebar-header">
             <div class="d-flex align-items-center">
-                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="index.html">
-                    <i class="fas fa-archive me-2"></i>
-                    نظام الأرشيف
-                </a>
+                <div class="logo">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0">نظام الأرشيف</h5>
+                    <small>البحث في الوثائق</small>
+                </div>
             </div>
-            <div class="navbar-nav ms-auto">
-                <button class="btn btn-outline-danger btn-sm" id="logoutBtn">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    خروج
-                </button>
+            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة" aria-label="إغلاق القائمة">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="user-info">
+            <div class="d-flex align-items-center">
+                <div class="user-avatar" id="userAvatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <div class="user-name" id="userName">مستخدم</div>
+                    <div class="user-role" id="userRole">عام</div>
+                </div>
             </div>
         </div>
-    </nav>
+        <nav class="sidebar-nav" id="sidebarNav" role="navigation" aria-label="القائمة الرئيسية">
+            <!-- Will be populated by UnifiedUITemplate -->
+        </nav>
+        <div class="sidebar-footer">
+            <small>نظام الأرشيف الإلكتروني v2.1</small>
+        </div>
+    </div>
+    
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
@@ -200,6 +222,14 @@
                                             <option value="year">آخر سنة</option>
                                         </select>
                                     </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="statusFilter" class="form-label">الحالة</label>
+                                        <select class="form-select" id="statusFilter">
+                                            <option value="">جميع الحالات</option>
+                                            <option value="active">نشطة فقط</option>
+                                            <option value="inactive">غير نشطة فقط</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <button type="button" class="btn btn-primary btn-sm" id="advancedSearchBtn">
                                     <i class="fas fa-filter me-2"></i>تطبيق الفلاتر
@@ -232,7 +262,8 @@
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
     
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js"></script>
     
     <!-- Unified Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
@@ -248,34 +279,71 @@
         let permissionController;
 
         document.addEventListener('DOMContentLoaded', async function() {
-            // Wait for unified auth to initialize
-            await new Promise(resolve => {
-                const checkAuth = () => {
-                    if (window.unifiedAuth && unifiedAuth.isInitialized) {
-                        // Initialize permission controller if available
-                        if (window.UIPermissionController) {
-                            permissionController = new UIPermissionController(unifiedAuth);
-                        }
-                        resolve();
-                    } else {
-                        setTimeout(checkAuth, 100);
-                    }
-                };
-                checkAuth();
-            });
+            // Ensure Unified UI Template is initialized once
+            try { if (window.unifiedUI?.updateSidebar) await window.unifiedUI.updateSidebar(); } catch {}
 
-            // Set up auth state listener
-            unifiedAuth.onAuthStateChanged((user) => {
-                handleAuthStateChange(user);
-            });
+            // Wait for Firebase and Auth readiness
+            await waitForFirebase();
+            await waitForAuthReady();
+
+            // Initialize permission controller if available
+            if (window.UIPermissionController && window.unifiedAuth) {
+                permissionController = new UIPermissionController(unifiedAuth);
+            }
+
+            // Set up auth state listener (guarded)
+            if (window.unifiedAuth && typeof unifiedAuth.onAuthStateChanged === 'function') {
+                unifiedAuth.onAuthStateChanged((user) => { handleAuthStateChange(user); });
+            }
 
             // Initialize search functionality
             initializeSearchSystem();
         });
 
+        // Firebase readiness waits (copied pattern from scanner page)
+        function waitForFirebase(){
+            return new Promise(resolve=>{
+                if (window.db) return resolve();
+                const onReady = ()=>{ document.removeEventListener('firebaseReady', onReady); resolve(); };
+                document.addEventListener('firebaseReady', onReady);
+                let tries=0; const iv=setInterval(()=>{ tries++; if(window.db){ clearInterval(iv); document.removeEventListener('firebaseReady', onReady); resolve(); } if(tries>50){ clearInterval(iv); document.removeEventListener('firebaseReady', onReady); resolve(); } },100);
+            });
+        }
+        function waitForAuthReady(){
+            return new Promise(resolve=>{
+                if (window.unifiedAuth && (unifiedAuth.currentUser || unifiedAuth.isInitialized)) return resolve();
+                const onAuth = ()=>{ document.removeEventListener('firebaseAuthReady', onAuth); resolve(); };
+                document.addEventListener('firebaseAuthReady', onAuth);
+                let tries=0; const iv=setInterval(()=>{ tries++; if(window.unifiedAuth){ clearInterval(iv); document.removeEventListener('firebaseAuthReady', onAuth); resolve(); } if(tries>50){ clearInterval(iv); document.removeEventListener('firebaseAuthReady', onAuth); resolve(); } },100);
+            });
+        }
+
         async function handleAuthStateChange(user) {
             if (!user) {
-                window.location.href = 'login.html?message=session-expired';
+                // Check for demo mode
+                const demoMode = localStorage.getItem('archiveDemoMode');
+                if (demoMode === 'enabled') {
+                    console.log('🎭 Search في وضع العرض التوضيحي');
+                    showSearchDemoNotice();
+                    enableDemoMode();
+                    return;
+                }
+                
+                // Only redirect if not in demo mode and Firebase is properly loaded
+                const timeoutId = setTimeout(() => {
+                    if (!window.firebase?.auth()?.currentUser) {
+                        window.location.href = 'login.html?message=session-expired';
+                    }
+                }, 1500);
+                
+                // Clear timeout if user authenticates
+                if (window.firebase?.auth()) {
+                    window.firebase.auth().onAuthStateChanged((authUser) => {
+                        if (authUser) {
+                            clearTimeout(timeoutId);
+                        }
+                    });
+                }
                 return;
             }
 
@@ -287,11 +355,53 @@
                 permissionController.updateUI();
             }
             
-            // Update sidebar with proper role
-            if (window.sidebarManager) {
-                const userRole = unifiedAuth.getCurrentUserRole();
-                window.sidebarManager.updateSidebarNav(true, userRole);
+            // Update sidebar with unified template
+            const unifiedUI = window.unifiedUI;
+            if (unifiedUI && typeof unifiedUI.updateSidebar === 'function') {
+                unifiedUI.updateSidebar();
             }
+        }
+        
+        function enableDemoMode() {
+            // Add demo mode functionality for search
+            console.log('🎭 تفعيل وضع العرض التوضيحي للبحث');
+            // You can add specific demo functionality here
+        }
+        
+        function showSearchDemoNotice() {
+            setTimeout(() => {
+                const notice = document.createElement('div');
+                notice.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    max-width: 300px;
+                    font-family: 'Cairo', sans-serif;
+                `;
+                notice.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-search"></i>
+                        <div>
+                            <strong>وضع العرض التوضيحي</strong>
+                            <br><small>البحث في وضع المحاكاة</small>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
+                    </div>
+                `;
+                document.body.appendChild(notice);
+                
+                setTimeout(() => {
+                    if (notice.parentElement) {
+                        notice.remove();
+                    }
+                }, 8000);
+            }, 500);
         }
 
         // Enhanced logout function
@@ -308,7 +418,8 @@
         // Initialize search system
         function initializeSearchSystem() {
             // Set up logout button
-            document.getElementById('logoutBtn').onclick = logout;
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.onclick = logout;
             
             // Set up advanced search button
             document.getElementById('advancedSearchBtn').onclick = performAdvancedSearch;
@@ -325,6 +436,27 @@
             });
         }
 
+        // Normalize department names to canonical ids used in storage
+        function normalizeDepartmentName(dept) {
+            if (!dept) return '';
+            const d = (dept || '').toString().trim().toLowerCase();
+            const map = {
+                // legal
+                'legal': 'legal', 'الشؤون القانونية': 'legal', 'القانونية': 'legal', 'قانونية': 'legal', 'ادارة الشؤون القانونية': 'legal', 'إدارة الشؤون القانونية': 'legal',
+                // archive
+                'archive': 'archive', 'الارشيف': 'archive', 'الأرشيف': 'archive', 'ارشيف': 'archive',
+                // governance
+                'governance': 'governance', 'حوكمة': 'governance', 'الحوكمة': 'governance',
+                // collection
+                'collection': 'collection', 'تحصيل': 'collection', 'التحصيل': 'collection',
+                // securitization
+                'securitization': 'securitization', 'توريق': 'securitization', 'التوريق': 'securitization',
+                // admin
+                'admin': 'admin', 'مدير': 'admin', 'مدير النظام': 'admin', 'system_admin': 'admin', 'system-admin': 'admin'
+            };
+            return map[d] || d;
+        }
+
         // دالة البحث الرئيسية
         async function performSearch(useAdvancedFilters = false) {
             const searchInput = document.getElementById('searchInput');
@@ -332,8 +464,12 @@
             const searchInfo = document.getElementById('searchInfo');
             const searchStats = document.getElementById('searchStats');
             
-            const query = searchInput.value.trim().toLowerCase();
-            if (!query && !useAdvancedFilters) return;
+            // دعم كلمات خاصة لعرض جميع النتائج مثل "الجميع"، "الكل"، "all" أو "*"
+            const rawQuery = searchInput.value.trim().toLowerCase();
+            const matchAllTokens = ['*', 'الجميع', 'الكل', 'all'];
+            const isMatchAll = matchAllTokens.includes(rawQuery);
+            const query = isMatchAll ? '' : rawQuery;
+            if (!query && !useAdvancedFilters && !isMatchAll) return;
             
             searchResults.innerHTML = '<div class="text-center py-3"><span class="spinner-border"></span> جاري البحث...</div>';
             searchInfo.classList.add('d-none');
@@ -349,61 +485,151 @@
                     return;
                 }
 
-                // جلب جميع الوثائق النشطة
-                let documentsQuery = firebase.firestore().collection('documents').where('isActive', '==', true);
+                // Determine user department and role
+                const profile = await (typeof unifiedAuth.getCurrentUserData === 'function' ? unifiedAuth.getCurrentUserData() : unifiedAuth.userProfile);
+                const role = (typeof unifiedAuth.getCurrentUserRole === 'function' ? unifiedAuth.getCurrentUserRole() : (profile?.role || 'viewer'));
+                const isPrivileged = ['admin','system_admin','system-admin','archive_officer','archive-officer'].includes((role || '').toString());
+                const userDeptRaw = profile?.departmentId || profile?.department || '';
+                const userDept = normalizeDepartmentName(userDeptRaw);
+                if (!isPrivileged && !userDept) {
+                    searchResults.innerHTML = `<div class='alert alert-warning text-center'>
+                        <i class="fas fa-building me-2"></i>
+                        حسابك لا يحتوي على قسم محدد. يرجى التواصل مع المسؤول لتعيين الإدارة.
+                    </div>`;
+                    return;
+                }
+
+                // ابدأ من جميع الوثائق، لا تقيّد بالحالة افتراضياً
+                let documentsQuery = firebase.firestore().collection('documents');
+
+                // قراءة قيم فلاتر البحث المتقدم مبكراً لاستخدامها في أي استعلام بديل
+                const categoryFilter = useAdvancedFilters ? document.getElementById('categoryFilter').value : '';
+                const roleFilter = useAdvancedFilters ? document.getElementById('roleFilter').value : '';
+                const statusVal = useAdvancedFilters ? document.getElementById('statusFilter').value : '';
+
+                // إذا لم يكن المستخدم صاحب صلاحيات عليا، قيد البحث على وثائق قسمه فقط عبر currentDepartment
+                if (!isPrivileged) {
+                    documentsQuery = documentsQuery.where('currentDepartment', '==', userDept);
+                }
             
-                // تطبيق فلاتر التاريخ إذا كان البحث متقدماً
+                // تطبيق فلاتر التاريخ والحالة إذا كان البحث متقدماً
                 if (useAdvancedFilters) {
                     documentsQuery = applyDateFilter(documentsQuery);
+                    const statusVal = document.getElementById('statusFilter').value;
+                    if (statusVal === 'active') {
+                        documentsQuery = documentsQuery.where('isActive', '==', true);
+                    } else if (statusVal === 'inactive') {
+                        // إظهار غير النشطة: حيث isActive == false أو الحقل غير موجود
+                        // ملاحظة: Firestore لا يدعم OR في نفس where هنا؛ سنجلب بدون فلتر الحالة ونفلتر محلياً أدناه عند الحاجة
+                    }
                 }
-                
-                documentsQuery = documentsQuery.limit(200);
-                const documentsSnapshot = await documentsQuery.get();
+                // لا تقم بالترتيب افتراضياً لتجنب استبعاد الوثائق التي لا تحتوي على uploadedAt
+                // قم بالترتيب فقط عندما يُستخدم فلتر التاريخ
+                const dateFilterEl = document.getElementById('dateFilter');
+                const hasDateFilter = useAdvancedFilters && dateFilterEl && dateFilterEl.value;
+                if (hasDateFilter) {
+                    documentsQuery = documentsQuery.orderBy('uploadedAt', 'desc');
+                }
+                // زِد الحد لضمان جلب أكبر عدد ممكن من الوثائق
+                documentsQuery = documentsQuery.limit(500);
+
+                // في حال المستخدم غير مميز، نفذ استعلاماً بديلاً على الحقل department لدعم بيانات قديمة
+                const queries = [documentsQuery];
+                if (!isPrivileged) {
+                    let altQuery = firebase.firestore().collection('documents').where('department', '==', userDept);
+                    if (useAdvancedFilters) {
+                        altQuery = applyDateFilter(altQuery);
+                        if (statusVal === 'active') {
+                            altQuery = altQuery.where('isActive', '==', true);
+                        }
+                    }
+                    if (hasDateFilter) {
+                        altQuery = altQuery.orderBy('uploadedAt', 'desc');
+                    }
+                    altQuery = altQuery.limit(500);
+                    queries.push(altQuery);
+                }
+
+                const snapshots = await Promise.all(queries.map(q => q.get()));
 
                 const results = [];
-                const categoryFilter = useAdvancedFilters ? document.getElementById('categoryFilter').value : '';
+                const seen = new Set();
                 
                 // فلترة النتائج محلياً
-                documentsSnapshot.forEach(doc => {
-                    const data = doc.data();
+                snapshots.forEach(snap => {
+                    snap.forEach(doc => {
+                        if (seen.has(doc.id)) return; // منع التكرار بين الاستعلامين
+                        const data = doc.data();
                     
-                    // تطبيق فلتر الفئة
-                    if (categoryFilter && data.category !== categoryFilter) {
-                        return;
-                    }
-                    
-                    const title = (data.title || '').toLowerCase();
-                    const description = (data.description || '').toLowerCase();
-                    const fileName = (data.fileName || '').toLowerCase();
-                    const tags = data.tags || [];
-                    
-                    // إذا كان البحث متقدماً بدون كلمة بحث، اعرض جميع النتائج المفلترة
-                    if (useAdvancedFilters && !query) {
-                        results.push({
-                            id: doc.id,
-                            data: data,
-                            relevance: 1
-                        });
-                        return;
-                    }
-                    
-                    // البحث في العنوان أو الوصف أو اسم الملف أو العلامات
-                    const matchesTitle = title.includes(query);
-                    const matchesDescription = description.includes(query);
-                    const matchesFileName = fileName.includes(query);
-                    const matchesTags = tags.some(tag => tag.toLowerCase().includes(query));
-                    
-                    if (matchesTitle || matchesDescription || matchesFileName || matchesTags) {
-                        results.push({
-                            id: doc.id,
-                            data: data,
-                            relevance: calculateRelevance(query, title, description, fileName, tags)
-                        });
-                    }
+                        // تطبيق فلتر الفئة
+                        if (categoryFilter && data.category !== categoryFilter) {
+                            return;
+                        }
+                        // تطبيق فلتر الدور (محلياً إذا كان الحقل موجوداً في المستند)
+                        if (roleFilter) {
+                            const docRole = (data.role || data.departmentRole || data.assignedRole || '').toString();
+                            if (!docRole || docRole !== roleFilter) {
+                                return;
+                            }
+                        }
+                        // تطبيق فلتر الحالة غير النشطة محلياً (لأن where OR غير متاح)
+                        if (statusVal === 'inactive') {
+                            const isActive = data.isActive;
+                            if (isActive === true) return; // استبعد النشطة
+                        }
+                        
+                        const title = (data.title || '').toLowerCase();
+                        const description = (data.description || '').toLowerCase();
+                        const fileName = (data.fileName || '').toLowerCase();
+                        const tags = data.tags || [];
+                        
+                        // إذا كان البحث متقدماً بدون كلمة بحث، أو تم إدخال كلمة "الجميع"/"الكل"، اعرض جميع النتائج المفلترة
+                        if ((useAdvancedFilters && !query) || isMatchAll) {
+                            results.push({ id: doc.id, data: data, relevance: 1 });
+                            seen.add(doc.id);
+                            return;
+                        }
+                        
+                        // البحث في العنوان أو الوصف أو اسم الملف أو العلامات
+                        const matchesTitle = title.includes(query);
+                        const matchesDescription = description.includes(query);
+                        const matchesFileName = fileName.includes(query);
+                        const matchesTags = tags.some(tag => tag.toLowerCase().includes(query));
+                        
+                        if (matchesTitle || matchesDescription || matchesFileName || matchesTags) {
+                            results.push({ id: doc.id, data: data, relevance: calculateRelevance(query, title, description, fileName, tags) });
+                            seen.add(doc.id);
+                        }
+                    });
                 });
 
-                // ترتيب النتائج حسب الصلة
-                results.sort((a, b) => b.relevance - a.relevance);
+                // ترتيب النتائج
+                const getDocDate = (d) => {
+                    try {
+                        const ts = d.uploadedAt || d.createdAt || d.timestamp || d.created_at;
+                        const dt = ts?.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
+                        return dt && !isNaN(dt.getTime()) ? dt.getTime() : 0;
+                    } catch { return 0; }
+                };
+                if (isMatchAll || (useAdvancedFilters && !query)) {
+                    // في حالة عرض الجميع أو البحث المتقدم بدون كلمة، رتّب بالأحدث
+                    results.sort((a, b) => getDocDate(b.data) - getDocDate(a.data));
+                } else {
+                    // خلاف ذلك: رتّب حسب الصلة ثم بالتاريخ
+                    results.sort((a, b) => (b.relevance - a.relevance) || (getDocDate(b.data) - getDocDate(a.data)));
+                }
+
+                // Add notice to stats about department scoping for non-privileged users
+                if (!isPrivileged) {
+                    const info = document.getElementById('searchInfo');
+                    const stats = document.getElementById('searchStats');
+                    if (info && stats) {
+                        const deptLabel = userDeptRaw || userDept;
+                        const base = stats.textContent || '';
+                        stats.textContent = `${base} — النتائج محصورة على قسمك: ${deptLabel}`.trim();
+                        info.classList.remove('d-none');
+                    }
+                }
 
                 displayResults(results, query);
                 
@@ -460,12 +686,17 @@
                 searchInfo.classList.add('d-none');
             } else {
                 // عرض إحصائيات البحث
-                searchStats.textContent = `تم العثور على ${results.length} نتيجة${results.length > 20 ? ' (عرض أول 20 نتيجة)' : ''}`;
+                searchStats.textContent = `تم العثور على ${results.length} نتيجة${results.length > 20 ? ' — عرض أول 20 نتيجة' : ''}`;
                 searchInfo.classList.remove('d-none');
                 
                 for (const result of results.slice(0, 20)) {
                     const data = result.data;
-                    const uploadDate = data.uploadedAt ? new Date(data.uploadedAt.toDate()).toLocaleDateString('ar-SA') : 'غير محدد';
+                    let uploadDate = 'غير محدد';
+                    try {
+                        const ts = data.uploadedAt || data.createdAt || data.timestamp || data.created_at;
+                        const dt = ts?.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
+                        if (dt && !isNaN(dt.getTime())) uploadDate = dt.toLocaleDateString('ar-SA');
+                    } catch {}
                     const fileSize = data.fileSize ? (data.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'غير محدد';
                     
                     // تمييز النص المطابق
@@ -578,4 +809,6 @@
     </script>
 </body>
 </html>
+
+
 

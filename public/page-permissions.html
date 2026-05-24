@@ -13,17 +13,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <!-- Styles -->
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     
     <style>
+        .max-w-360 { max-width: 360px; }
+        /* تخصيصات مصفوفة صلاحيات المستخدم الجديدة */
+        .user-permission-actions{display:none;}
+        .user-permission-matrix-wrapper{display:none;}
+        .col-page-name{min-width:220px;}
+        .col-user-enabled{width:120px;}
+        .col-page-desc{width:200px;}
+        .col-page-cat{width:140px;}
         .main-content {
-            margin-right: 280px;
+            margin-right: 0; /* يستخدم الشريط الجانبي النمطي كـ overlay، لا حاجة لحجز مساحة */
             transition: margin-right 0.3s ease;
             padding: 2rem;
-        }
-
-        .sidebar-collapsed .main-content {
-            margin-right: 0;
         }
 
         .page-header {
@@ -163,42 +167,32 @@
             }
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-archive"></i>
-                <span>نظام الأرشيف</span>
-            </div>
-            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="user-info" id="userInfo">
-            <!-- سيتم ملؤها بـ JavaScript -->
-        </div>
-        
-        <nav class="sidebar-nav" id="sidebarNav">
-            <!-- سيتم ملؤها بـ JavaScript -->
-        </nav>
-    </aside>
-
-    <div class="overlay" id="overlay"></div>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    <!-- الشريط العلوي يُحقن بواسطة Unified UI تلقائياً -->
 
     <main class="main-content">
         <div class="page-header">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h1 class="page-title mb-2">إدارة صلاحيات الصفحات</h1>
-                    <p class="text-muted mb-0">تحديد الصفحات المتاحة لكل نوع مستخدم</p>
+                    <p class="text-muted mb-0">تحديد الصفحات المتاحة حسب الدور أو الإدارة</p>
                 </div>
                 <div>
                     <button class="btn btn-outline-primary me-2" onclick="resetToDefaults()">
                         <i class="fas fa-undo me-2"></i>
                         القيم الافتراضية
+                    </button>
+                    <button class="btn btn-outline-success me-2" onclick="reloadPermissions()">
+                        <i class="fas fa-sync-alt me-2"></i>
+                        إعادة تحميل
+                    </button>
+                    <button class="btn btn-outline-info me-2" onclick="syncWithSystem()">
+                        <i class="fas fa-download me-2"></i>
+                        مزامنة مع النظام
                     </button>
                     <button class="btn btn-primary" onclick="savePermissions()">
                         <i class="fas fa-save me-2"></i>
@@ -213,13 +207,13 @@
             <div class="col-md-3">
                 <div class="permission-card text-center">
                     <div class="h3 text-danger mb-1" id="adminPages">-</div>
-                    <div class="text-muted">صفحات المدراء</div>
+                    <div class="text-muted">صفحات مدير النظام</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="permission-card text-center">
                     <div class="h3 text-warning mb-1" id="managerPages">-</div>
-                    <div class="text-muted">صفحات المديرين</div>
+                    <div class="text-muted">صفحات مدراء الإدارات</div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -231,7 +225,7 @@
             <div class="col-md-3">
                 <div class="permission-card text-center">
                     <div class="h3 text-secondary mb-1" id="viewerPages">-</div>
-                    <div class="text-muted">صفحات المستعرضين</div>
+                    <div class="text-muted">صفحات مستعرضين</div>
                 </div>
             </div>
         </div>
@@ -246,7 +240,7 @@
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-success btn-sm" onclick="enableAllForRole('admin')">
                         <i class="fas fa-check-double me-1"></i>
-                        تفعيل كل شيء للمدراء
+                        تفعيل كل شيء لمدير النظام
                     </button>
                     <button class="btn btn-outline-warning btn-sm" onclick="togglePageView()">
                         <i class="fas fa-eye me-1"></i>
@@ -262,15 +256,15 @@
                             <th width="30%">الصفحة</th>
                             <th width="15%" class="text-center">
                                 <i class="fas fa-user-shield text-danger"></i><br>
-                                <small>مدراء</small>
+                                <small>مدير النظام</small>
                             </th>
                             <th width="15%" class="text-center">
                                 <i class="fas fa-user-tie text-warning"></i><br>
-                                <small>مديرين</small>
+                                <small>مدراء الإدارات</small>
                             </th>
                             <th width="15%" class="text-center">
                                 <i class="fas fa-user text-success"></i><br>
-                                <small>موظفين</small>
+                                <small>الموظفين</small>
                             </th>
                             <th width="15%" class="text-center">
                                 <i class="fas fa-user-clock text-secondary"></i><br>
@@ -286,7 +280,104 @@
             </div>
         </div>
 
+        <!-- صلاحيات الصفحات حسب الإدارة -->
+        <div class="permission-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-building me-2"></i>
+                    مصفوفة صلاحيات الصفحات (حسب الإدارة)
+                </h5>
+                <small class="text-muted">حدد الصفحات المسموح بها لكل إدارة</small>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <label for="departmentSelect" class="form-label mb-0">الإدارة:</label>
+                <select id="departmentSelect" class="form-select max-w-360">
+                    <option value="" disabled selected>اختر الإدارة</option>
+                </select>
+                <button class="btn btn-outline-success btn-sm" id="enableAllDeptBtn" disabled>
+                    <i class="fas fa-check-double me-1"></i>تفعيل كل الصفحات
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" id="clearAllDeptBtn" disabled>
+                    <i class="fas fa-eraser me-1"></i>مسح الكل
+                </button>
+            </div>
+
+            <div id="deptHint" class="alert alert-info d-none">
+                لا توجد إدارات متاحة. يمكنك إدارتها من شاشة الإدارات.
+                <a href="department-management.html" class="alert-link">الانتقال لإدارة الإدارات</a>
+            </div>
+
+            <div class="permission-matrix">
+                <table class="table table-bordered matrix-table" id="departmentPermissionMatrix">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="40%">الصفحة</th>
+                            <th width="50%" class="text-center">مفعلة لهذه الإدارة</th>
+                            <th width="10%" class="text-center">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deptPagesTableBody">
+                        <!-- سيتم تعبئتها ديناميكياً -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- إضافة صفحة جديدة -->
+        <!-- صلاحيات الصفحات حسب المستخدم (ميزة جديدة) -->
+        <div class="permission-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-lock me-2"></i>
+                    صلاحيات حسب المستخدم
+                </h5>
+                <small class="text-muted">الأولوية: (مستخدم) ← (إدارة) ← (دور)</small>
+            </div>
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-4">
+                    <label for="userPermissionIdentifier" class="form-label">البريد الإلكتروني أو UID المستخدم</label>
+                    <input type="text" id="userPermissionIdentifier" class="form-control" placeholder="user@example.com أو UID">
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-primary w-100" onclick="findUserForPermissions()">
+                        <i class="fas fa-search me-2"></i>بحث المستخدم
+                    </button>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-success w-100" id="saveUserPermissionsBtn" onclick="saveUserPagePermissions()" disabled>
+                        <i class="fas fa-save me-2"></i>حفظ صلاحيات المستخدم
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" onclick="resetUserPermissionContext()">
+                        <i class="fas fa-times me-2"></i>إلغاء
+                    </button>
+                </div>
+            </div>
+            <div id="userPermissionTargetInfo" class="alert alert-info d-none mb-3"></div>
+            <div class="d-flex gap-2 mb-2 user-permission-actions" id="userPermissionActions">
+                <button class="btn btn-sm btn-outline-success" onclick="toggleAllUserPages(true)"><i class="fas fa-check-double me-1"></i>تحديد الكل</button>
+                <button class="btn btn-sm btn-outline-warning" onclick="toggleAllUserPages(false)"><i class="fas fa-ban me-1"></i>إلغاء الكل</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearUserPageOverrides()"><i class="fas fa-trash me-1"></i>مسح التخصيص</button>
+            </div>
+            <div class="permission-matrix user-permission-matrix-wrapper" id="userPermissionMatrixWrapper">
+                <table class="table table-bordered matrix-table" id="userPermissionMatrix">
+                    <thead>
+                        <tr class="table-light">
+                            <th class="col-page-name">الصفحة</th>
+                            <th class="col-user-enabled">مفعل للمستخدم؟</th>
+                            <th class="col-page-desc">الوصف</th>
+                            <th class="col-page-cat">الفئة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userPermissionMatrixBody">
+                        <tr><td colspan="4" class="text-center text-muted">ابدأ بإدخال البريد الإلكتروني أو الـ UID والبحث</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="permission-card">
             <h5 class="mb-3">
                 <i class="fas fa-plus-circle me-2"></i>
@@ -363,29 +454,170 @@
     <!-- Unified Authentication System -->
     <script src="assets/js/unified-auth.js"></script>
 
-    <script src="assets/js/roles.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    <!-- تمت إزالة السكربتات القديمة للشريط الجانبي لتفادي التعارض -->
 
     <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBn9zLcodNLKWlUPfqsnEGoA1z7QZw_Ezk",
-            authDomain: "archive-tech.firebaseapp.com",
-            projectId: "archive-tech",
-            storageBucket: "archive-tech.firebasestorage.app",
-            messagingSenderId: "911076711034",
-            appId: "1:911076711034:web:7f190eed397becfe6779c3",
-            measurementId: "G-1PQMDXZ714"
-        };
-
         // Firebase initialization will be handled by firebase-init.js
         // Variables will be available globally
         
         let currentUser = null;
-        let sidebarManager = null;
-        let pagePermissions = {};
+        let sidebarManager = null; // لم يعد مطلوباً مع النظام الموحد، سيبقى null
+    let pagePermissions = {};
+    // Department-based page permissions state
+    let departmentPermissions = {}; // { [deptId]: { pages: { [pageId]: boolean }, updatedAt, updatedBy } }
+    let departmentsList = [];
         let pageToDelete = null;
         let isSimpleView = false;
+
+        // دالة تسجيل الخروج العامة (تستخدمها أزرار الشريط العلوي الموحد)
+        async function logout() {
+            if (!window.firebase || !firebase.auth) {
+                window.location.href = 'login.html';
+                return;
+            }
+            if (!confirm('هل أنت متأكد من تسجيل الخروج؟')) return;
+            try {
+                await firebase.auth().signOut();
+                try { localStorage.removeItem('archiveDemoMode'); localStorage.removeItem('demo_mode'); } catch(_) {}
+                window.location.href = 'index.html';
+            } catch (e) {
+                console.error('Logout error:', e);
+                showAlert('حدث خطأ في تسجيل الخروج', 'error');
+            }
+        }
+
+        // ضمان وجود الشريط الجانبي وإنشائه عند الحاجة (نسخة خفيفة متوافقة مع النظام الموحد)
+        function ensureSidebar() {
+            try {
+                let sidebar = document.getElementById('sidebar');
+                if (!sidebar) {
+                    sidebar = document.createElement('aside');
+                    sidebar.id = 'sidebar';
+                    sidebar.className = 'sidebar';
+                    try { sidebar.setAttribute('aria-hidden', 'true'); } catch(_) {}
+                    document.body.appendChild(sidebar);
+                }
+                if (window.unifiedUI && typeof window.unifiedUI.renderSidebar === 'function' && (!sidebar.innerHTML || sidebar.innerHTML.trim() === '')) {
+                    try { window.unifiedUI.renderSidebar(); } catch(_) {}
+                }
+                if (!document.querySelector('.sidebar-overlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'sidebar-overlay';
+                    overlay.id = 'sidebarOverlay';
+                    document.body.appendChild(overlay);
+                }
+                const menuBtn = document.getElementById('menuToggle');
+                if (menuBtn && !menuBtn.dataset.bound) {
+                    menuBtn.dataset.bound = '1';
+                    menuBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (window.unifiedUI && typeof window.unifiedUI.toggleSidebar === 'function') {
+                            window.unifiedUI.toggleSidebar();
+                        } else {
+                            const wasOpen = sidebar.classList.contains('active');
+                            sidebar.classList.toggle('active');
+                            const overlayEl = document.querySelector('.sidebar-overlay');
+                            if (overlayEl) overlayEl.classList.toggle('active');
+                            document.body.classList.toggle('sidebar-open');
+                            try { sidebar.setAttribute('aria-hidden', wasOpen ? 'true' : 'false'); } catch(_) {}
+                        }
+                    });
+                }
+                const overlayEl = document.querySelector('.sidebar-overlay');
+                if (overlayEl && !overlayEl.dataset.bound) {
+                    overlayEl.dataset.bound = '1';
+                    overlayEl.addEventListener('click', () => {
+                        if (window.unifiedUI && typeof window.unifiedUI.closeSidebar === 'function') {
+                            window.unifiedUI.closeSidebar();
+                        } else if (sidebar) {
+                            sidebar.classList.remove('active');
+                            try { sidebar.setAttribute('aria-hidden', 'true'); } catch(_) {}
+                            overlayEl.classList.remove('active');
+                            document.body.classList.remove('sidebar-open');
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('ensureSidebar() failed:', e);
+            }
+        }
+
+        // إعادة الربط بعد إعادة رسم الشريط العلوي/الجانبي من قبل النظام الموحد
+        try {
+            document.addEventListener('firebaseAuthReady', async () => {
+                try {
+                    if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                        await window.unifiedUI.updateSidebar();
+                    }
+                } catch(_) {}
+                try { ensureSidebar(); } catch(_) {}
+            });
+        } catch(_) {}
+
+        // دالة عرض التنبيهات
+        function showAlert(message, type = 'info') {
+            // استخدام SweetAlert إذا كان متوفراً
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: type === 'error' ? 'خطأ' : type === 'success' ? 'نجح' : 'تنبيه',
+                    text: message,
+                    icon: type === 'error' ? 'error' : type === 'success' ? 'success' : 'info',
+                    confirmButtonText: 'موافق'
+                });
+            } else {
+                // استخدام alert العادي كبديل
+                alert(message);
+            }
+        }
+
+        // دالة مساعدة لتسجيل الأنشطة مع معرف المستخدم
+        function logActivity(action, details = {}) {
+            try {
+                if (window.activityLogger && typeof window.activityLogger.logActivity === 'function') {
+                    const activityData = {
+                        ...details,
+                        page: 'page-permissions',
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    // إضافة معرف المستخدم إذا كان متوفراً
+                    if (window.currentUser && window.currentUser.uid) {
+                        activityData.userId = window.currentUser.uid;
+                    }
+                    
+                    window.activityLogger.logActivity(action, activityData);
+                } else {
+                    console.log('Activity:', action, details);
+                }
+            } catch (error) {
+                console.error('خطأ في تسجيل النشاط:', error);
+            }
+        }
+
+        // دالة انتظار تهيئة Firebase والمصادقة
+        async function waitForFirebaseAndAuth() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkReady = () => {
+                    attempts++;
+                    
+                    if (window.firebase && 
+                        window.firebase.auth && 
+                        window.firebase.firestore &&
+                        window.unifiedAuth) {
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error('Firebase initialization timeout'));
+                    } else {
+                        setTimeout(checkReady, 100);
+                    }
+                };
+                
+                checkReady();
+            });
+        }
 
         // الصفحات الافتراضية للنظام
         const defaultPages = {
@@ -570,80 +802,694 @@
                     employee: true,
                     viewer: true
                 }
+            },
+            'activity-logs': {
+                name: 'سجل الأنشطة',
+                path: 'activity-logs.html',
+                icon: 'fas fa-history',
+                description: 'عرض سجل أنشطة النظام',
+                category: 'admin',
+                permissions: {
+                    admin: true,
+                    manager: false,
+                    employee: false,
+                    viewer: false
+                }
+            },
+            'invitations': {
+                name: 'إدارة الدعوات',
+                path: 'invitations.html',
+                icon: 'fas fa-envelope',
+                description: 'إدارة دعوات المستخدمين',
+                category: 'admin',
+                permissions: {
+                    admin: true,
+                    manager: false,
+                    employee: false,
+                    viewer: false
+                }
+            },
+            'notification-settings': {
+                name: 'إعدادات الإشعارات',
+                path: 'notification-settings.html',
+                icon: 'fas fa-bell',
+                description: 'إدارة إعدادات الإشعارات',
+                category: 'settings',
+                permissions: {
+                    admin: true,
+                    manager: true,
+                    employee: true,
+                    viewer: true
+                }
+            },
+            'archive-dashboard': {
+                name: 'لوحة الأرشيف',
+                path: 'archive-dashboard.html',
+                icon: 'fas fa-archive',
+                description: 'لوحة تحكم الأرشيف الرئيسية',
+                category: 'main',
+                permissions: {
+                    admin: true,
+                    manager: true,
+                    employee: true,
+                    viewer: true
+                }
+            },
+            'collection-dashboard': {
+                name: 'لوحة المجموعات',
+                path: 'collection-dashboard.html',
+                icon: 'fas fa-layer-group',
+                description: 'إدارة مجموعات الملفات',
+                category: 'files',
+                permissions: {
+                    admin: true,
+                    manager: true,
+                    employee: true,
+                    viewer: false
+                }
+            },
+            'legal-dashboard': {
+                name: 'القسم القانوني',
+                path: 'legal-dashboard.html',
+                icon: 'fas fa-gavel',
+                description: 'لوحة تحكم القسم القانوني',
+                category: 'departments',
+                permissions: {
+                    admin: true,
+                    manager: true,
+                    employee: true,
+                    viewer: false
+                }
+            },
+            'forgot-password': {
+                name: 'نسيت كلمة المرور',
+                path: 'forgot-password.html',
+                icon: 'fas fa-unlock-alt',
+                description: 'صفحة استعادة كلمة المرور',
+                category: 'auth',
+                permissions: {
+                    admin: true,
+                    manager: true,
+                    employee: true,
+                    viewer: true
+                }
+            },
+            'create-admin': {
+                name: 'إنشاء مدير',
+                path: 'create-admin.html',
+                icon: 'fas fa-user-plus',
+                description: 'إنشاء حساب مدير جديد',
+                category: 'admin',
+                permissions: {
+                    admin: true,
+                    manager: false,
+                    employee: false,
+                    viewer: false
+                }
+            },
+            // صفحات عامة أساسية
+            'index': {
+                name: 'الصفحة الرئيسية',
+                path: 'index.html',
+                icon: 'fas fa-home',
+                description: 'الصفحة الترحيبية للنظام',
+                category: 'public',
+                permissions: { admin: true, manager: true, employee: true, viewer: true }
+            },
+            'terms': {
+                name: 'الشروط والأحكام',
+                path: 'terms.html',
+                icon: 'fas fa-file-contract',
+                description: 'صفحة الشروط والأحكام',
+                category: 'public',
+                permissions: { admin: true, manager: true, employee: true, viewer: true }
+            },
+            'privacy': {
+                name: 'سياسة الخصوصية',
+                path: 'privacy.html',
+                icon: 'fas fa-user-shield',
+                description: 'سياسة الخصوصية',
+                category: 'public',
+                permissions: { admin: true, manager: true, employee: true, viewer: true }
+            },
+            'contact': {
+                name: 'اتصل بنا',
+                path: 'contact.html',
+                icon: 'fas fa-envelope-open-text',
+                description: 'نموذج الاتصال والدعم',
+                category: 'public',
+                permissions: { admin: true, manager: true, employee: true, viewer: true }
+            },
+            'access-denied': {
+                name: 'تم رفض الوصول',
+                path: 'access-denied.html',
+                icon: 'fas fa-ban',
+                description: 'صفحة تنبيه عند عدم وجود صلاحية',
+                category: 'public',
+                permissions: { admin: true, manager: true, employee: true, viewer: true }
+            },
+            // صفحات إدارية وإضافية
+            'users': {
+                name: 'قائمة المستخدمين',
+                path: 'users.html',
+                icon: 'fas fa-users',
+                description: 'عرض قائمة المستخدمين',
+                category: 'admin',
+                permissions: { admin: true, manager: true, employee: true, viewer: false }
+            },
+            'department-management': {
+                name: 'إدارة الإدارات',
+                path: 'department-management.html',
+                icon: 'fas fa-sitemap',
+                description: 'إدارة أقسام/إدارات النظام',
+                category: 'admin',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            // لوحات إدارات إضافية
+            'it-dashboard': {
+                name: 'لوحة تقنية المعلومات',
+                path: 'it-dashboard.html',
+                icon: 'fas fa-laptop-code',
+                description: 'لوحة تحكم تقنية المعلومات',
+                category: 'departments',
+                permissions: { admin: true, manager: true, employee: true, viewer: false }
+            },
+            'governance-dashboard': {
+                name: 'لوحة الحوكمة والامتثال',
+                path: 'governance-dashboard.html',
+                icon: 'fas fa-shield-alt',
+                description: 'لوحة تحكم الحوكمة والامتثال',
+                category: 'departments',
+                permissions: { admin: true, manager: true, employee: true, viewer: false }
+            },
+            'securitization-dashboard': {
+                name: 'لوحة التوريق',
+                path: 'securitization-dashboard.html',
+                icon: 'fas fa-coins',
+                description: 'لوحة تحكم التوريق',
+                category: 'departments',
+                permissions: { admin: true, manager: true, employee: true, viewer: false }
+            },
+            // صفحات اختبار/تشخيص داخلية (مقيدة للمدير افتراضياً)
+            'quick-test': {
+                name: 'اختبار سريع',
+                path: 'quick-test.html',
+                icon: 'fas fa-vial',
+                description: 'صفحة اختبار سريعة للميزات',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'quick-auth-test': {
+                name: 'اختبار مصادقة سريع',
+                path: 'quick-auth-test.html',
+                icon: 'fas fa-lock',
+                description: 'اختبار سريع لتدفق المصادقة',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'roles-test': {
+                name: 'اختبار الأدوار',
+                path: 'roles-test.html',
+                icon: 'fas fa-user-tag',
+                description: 'تشخيص صلاحيات الأدوار',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'permission-test': {
+                name: 'اختبار الصلاحيات',
+                path: 'permission-test.html',
+                icon: 'fas fa-key',
+                description: 'تشخيص نظام الصلاحيات',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'notification-test': {
+                name: 'اختبار الإشعارات',
+                path: 'notification-test.html',
+                icon: 'fas fa-bell',
+                description: 'اختبار نظام الإشعارات',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'notification-simple-test': {
+                name: 'اختبار إشعارات مبسط',
+                path: 'notification-simple-test.html',
+                icon: 'fas fa-bell',
+                description: 'اختبار مبسط للإشعارات',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'notification-quick-test': {
+                name: 'اختبار إشعارات سريع',
+                path: 'notification-quick-test.html',
+                icon: 'fas fa-bell',
+                description: 'تشخيص سريع للتنبيهات',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'firebase-auth-diagnostic': {
+                name: 'تشخيص مصادقة Firebase',
+                path: 'firebase-auth-diagnostic.html',
+                icon: 'fas fa-stethoscope',
+                description: 'تشخيص مشاكل مصادقة Firebase',
+                category: 'diagnostics',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'firebase-app-test': {
+                name: 'اختبار تطبيق Firebase',
+                path: 'firebase-app-test.html',
+                icon: 'fas fa-fire',
+                description: 'تشخيص إعدادات Firebase',
+                category: 'diagnostics',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'test-firebase': {
+                name: 'اختبار Firebase',
+                path: 'test-firebase.html',
+                icon: 'fas fa-fire',
+                description: 'صفحة اختبار Firebase عامة',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'test-auth-init': {
+                name: 'اختبار تهيئة المصادقة',
+                path: 'test-auth-init.html',
+                icon: 'fas fa-plug',
+                description: 'تشخيص تهيئة المصادقة',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'test-database-routing': {
+                name: 'اختبار توجيه قاعدة البيانات',
+                path: 'test-database-routing.html',
+                icon: 'fas fa-database',
+                description: 'تشخيص توجيه بيانات Firestore',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'test-app-check': {
+                name: 'اختبار App Check',
+                path: 'test-app-check.html',
+                icon: 'fas fa-shield-alt',
+                description: 'تشخيص App Check',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'test-simple': {
+                name: 'اختبار بسيط',
+                path: 'test-simple.html',
+                icon: 'fas fa-vial',
+                description: 'صفحة اختبار بسيطة',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'test-simplified-routing': {
+                name: 'اختبار توجيه مبسط',
+                path: 'test-simplified-routing.html',
+                icon: 'fas fa-route',
+                description: 'تشخيص توجيه الصفحات',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'unified-auth-test': {
+                name: 'اختبار المصادقة الموحد',
+                path: 'unified-auth-test.html',
+                icon: 'fas fa-user-lock',
+                description: 'تشخيص نظام المصادقة الموحد',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'system-integration-test': {
+                name: 'اختبار تكامل النظام',
+                path: 'system-integration-test.html',
+                icon: 'fas fa-puzzle-piece',
+                description: 'اختبار تكامل المكونات',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'auth-test': {
+                name: 'اختبار المصادقة',
+                path: 'auth-test.html',
+                icon: 'fas fa-key',
+                description: 'صفحة اختبار المصادقة',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'advanced-auth-test': {
+                name: 'اختبار مصادقة متقدم',
+                path: 'advanced-auth-test.html',
+                icon: 'fas fa-user-shield',
+                description: 'اختبارات متقدمة لنظام المصادقة',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'simple-debug': {
+                name: 'تشخيص بسيط',
+                path: 'simple-debug.html',
+                icon: 'fas fa-bug',
+                description: 'صفحة لتشخيص سريع',
+                category: 'diagnostics',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'sidebar-diagnostic': {
+                name: 'تشخيص الشريط الجانبي',
+                path: 'sidebar-diagnostic.html',
+                icon: 'fas fa-columns',
+                description: 'تشخيص قوالب الشريط الجانبي',
+                category: 'diagnostics',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'emergency-test': {
+                name: 'اختبار طوارئ',
+                path: 'emergency-test.html',
+                icon: 'fas fa-exclamation-triangle',
+                description: 'سيناريوهات طوارئ للاختبار',
+                category: 'diagnostics',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            'session-test': {
+                name: 'اختبار الجلسة',
+                path: 'session-test.html',
+                icon: 'fas fa-stream',
+                description: 'اختبار إدارة الجلسات',
+                category: 'tests',
+                permissions: { admin: true, manager: false, employee: false, viewer: false }
+            },
+            // صفحات بديلة أو مساعدة
+            'upload-fixed': {
+                name: 'رفع الملفات (إصدار بديل)',
+                path: 'upload-fixed.html',
+                icon: 'fas fa-upload',
+                description: 'إصدار بديل من صفحة الرفع',
+                category: 'files',
+                permissions: { admin: true, manager: true, employee: true, viewer: false }
             }
         };
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', async function() {
-            sidebarManager = new SidebarManager();
-            
             try {
-                // Wait for unified auth system
-                await unifiedAuth.waitForAuth();
+                // تهيئة واجهة المستخدم الموحدة ثم ضمان الشريط الجانبي
+                // Unified UI auto-initializes; just refresh sidebar if needed
+                try { await window.unifiedUI?.updateSidebar?.(); } catch(_) {}
+                ensureSidebar();
+
+                logActivity('page_access', {
+                    path: window.location.pathname
+                });
+
+                console.log('🚀 بدء تهيئة صفحة إدارة الصلاحيات...');
+
+                // Wait for Firebase and authentication to be ready
+                await waitForFirebaseAndAuth();
                 
-                if (!unifiedAuth.currentUser) {
-                    window.location.href = 'login.html';
+                console.log('✅ Firebase جاهز للاستخدام');
+
+                // لا حاجة لمدير الشريط الجانبي مع النظام الموحد
+
+                // تحقق من حالة المصادقة
+                console.log('🔍 فحص حالة المستخدم...');
+                let user = firebase.auth().currentUser;
+                
+                if (!user) {
+                    console.log('⏳ انتظار تحميل حالة المستخدم...');
+                    // انتظار قصير لتحميل حالة المستخدم
+                    await new Promise(resolve => {
+                        const unsubscribe = firebase.auth().onAuthStateChanged((authUser) => {
+                            unsubscribe();
+                            user = authUser;
+                            resolve();
+                        });
+                    });
+                }
+
+                if (!user) {
+                    console.log('❌ المستخدم غير مسجل دخول، إعادة توجيه للتسجيل');
+                    logActivity('auth_redirect', {
+                        reason: 'no_user'
+                    });
+                    window.location.href = '/login.html';
                     return;
                 }
 
-                currentUser = unifiedAuth.currentUser;
-                await checkAdminPermissions();
-                await loadPagePermissions();
+                currentUser = user;
+                window.currentUser = user;
+                console.log('✅ المستخدم مسجل دخول:', user.email);
+
+                logActivity('auth_success', {
+                    user_email: user.email
+                });
+
+                // Check admin permissions - الآن مع آلية محسنة
+                const hasPermission = await checkAdminPermissions();
+                if (!hasPermission) {
+                    console.log('❌ المستخدم لا يملك صلاحيات الإدارة');
+                    return;
+                }
+
+                console.log('✅ تم التحقق من صلاحيات الإدارة بنجاح');
+
+                // Load page permissions - تحميل الصلاحيات في كل الأحوال
+                console.log('🔄 بدء تحميل صلاحيات الصفحات...');
+                pagePermissions = { ...defaultPages }; // التأكد من وجود بيانات افتراضية
+                await Promise.all([
+                    loadPagePermissions(),
+                    loadDepartments()
+                ]);
+                bindDepartmentTabHandlers();
+
+                console.log('🎉 تم تهيئة الصفحة بنجاح!');
+
             } catch (error) {
-                console.error('خطأ في تحميل الصفحة:', error);
-                window.location.href = 'login.html';
+                console.error('❌ خطأ في تهيئة الصفحة:', error);
+                logActivity('page_error', {
+                    error: error.message
+                });
+                showAlert('حدث خطأ في تحميل الصفحة. يرجى إعادة تحميل الصفحة.', 'error');
+                
+                // في حالة الخطأ، استخدم البيانات الافتراضية
+                console.log('🔄 استخدام البيانات الافتراضية بسبب الخطأ');
+                pagePermissions = { ...defaultPages };
+                renderPermissionMatrix();
+                updateStatistics();
             }
         });
 
         async function checkAdminPermissions() {
             try {
-                const userData = await unifiedAuth.getCurrentUserData();
-                
-                if (!userData || userData.role !== 'admin' || !userData.permissions?.isAdmin) {
-                    alert('ليس لديك صلاحية للوصول لهذه الصفحة');
-                    window.location.href = 'dashboard.html';
-                    return;
+                if (!currentUser) {
+                    console.log('❌ لا يوجد مستخدم مسجل دخول');
+                    logActivity('permission_denied', {
+                        reason: 'no_user'
+                    });
+                    window.location.href = '/login.html';
+                    return false;
                 }
 
-                // Update sidebar with user info
-                if (sidebarManager) {
-                    sidebarManager.updateSidebarNav(true, userData.role);
+                console.log('🔍 فحص صلاحيات المستخدم:', currentUser.email);
+
+                // فحص البريد الإلكتروني أولاً للمدراء المعروفين
+                const isAdminEmail = currentUser.email && (
+                    currentUser.email.includes('admin') || 
+                    currentUser.email === 'admin123@aman.eg' ||
+                    currentUser.email === 'admin@aman.eg' ||
+                    currentUser.email === 'kareemqotp@gmail.com'
+                );
+
+                let userData = {};
+                let userRole = 'viewer';
+
+                // محاولة الحصول على بيانات المستخدم من قاعدة البيانات
+                try {
+                    if (firebase.firestore) {
+                        const userDoc = await firebase.firestore().collection('users').doc(currentUser.uid).get();
+                        if (userDoc.exists) {
+                            userData = userDoc.data();
+                            userRole = userData.role || 'viewer';
+                            console.log('✅ تم العثور على بيانات المستخدم في قاعدة البيانات:', userRole);
+                        } else {
+                            console.log('⚠️ لم يتم العثور على بيانات المستخدم في قاعدة البيانات');
+                        }
+                    }
+                } catch (dbError) {
+                    console.warn('⚠️ خطأ في الاتصال بقاعدة البيانات:', dbError);
                 }
+
+                // إذا كان البريد الإلكتروني للمدير، فرض الدور admin
+                if (isAdminEmail) {
+                    userRole = 'admin';
+                    console.log('✅ تم تعيين دور المدير بناءً على البريد الإلكتروني');
+                    
+                    // تحديث قاعدة البيانات إذا كانت متوفرة
+                    try {
+                        if (firebase.firestore) {
+                            const updateData = {
+                                uid: currentUser.uid,
+                                email: currentUser.email,
+                                role: 'admin',
+                                lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            };
+
+                            if (!userData.displayName && currentUser.displayName) {
+                                updateData.displayName = currentUser.displayName;
+                            }
+
+                            await firebase.firestore().collection('users').doc(currentUser.uid).set(updateData, { merge: true });
+                            console.log('✅ تم تحديث بيانات المدير في قاعدة البيانات');
+                        }
+                    } catch (updateError) {
+                        console.warn('⚠️ فشل في تحديث قاعدة البيانات:', updateError);
+                    }
+                }
+
+                // التحقق من صلاحيات المدير
+                if (userRole !== 'admin') {
+                    console.log('❌ المستخدم ليس مديراً:', userRole);
+                    logActivity('permission_denied', {
+                        user_role: userRole,
+                        required_role: 'admin',
+                        user_email: currentUser.email
+                    });
+                    showAlert('عذراً، لا تملك صلاحية للوصول إلى هذه الصفحة. مطلوب صلاحيات مدير.', 'error');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard.html';
+                    }, 3000);
+                    return false;
+                }
+
+                console.log('✅ المستخدم لديه صلاحيات المدير');
+
+                // تحديث واجهة المستخدم
+                const displayName = userData.displayName || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'مستخدم');
+                
+                // تحديث الشريط الجانبي عبر النظام الموحد
+                try {
+                    window.unifiedAuth = window.unifiedAuth || {};
+                    window.unifiedAuth.currentUser = {
+                        uid: currentUser.uid,
+                        displayName: currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'مستخدم'),
+                        email: currentUser.email,
+                        role: 'admin'
+                    };
+                    if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                        await window.unifiedUI.updateSidebar();
+                        ensureSidebar();
+                    }
+                } catch(_) {}
+                
+                return true;
+
             } catch (error) {
-                console.error('خطأ في التحقق من الصلاحيات:', error);
+                console.error('❌ خطأ في التحقق من الصلاحيات:', error);
+                logActivity('permission_check_error', {
+                    error: error.message,
+                    user_email: currentUser?.email
+                });
+                showAlert('حدث خطأ في التحقق من الصلاحيات', 'error');
+                return false;
             }
         }
 
         async function loadPagePermissions() {
             try {
+                logActivity('permissions_load_start', {
+                    action: 'permissions_load_start'
+                });
+
+                console.log('🔍 بدء تحميل صلاحيات الصفحات...');
+                console.log('📊 عدد الصفحات الافتراضية:', Object.keys(defaultPages).length);
+
                 // محاولة تحميل الصلاحيات من قاعدة البيانات
-                const permissionsDoc = await db.collection('system_settings').doc('page_permissions').get();
-                
-                if (permissionsDoc.exists) {
-                    pagePermissions = permissionsDoc.data().pages || {};
+                if (window.firebase && firebase.firestore) {
+                    try {
+                        const permissionsDoc = await firebase.firestore().collection('system_settings').doc('page_permissions').get();
+                        
+                        if (permissionsDoc.exists) {
+                            const data = permissionsDoc.data() || {};
+                            const loadedPages = data.pages || {};
+                            // دمج الصفحات الافتراضية مع ما هو مخزن لضمان ظهور الشاشات الجديدة تلقائياً
+                            pagePermissions = { ...defaultPages, ...loadedPages };
+                            departmentPermissions = data.departments || {};
+                            console.log('✅ تم تحميل الصلاحيات من قاعدة البيانات');
+                            console.log('📊 عدد الصفحات المحملة:', Object.keys(pagePermissions).length);
+                            console.log('🏢 عدد الإدارات (صلاحيات):', Object.keys(departmentPermissions).length);
+                            logActivity('permissions_loaded', {
+                                action: 'permissions_loaded_from_db',
+                                pages_count: Object.keys(pagePermissions).length,
+                                departments_count: Object.keys(departmentPermissions).length
+                            });
+                        } else {
+                            // استخدام الصلاحيات الافتراضية
+                            console.log('⚠️ لم توجد صلاحيات في قاعدة البيانات، استخدام الافتراضية');
+                            pagePermissions = { ...defaultPages };
+                            departmentPermissions = {};
+                            await savePermissionsToDatabase();
+                        }
+                    } catch (dbError) {
+                        console.error('❌ خطأ في الاتصال بقاعدة البيانات:', dbError);
+                        console.log('🔄 استخدام الصلاحيات الافتراضية بسبب خطأ قاعدة البيانات');
+                        pagePermissions = { ...defaultPages };
+                        departmentPermissions = {};
+                    }
                 } else {
                     // استخدام الصلاحيات الافتراضية
+                    console.log('⚠️ Firebase غير متوفر، استخدام الصلاحيات الافتراضية');
                     pagePermissions = { ...defaultPages };
-                    await savePermissionsToDatabase();
+                    departmentPermissions = {};
                 }
 
+                console.log('📋 قائمة الصفحات النهائية:', Object.keys(pagePermissions));
+                console.log('📊 إجمالي الصفحات:', Object.keys(pagePermissions).length);
+
                 renderPermissionMatrix();
                 updateStatistics();
+                renderDepartmentMatrix();
 
             } catch (error) {
-                console.error('خطأ في تحميل الصلاحيات:', error);
+                console.error('❌ خطأ في تحميل الصلاحيات:', error);
+                logActivity('permissions_load_error', {
+                    error: error.message
+                });
                 // استخدام الصلاحيات الافتراضية في حالة الخطأ
+                console.log('🔄 استخدام الصلاحيات الافتراضية بسبب الخطأ');
                 pagePermissions = { ...defaultPages };
+                departmentPermissions = {};
                 renderPermissionMatrix();
                 updateStatistics();
+                renderDepartmentMatrix();
             }
         }
 
         function renderPermissionMatrix() {
+            console.log('🎨 بدء عرض مصفوفة الصلاحيات...');
+            console.log('📊 عدد الصفحات للعرض:', Object.keys(pagePermissions).length);
+            
             const tbody = document.getElementById('pagesTableBody');
+            if (!tbody) {
+                console.error('❌ لم يتم العثور على عنصر pagesTableBody');
+                return;
+            }
+            
             tbody.innerHTML = '';
 
+            if (Object.keys(pagePermissions).length === 0) {
+                console.warn('⚠️ لا توجد صفحات للعرض');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-exclamation-triangle text-warning mb-2"></i>
+                            <p class="mb-0">لا توجد صفحات للعرض</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let renderedCount = 0;
             Object.entries(pagePermissions).forEach(([pageId, page]) => {
+                console.log(`📄 عرض الصفحة: ${pageId} - ${page.name}`);
+                
                 const row = document.createElement('tr');
                 
                 row.innerHTML = `
@@ -699,7 +1545,14 @@
                 `;
 
                 tbody.appendChild(row);
+                renderedCount++;
             });
+            
+            console.log(`✅ تم عرض ${renderedCount} صفحة بنجاح`);
+            
+            if (renderedCount === 0) {
+                console.warn('⚠️ لم يتم عرض أي صفحات');
+            }
         }
 
         function updatePermission(pageId, role, hasPermission) {
@@ -708,7 +1561,135 @@
             pagePermissions[pageId].permissions[role] = hasPermission;
             updateStatistics();
             
+            logActivity('permission_changed', {
+                page_id: pageId,
+                role: role,
+                permission: hasPermission
+            });
+            
             // إظهار مؤشر التغيير
+            showChangeIndicator();
+        }
+
+        // Departments loading and UI
+        async function loadDepartments() {
+            try {
+                if (!firebase.firestore) return;
+                const snapshot = await firebase.firestore().collection('departments').orderBy('name').get();
+                departmentsList = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() || {}) }))
+                    .filter(d => d.active !== false);
+                const select = document.getElementById('departmentSelect');
+                const hint = document.getElementById('deptHint');
+                if (!select) return;
+                select.innerHTML = '<option value="" disabled selected>اختر الإدارة</option>';
+                departmentsList.forEach(dep => {
+                    const opt = document.createElement('option');
+                    opt.value = dep.id;
+                    opt.textContent = dep.name || dep.id;
+                    select.appendChild(opt);
+                });
+                if (departmentsList.length === 0) {
+                    hint?.classList?.remove('d-none');
+                } else {
+                    hint?.classList?.add('d-none');
+                }
+            } catch (e) {
+                console.warn('فشل تحميل الإدارات:', e);
+            }
+        }
+
+        function bindDepartmentTabHandlers() {
+            const select = document.getElementById('departmentSelect');
+            const enableAll = document.getElementById('enableAllDeptBtn');
+            const clearAll = document.getElementById('clearAllDeptBtn');
+            if (!select) return;
+            select.addEventListener('change', () => {
+                const deptId = select.value;
+                enableAll.disabled = !deptId;
+                clearAll.disabled = !deptId;
+                renderDepartmentMatrix();
+            });
+            enableAll?.addEventListener('click', () => {
+                const deptId = select.value;
+                if (!deptId) return;
+                departmentPermissions[deptId] = departmentPermissions[deptId] || { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+                Object.keys(pagePermissions).forEach(pid => {
+                    departmentPermissions[deptId].pages[pid] = true;
+                });
+                departmentPermissions[deptId].updatedAt = new Date().toISOString();
+                departmentPermissions[deptId].updatedBy = currentUser?.uid;
+                renderDepartmentMatrix();
+                showChangeIndicator();
+            });
+            clearAll?.addEventListener('click', () => {
+                const deptId = select.value;
+                if (!deptId) return;
+                departmentPermissions[deptId] = { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+                renderDepartmentMatrix();
+                showChangeIndicator();
+            });
+        }
+
+        function renderDepartmentMatrix() {
+            const tbody = document.getElementById('deptPagesTableBody');
+            const select = document.getElementById('departmentSelect');
+            if (!tbody || !select) return;
+            const deptId = select.value;
+            tbody.innerHTML = '';
+            if (!deptId) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center py-4 text-muted">اختر إدارة لعرض/تعديل صلاحيات صفحاتها</td>
+                    </tr>
+                `;
+                return;
+            }
+            if (!departmentPermissions[deptId]) {
+                departmentPermissions[deptId] = { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+            }
+            const deptPages = departmentPermissions[deptId].pages || {};
+            let count = 0;
+            Object.entries(pagePermissions).forEach(([pageId, page]) => {
+                const enabled = !!deptPages[pageId];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="page-icon me-3"><i class="${page.icon}"></i></div>
+                            <div>
+                                <h6 class="mb-1">${page.name}</h6>
+                                <small class="text-muted">${page.path}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <div class="form-check d-flex justify-content-center">
+                            <input class="form-check-input permission-toggle" type="checkbox" ${enabled ? 'checked' : ''} onchange="updateDepartmentPermission('${pageId}', '${deptId}', this.checked)">
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        ${!defaultPages[pageId] ? `
+                            <button class=\"btn btn-outline-danger btn-sm\" onclick=\"deletePage('${pageId}')\" title=\"حذف الصفحة\">\n                                <i class=\"fas fa-trash\"></i>\n                            </button>
+                        ` : `<small class="text-muted">افتراضي</small>`}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                count++;
+            });
+            if (count === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center py-4 text-muted">لا توجد صفحات لعرضها</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function updateDepartmentPermission(pageId, deptId, hasPermission) {
+            departmentPermissions[deptId] = departmentPermissions[deptId] || { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+            departmentPermissions[deptId].pages[pageId] = hasPermission;
+            departmentPermissions[deptId].updatedAt = new Date().toISOString();
+            departmentPermissions[deptId].updatedBy = currentUser?.uid;
             showChangeIndicator();
         }
 
@@ -766,20 +1747,35 @@
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
 
+                logActivity('permissions_save_start', {
+                    action: 'permissions_save_start'
+                });
+
                 await savePermissionsToDatabase();
 
-                // تسجيل العملية
-                await db.collection('audit_logs').add({
-                    action: 'page_permissions_updated',
-                    targetType: 'system',
-                    targetId: 'page_permissions',
-                    details: {
-                        totalPages: Object.keys(pagePermissions).length,
-                        updatedAt: new Date().toISOString()
-                    },
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    performedBy: currentUser.uid
-                });
+                // تسجيل العملية في audit logs
+                if (firebase.firestore) {
+                    try {
+                        await firebase.firestore().collection('audit_logs').add({
+                            action: 'page_permissions_updated',
+                            targetType: 'system',
+                            targetId: 'page_permissions',
+                            details: {
+                                totalPages: Object.keys(pagePermissions).length,
+                                updatedAt: new Date().toISOString()
+                            },
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            performedBy: currentUser.uid
+                        });
+
+                        logActivity('permissions_saved', {
+                            action: 'permissions_saved_success',
+                            total_pages: Object.keys(pagePermissions).length
+                        });
+                    } catch (auditError) {
+                        console.error('خطأ في تسجيل العملية:', auditError);
+                    }
+                }
 
                 saveBtn.classList.remove('btn-warning');
                 saveBtn.classList.add('btn-success');
@@ -794,7 +1790,10 @@
 
             } catch (error) {
                 console.error('خطأ في حفظ الصلاحيات:', error);
-                alert('حدث خطأ في حفظ الصلاحيات');
+                logActivity('permissions_save_error', {
+                    error: error.message
+                });
+                showAlert('حدث خطأ في حفظ الصلاحيات', 'error');
                 
                 const saveBtn = document.querySelector('button[onclick="savePermissions()"]');
                 saveBtn.disabled = false;
@@ -802,11 +1801,14 @@
         }
 
         async function savePermissionsToDatabase() {
-            await db.collection('system_settings').doc('page_permissions').set({
-                pages: pagePermissions,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedBy: currentUser.uid
-            });
+            if (firebase.firestore) {
+                await firebase.firestore().collection('system_settings').doc('page_permissions').set({
+                    pages: pagePermissions,
+                    departments: departmentPermissions,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: currentUser.uid
+                }, { merge: true });
+            }
         }
 
         function addNewPage() {
@@ -816,7 +1818,7 @@
             const description = document.getElementById('newPageDescription').value.trim();
 
             if (!name || !path || !icon) {
-                alert('يرجى ملء جميع الحقول المطلوبة');
+                showAlert('يرجى ملء جميع الحقول المطلوبة', 'error');
                 return;
             }
 
@@ -824,7 +1826,7 @@
             const pageId = path.replace('.html', '').replace(/[^a-zA-Z0-9-_]/g, '-');
 
             if (pagePermissions[pageId]) {
-                alert('هذه الصفحة موجودة مسبقاً');
+                showAlert('هذه الصفحة موجودة مسبقاً', 'error');
                 return;
             }
 
@@ -842,6 +1844,12 @@
                 }
             };
 
+            logActivity('page_added', {
+                page_id: pageId,
+                page_name: name,
+                page_path: path
+            });
+
             renderPermissionMatrix();
             updateStatistics();
             showChangeIndicator();
@@ -858,9 +1866,28 @@
 
         function confirmDeletePage() {
             if (pageToDelete && pagePermissions[pageToDelete]) {
+                const deletedPage = pagePermissions[pageToDelete];
+                
+                logActivity('page_deleted', {
+                    page_id: pageToDelete,
+                    page_name: deletedPage.name,
+                    page_path: deletedPage.path
+                });
+                
                 delete pagePermissions[pageToDelete];
+                // إزالة الصفحة من صلاحيات الإدارات أيضاً
+                try {
+                    Object.keys(departmentPermissions || {}).forEach(deptId => {
+                        if (departmentPermissions[deptId]?.pages && pageToDelete in departmentPermissions[deptId].pages) {
+                            delete departmentPermissions[deptId].pages[pageToDelete];
+                            departmentPermissions[deptId].updatedAt = new Date().toISOString();
+                            departmentPermissions[deptId].updatedBy = currentUser?.uid;
+                        }
+                    });
+                } catch(_) {}
                 renderPermissionMatrix();
                 updateStatistics();
+                renderDepartmentMatrix();
                 showChangeIndicator();
                 
                 bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
@@ -870,10 +1897,83 @@
 
         function resetToDefaults() {
             if (confirm('هل أنت متأكد من إعادة تعيين جميع الصلاحيات للقيم الافتراضية؟')) {
+                logActivity('permissions_reset', {
+                    action: 'reset_to_defaults',
+                    previous_pages_count: Object.keys(pagePermissions).length
+                });
+                
                 pagePermissions = { ...defaultPages };
+                departmentPermissions = {};
+                renderPermissionMatrix();
+                updateStatistics();
+                renderDepartmentMatrix();
+                showChangeIndicator();
+            }
+        }
+
+        // إعادة تحميل الصلاحيات من قاعدة البيانات
+        async function reloadPermissions() {
+            try {
+                const reloadBtn = document.querySelector('button[onclick="reloadPermissions()"]');
+                const originalText = reloadBtn.innerHTML;
+                reloadBtn.disabled = true;
+                reloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري التحميل...';
+
+                await loadPagePermissions();
+                
+                reloadBtn.disabled = false;
+                reloadBtn.innerHTML = originalText;
+                
+                showAlert('تم إعادة تحميل الصلاحيات بنجاح', 'success');
+                
+            } catch (error) {
+                console.error('خطأ في إعادة التحميل:', error);
+                showAlert('حدث خطأ في إعادة التحميل', 'error');
+            }
+        }
+
+        // مزامنة مع صفحات النظام الفعلية
+        async function syncWithSystem() {
+            try {
+                const syncBtn = document.querySelector('button[onclick="syncWithSystem()"]');
+                const originalText = syncBtn.innerHTML;
+                syncBtn.disabled = true;
+                syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري المزامنة...';
+
+                console.log('🔄 بدء مزامنة صفحات النظام...');
+                
+                // دمج الصفحات الافتراضية مع الموجودة
+                const mergedPages = { ...defaultPages };
+                
+                // الحفاظ على الصفحات المخصصة الموجودة
+                Object.entries(pagePermissions).forEach(([pageId, page]) => {
+                    if (!defaultPages[pageId]) {
+                        mergedPages[pageId] = page; // صفحة مخصصة
+                    } else {
+                        // دمج الصلاحيات المحدثة مع البيانات الافتراضية
+                        mergedPages[pageId] = {
+                            ...defaultPages[pageId],
+                            permissions: page.permissions
+                        };
+                    }
+                });
+
+                pagePermissions = mergedPages;
                 renderPermissionMatrix();
                 updateStatistics();
                 showChangeIndicator();
+                
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = originalText;
+                
+                console.log('✅ تمت المزامنة بنجاح');
+                console.log('📊 إجمالي الصفحات بعد المزامنة:', Object.keys(pagePermissions).length);
+                
+                showAlert(`تمت مزامنة ${Object.keys(pagePermissions).length} صفحة بنجاح`, 'success');
+                
+            } catch (error) {
+                console.error('❌ خطأ في المزامنة:', error);
+                showAlert('حدث خطأ في المزامنة', 'error');
             }
         }
 
@@ -885,7 +1985,333 @@
         window.hasPagePermission = function(pageId, userRole) {
             return pagePermissions[pageId]?.permissions[userRole] || false;
         };
+
+        // Combined check by role and department
+        window.hasPagePermissionForDepartment = function(pageId, userRole, deptId) {
+            const roleAllowed = !!(pagePermissions[pageId]?.permissions[userRole]);
+            if (!deptId) return roleAllowed;
+            const deptAllowed = !!(departmentPermissions?.[deptId]?.pages?.[pageId]);
+            // If no department-specific data configured, fall back to role-only
+            const hasAnyDeptConfig = departmentPermissions && Object.keys(departmentPermissions).length > 0;
+            return roleAllowed && (hasAnyDeptConfig ? deptAllowed : true);
+        };
+
+        /***********************************************************
+         * ✅ ميزة جديدة: مصفوفة صلاحيات الصفحات حسب المستخدم (Overrides)
+         * التاريخ: 2025-09-11
+         * الأولوية: overrideUser > department > role
+         ***********************************************************/
+
+        // مخزن التخصيصات المحمّلة مؤقتاً
+        window.__userPagePermissionsCache = window.__userPagePermissionsCache || {}; // { userId: { pages: {pageId: true/false}, updatedAt, updatedBy } }
+        let currentUserPermissionTarget = null; // { uid, email, displayName }
+        let currentUserOverrideDirty = false;
+
+        async function findUserForPermissions() {
+            try {
+                const identifierInput = document.getElementById('userPermissionIdentifier');
+                const id = (identifierInput.value || '').trim();
+                if (!id) {
+                    showAlert('يرجى إدخال البريد الإلكتروني أو معرف المستخدم UID', 'warning');
+                    return;
+                }
+                if (!firebase.auth) {
+                    showAlert('المصادقة غير متاحة حالياً', 'error');
+                    return;
+                }
+
+                let userRecord = null;
+                // إذا كان الإدخال يشبه UID (طول > 20 غالباً) نحاول مباشرة
+                if (id.length >= 20 && !id.includes('@')) {
+                    userRecord = await tryFetchUserDocByUid(id);
+                }
+                // البحث بالبريد الإلكتروني
+                if (!userRecord && id.includes('@')) {
+                    userRecord = await tryFetchUserDocByEmail(id);
+                }
+                // محاولة أخرى: UID قصير
+                if (!userRecord && !id.includes('@')) {
+                    userRecord = await tryFetchUserDocByUid(id);
+                }
+
+                if (!userRecord) {
+                    showAlert('لم يتم العثور على المستخدم', 'warning');
+                    return;
+                }
+
+                currentUserPermissionTarget = {
+                    uid: userRecord.uid || userRecord.id || userRecord.userId || userRecord.docId || userRecord.email || id,
+                    email: userRecord.email || 'غير معروف',
+                    displayName: userRecord.displayName || userRecord.fullName || userRecord.email || 'مستخدم'
+                };
+
+                document.getElementById('userPermissionTargetInfo').classList.remove('d-none');
+                document.getElementById('userPermissionTargetInfo').innerHTML = `
+                    <i class="fas fa-user me-2"></i>
+                    <strong>المستخدم:</strong> ${escapeHtml(currentUserPermissionTarget.displayName)}
+                    <span class="text-muted ms-2">(${escapeHtml(currentUserPermissionTarget.email)})</span>
+                    <br><small class="text-muted">UID: ${escapeHtml(currentUserPermissionTarget.uid)}</small>
+                `;
+
+                await loadUserPagePermissions(currentUserPermissionTarget.uid);
+                renderUserPermissionMatrix();
+                document.getElementById('userPermissionMatrixWrapper').style.display = 'block';
+                document.getElementById('userPermissionActions').style.display = 'flex';
+                document.getElementById('saveUserPermissionsBtn').disabled = false;
+                currentUserOverrideDirty = false;
+            } catch (e) {
+                console.error('❌ خطأ في البحث عن المستخدم:', e);
+                showAlert('حدث خطأ أثناء البحث عن المستخدم', 'error');
+            }
+        }
+
+        function resetUserPermissionContext() {
+            currentUserPermissionTarget = null;
+            document.getElementById('userPermissionMatrixWrapper').style.display = 'none';
+            document.getElementById('userPermissionActions').style.display = 'none';
+            document.getElementById('userPermissionTargetInfo').classList.add('d-none');
+            document.getElementById('saveUserPermissionsBtn').disabled = true;
+            currentUserOverrideDirty = false;
+        }
+
+        async function tryFetchUserDocByUid(uid) {
+            try {
+                if (!firebase.firestore) return null;
+                const doc = await firebase.firestore().collection('users').doc(uid).get();
+                if (doc.exists) return { uid: doc.id, ...doc.data() };
+                return null;
+            } catch (_) { return null; }
+        }
+
+        async function tryFetchUserDocByEmail(email) {
+            try {
+                if (!firebase.firestore) return null;
+                const snap = await firebase.firestore().collection('users').where('email','==',email).limit(1).get();
+                if (!snap.empty) {
+                    const d = snap.docs[0];
+                    return { uid: d.id, ...d.data() };
+                }
+                return null;
+            } catch(_) { return null; }
+        }
+
+        async function loadUserPagePermissions(userId) {
+            if (!userId) return;
+            if (!firebase.firestore) {
+                console.warn('Firestore غير متاح – سيتم استخدام ذاكرة مؤقتة فقط');
+                window.__userPagePermissionsCache[userId] = window.__userPagePermissionsCache[userId] || { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+                return;
+            }
+            try {
+                const doc = await firebase.firestore().collection('user_page_permissions').doc(userId).get();
+                if (doc.exists) {
+                    window.__userPagePermissionsCache[userId] = doc.data();
+                } else {
+                    window.__userPagePermissionsCache[userId] = { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+                }
+            } catch (e) {
+                console.warn('فشل تحميل تخصيص صلاحيات المستخدم، سيتم استخدام كائن فارغ', e);
+                window.__userPagePermissionsCache[userId] = { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+            }
+        }
+
+        function renderUserPermissionMatrix() {
+            const body = document.getElementById('userPermissionMatrixBody');
+            if (!body) return;
+            body.innerHTML = '';
+            if (!currentUserPermissionTarget) {
+                body.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا يوجد مستخدم محدد</td></tr>';
+                return;
+            }
+            const userId = currentUserPermissionTarget.uid;
+            const userConfig = window.__userPagePermissionsCache[userId] || { pages: {} };
+            const userPages = userConfig.pages || {};
+            const entries = Object.entries(pagePermissions);
+            if (entries.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا توجد صفحات متاحة</td></tr>';
+                return;
+            }
+            entries.forEach(([pageId, page]) => {
+                const enabled = !!userPages[pageId];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><i class="${escapeHtml(page.icon)} me-2"></i>${escapeHtml(page.name)}</td>
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input permission-toggle" ${enabled ? 'checked' : ''} onchange="updateUserPagePermission('${pageId}', this.checked)">
+                    </td>
+                    <td>${escapeHtml(page.description || '')}</td>
+                    <td><span class="badge bg-secondary">${escapeHtml(page.category || 'misc')}</span></td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function updateUserPagePermission(pageId, allowed) {
+            if (!currentUserPermissionTarget) return;
+            const userId = currentUserPermissionTarget.uid;
+            window.__userPagePermissionsCache[userId] = window.__userPagePermissionsCache[userId] || { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+            if (allowed) {
+                window.__userPagePermissionsCache[userId].pages[pageId] = true;
+            } else {
+                delete window.__userPagePermissionsCache[userId].pages[pageId];
+            }
+            window.__userPagePermissionsCache[userId].updatedAt = new Date().toISOString();
+            window.__userPagePermissionsCache[userId].updatedBy = currentUser?.uid;
+            currentUserOverrideDirty = true;
+            markUserPermissionSaveDirty();
+        }
+
+        function toggleAllUserPages(val) {
+            if (!currentUserPermissionTarget) return;
+            const userId = currentUserPermissionTarget.uid;
+            window.__userPagePermissionsCache[userId] = window.__userPagePermissionsCache[userId] || { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+            if (val) {
+                Object.keys(pagePermissions).forEach(pid => window.__userPagePermissionsCache[userId].pages[pid] = true);
+            } else {
+                window.__userPagePermissionsCache[userId].pages = {};
+            }
+            window.__userPagePermissionsCache[userId].updatedAt = new Date().toISOString();
+            window.__userPagePermissionsCache[userId].updatedBy = currentUser?.uid;
+            currentUserOverrideDirty = true;
+            markUserPermissionSaveDirty();
+            renderUserPermissionMatrix();
+        }
+
+        function clearUserPageOverrides() {
+            if (!currentUserPermissionTarget) return;
+            if (!confirm('هل أنت متأكد من مسح جميع التخصيصات لهذا المستخدم؟')) return;
+            const userId = currentUserPermissionTarget.uid;
+            window.__userPagePermissionsCache[userId] = { pages: {}, updatedAt: new Date().toISOString(), updatedBy: currentUser?.uid };
+            currentUserOverrideDirty = true;
+            markUserPermissionSaveDirty();
+            renderUserPermissionMatrix();
+        }
+
+        function markUserPermissionSaveDirty() {
+            const btn = document.getElementById('saveUserPermissionsBtn');
+            if (!btn) return;
+            btn.classList.remove('btn-outline-success');
+            btn.classList.add('btn-warning');
+            if (!btn.innerHTML.includes('*')) {
+                btn.innerHTML = btn.innerHTML.replace('</i>','</i>* ');
+            }
+        }
+
+        async function saveUserPagePermissions() {
+            if (!currentUserPermissionTarget) {
+                showAlert('لا يوجد مستخدم محدد', 'warning');
+                return;
+            }
+            if (!currentUserOverrideDirty) {
+                showAlert('لا توجد تغييرات للحفظ', 'info');
+                return;
+            }
+            const btn = document.getElementById('saveUserPermissionsBtn');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
+            try {
+                if (!firebase.firestore) {
+                    showAlert('Firestore غير متاح، تم حفظ التغييرات محلياً فقط', 'warning');
+                } else {
+                    const userId = currentUserPermissionTarget.uid;
+                    const data = window.__userPagePermissionsCache[userId] || { pages: {} };
+                    // تأكد من أن الحقول الأساسية موجودة وبأن pages كائن بسيط من boolean
+                    const sanitizedPages = {};
+                    Object.keys(data.pages || {}).forEach(pid => {
+                        sanitizedPages[pid] = !!data.pages[pid];
+                    });
+                    const payload = {
+                        pages: sanitizedPages,
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: currentUser?.uid || null
+                    };
+                    const ref = firebase.firestore().collection('user_page_permissions').doc(userId);
+                    // استبدال كامل للمستند لضمان عدم بقاء مفاتيح قديمة في pages
+                    await ref.set(payload); // بدون merge
+                    // إعادة القراءة للتأكيد وتحديث الواجهة
+                    try {
+                        const saved = await ref.get();
+                        if (saved.exists) {
+                            window.__userPagePermissionsCache[userId] = saved.data();
+                            renderUserPermissionMatrix();
+                        }
+                    } catch (_) { /* اختياري */ }
+                    showAlert('تم حفظ صلاحيات المستخدم بنجاح', 'success');
+                }
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-outline-success');
+                btn.innerHTML = '<i class="fas fa-check me-2"></i>تم الحفظ';
+                currentUserOverrideDirty = false;
+                setTimeout(()=>{ btn.innerHTML = original.replace('* ',''); },1800);
+            } catch (e) {
+                console.error('❌ خطأ في حفظ صلاحيات المستخدم:', e);
+                const code = e && (e.code || e.name) ? `\n[${e.code || e.name}]` : '';
+                const msg = e && e.message ? `\n${e.message}` : '';
+                showAlert(`فشل حفظ صلاحيات المستخدم.${code}${msg}`, 'error');
+                btn.innerHTML = original;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // دالة مساعدة للهروب لكائنات HTML بالنصوص الديناميكية
+        function escapeHtml(str){
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/[&<>"] /g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',' ':' '})[c] || c);
+        }
+
+        // محرك تحقق موحد جديد يأخذ بالاعتبار overrides الخاصة بالمستخدم
+        window.hasPagePermissionUnified = async function(pageId, userRole, deptId, userId) {
+            try {
+                if (!pageId) return false;
+                // تطبيع معرف الصفحة للتوافق مع القائمة الجانبية
+                const mapAlias = (pid) => {
+                    const aliases = {
+                        'file-management-dashboard': 'file-management',
+                        'archive-dashboard': 'archive',
+                        'legal-dashboard': 'legal',
+                        'collection-dashboard': 'collection',
+                        'governance-dashboard': 'governance',
+                        'securitization-dashboard': 'securitization'
+                    };
+                    return aliases[pid] || pid;
+                };
+                const normalizedPage = mapAlias(pageId);
+                // أولوية 1: تخصيص المستخدم
+                if (userId && window.__userPagePermissionsCache[userId]) {
+                    const userPages = window.__userPagePermissionsCache[userId].pages || {};
+                    const hasAnyOverride = Object.keys(userPages).length > 0;
+                    if (hasAnyOverride) {
+                        // قائمة بيضاء: اسمح فقط بما هو true في overrides
+                        return !!userPages[normalizedPage];
+                    }
+                } else if (userId && firebase.firestore) {
+                    // محاولة تحميل سريعة عند الطلب لأول مرة (مؤجلة)
+                    try {
+                        const doc = await firebase.firestore().collection('user_page_permissions').doc(userId).get();
+                        if (doc.exists) {
+                            window.__userPagePermissionsCache[userId] = doc.data();
+                            const userPages = window.__userPagePermissionsCache[userId].pages || {};
+                            const hasAnyOverride = Object.keys(userPages).length > 0;
+                            if (hasAnyOverride) {
+                                return !!userPages[normalizedPage];
+                            }
+                        } else {
+                            window.__userPagePermissionsCache[userId] = { pages: {} };
+                        }
+                    } catch (_) { /* تجاهل */ }
+                }
+                // أولوية 2: الإدارة
+                const deptResult = window.hasPagePermissionForDepartment(normalizedPage, userRole, deptId);
+                return deptResult;
+            } catch (e) {
+                console.warn('⚠️ hasPagePermissionUnified fallback بسبب خطأ:', e);
+                return !!(pagePermissions[normalizedPage]?.permissions[userRole]);
+            }
+        };
     </script>
+    <script src="assets/js/unified-ui-template.js"></script>
 </body>
 </html>
 

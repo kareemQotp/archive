@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <link rel="stylesheet" href="assets/css/permissions.css">
     <style>
         .dashboard-card {
@@ -30,6 +30,65 @@
             font-size: 2.5rem;
             margin-bottom: 0.5rem;
         }
+        
+        /* إضافات جديدة للتحسينات */
+        .alert-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        .avatar-sm {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .list-group-item {
+            border: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+        }
+        
+        .list-group-item:last-child {
+            border-bottom: none !important;
+        }
+        
+        .card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .stat-card {
+            border-left: 4px solid transparent;
+        }
+        
+        .stat-card:nth-child(1) { border-left-color: #007bff; }
+        .stat-card:nth-child(2) { border-left-color: #28a745; }
+        .stat-card:nth-child(3) { border-left-color: #ffc107; }
+        .stat-card:nth-child(4) { border-left-color: #dc3545; }
+        
+        @media (max-width: 768px) {
+            .dashboard-actions {
+                flex-direction: column;
+            }
+            
+            .dashboard-actions .btn {
+                margin-bottom: 0.5rem;
+            }
+        }
         .stat-title {
             font-size: 1.1rem;
             margin-top: 0.5rem;
@@ -40,48 +99,92 @@
         .department-dashboards-hidden {
             display: none;
         }
+        .hover-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .stat-box {
+            transition: transform 0.3s ease;
+        }
+        .stat-box:hover {
+            transform: translateY(-3px);
+        }
+        .card {
+            transition: all 0.3s ease;
+        }
+        .badge {
+            font-size: 0.75em;
+        }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    
+
+    <!-- Sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="sidebar" id="sidebar" aria-hidden="true">
+        <div class="sidebar-header">
             <div class="d-flex align-items-center">
-                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="index.html">
-                    <i class="fas fa-archive me-2"></i>
-                    نظام الأرشيف
-                </a>
+                <div class="logo">
+                    <i class="fas fa-archive"></i>
+                </div>
+                <div>
+                    <h5 class="mb-0">نظام الأرشيف</h5>
+                    <small>القائمة الرئيسية</small>
+                </div>
             </div>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3" id="userInfo"></span>
-                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    خروج
-                </button>
+            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة" aria-label="إغلاق القائمة">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="user-info">
+            <div class="d-flex align-items-center">
+                <div class="user-avatar" id="userAvatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <div class="user-name" id="userName">مستخدم</div>
+                    <div class="user-role" id="userRole">عام</div>
+                </div>
             </div>
         </div>
-    </nav>
+        <nav class="sidebar-nav" id="sidebarNav" role="navigation" aria-label="القائمة الرئيسية">
+            <!-- Will be populated by UnifiedUITemplate -->
+        </nav>
+        <div class="sidebar-footer">
+            <small>نظام الأرشيف الإلكتروني v2.1</small>
+        </div>
+    </div>
+
     <div class="container">
-        <div class="dashboard-card">
+        <div class="dashboard-card d-none" id="adminOnly">
             <h1 class="mb-4 text-center">لوحة التحكم</h1>
             <div class="row mb-4">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="stat-box">
                         <i class="fa fa-file-alt"></i>
                         <div class="h3 mb-0" id="statDocuments">0</div>
                         <div class="stat-title">عدد الوثائق</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="stat-box">
+                        <i class="fa fa-upload"></i>
+                        <div class="h3 mb-0" id="statFiles">0</div>
+                        <div class="stat-title">ملفات اليوم</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="stat-box">
                         <i class="fa fa-users"></i>
                         <div class="h3 mb-0" id="statUsers">0</div>
                         <div class="stat-title">عدد المستخدمين</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="stat-box">
                         <i class="fa fa-cloud-upload-alt"></i>
                         <div class="h3 mb-0" id="statStorage">0 MB</div>
@@ -93,12 +196,119 @@
                 <a href="upload.html" class="btn btn-primary">
                     <i class="fas fa-upload me-1"></i> رفع وثيقة
                 </a>
+                <a href="search.html" class="btn btn-outline-primary">
+                    <i class="fas fa-search me-1"></i> البحث
+                </a>
+                <a href="scanner.html" class="btn btn-outline-success">
+                    <i class="fas fa-qrcode me-1"></i> مسح الباركود
+                </a>
                 <a href="profile.html" class="btn btn-outline-secondary">
                     <i class="fas fa-user me-1"></i> الملف الشخصي
                 </a>
-                <a href="search.html" class="btn btn-outline-secondary">
-                    <i class="fas fa-search me-1"></i> البحث
-                </a>
+            </div>
+            
+            <!-- Quick Actions Row -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h5 class="text-center mb-3">
+                        <i class="fas fa-bolt me-2"></i>
+                        الإجراءات السريعة
+                    </h5>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="file-management-dashboard.html" class="btn btn-outline-info w-100">
+                        <i class="fas fa-tasks me-1"></i> إدارة الملفات
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="activity-logs.html" class="btn btn-outline-warning w-100">
+                        <i class="fas fa-history me-1"></i> سجل النشاطات
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="users.html" class="btn btn-outline-primary w-100 admin-only" data-permission="user-management">
+                        <i class="fas fa-users-cog me-1"></i> إدارة المستخدمين
+                    </a>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <a href="system-analytics.html" class="btn btn-outline-danger w-100 admin-only" data-permission="view-reports">
+                        <i class="fas fa-chart-bar me-1"></i> تحليلات النظام
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Activity Section -->
+            <div class="row mb-4">
+                <div class="col-lg-8 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-clock me-2"></i>
+                                آخر النشاطات
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentActivityList" class="list-group list-group-flush">
+                                <!-- Recent activities will be loaded here -->
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>
+                                    جارٍ تحميل النشاطات...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                التنبيهات السريعة
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="quickAlerts">
+                                <!-- Alerts will be loaded here -->
+                                <div class="alert alert-info alert-sm mb-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    مرحباً بك في نظام الأرشفة
+                                </div>
+                                <div class="alert alert-success alert-sm mb-2">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    النظام يعمل بشكل طبيعي
+                                </div>
+                                <div class="alert alert-light alert-sm mb-0">
+                                    <i class="fas fa-clock me-1"></i>
+                                    آخر تحديث: الآن
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Department Files Overview -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-building me-2"></i>
+                                نظرة عامة على ملفات الأقسام
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="departmentOverview" class="row">
+                                <!-- Department overview will be loaded here -->
+                                <div class="col-md-12 text-center text-muted py-3">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>
+                                    جارٍ تحميل بيانات الأقسام...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Department Dashboards Section -->
@@ -114,7 +324,9 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js"></script>
     
     <!-- Firebase v10.7.1 - الإصدار الموحد -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -130,6 +342,12 @@
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
+    <!-- Role-Based Routing System -->
+    <script src="assets/js/role-based-routing.js"></script>
+    
+    <!-- Redirect Protection System -->
+    <script src="assets/js/redirect-protection.js"></script>
+    
     <!-- Notification System -->
     <script src="assets/js/notifications.js"></script>
     <script src="assets/js/notification-service.js"></script>
@@ -142,10 +360,45 @@
         // Initialize unified auth system
         let authSystem;
         let permissionController;
+        let demoModeActivated = false; // منع وميض وضع العرض عند تسجيل الدخول الحقيقي
+
+        // Helper: انتظار جاهزية Firebase و Firestore
+        function waitForFirebaseReady(timeoutMs = 5000) {
+            return new Promise((resolve) => {
+                let settled = false;
+                const done = () => { if (!settled) { settled = true; resolve(); } };
+                // إذا كانت قاعدة البيانات جاهزة بالفعل
+                if (window.db) return resolve();
+                // استمع لحدث firebaseReady
+                const onReady = () => { window.removeEventListener('firebaseReady', onReady); done(); };
+                window.addEventListener('firebaseReady', onReady, { once: true });
+                // مهلة قصوى
+                setTimeout(done, timeoutMs);
+            });
+        }
+
+        function waitFor(predicate, timeoutMs = 5000, intervalMs = 100) {
+            return new Promise((resolve) => {
+                const start = Date.now();
+                const tick = () => {
+                    try {
+                        if (predicate()) return resolve();
+                    } catch (_) { /* ignore */ }
+                    if (Date.now() - start >= timeoutMs) return resolve();
+                    setTimeout(tick, intervalMs);
+                };
+                tick();
+            });
+        }
 
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🔧 تحميل لوحة التحكم');
-            
+            // Refresh Unified UI if present; do not instantiate to avoid duplicates
+            const unifiedUI = window.unifiedUI;
+            if (unifiedUI && typeof unifiedUI.updateSidebar === 'function') {
+                try { await unifiedUI.updateSidebar(); } catch (_) { /* ignore */ }
+            }
+            console.log('🔧 تحميل لوحة التحكم'); 
+
             // Wait for unified auth to initialize
             await new Promise(resolve => {
                 const checkAuth = () => {
@@ -164,17 +417,210 @@
                 checkAuth();
             });
 
+            // Check if user should be redirected to their specific dashboard
+            try {
+                if (authSystem && authSystem.isAuthenticated && authSystem.userProfile) {
+                    const userData = authSystem.userProfile;
+                    
+                    // If user is admin, they should be on user-management page instead
+                    if (userData.role === 'admin') {
+                        console.log('🔄 مسؤول نظام يجب توجيهه لإدارة المستخدمين');
+                        if (window.redirectProtection && window.redirectProtection.safeRedirect) {
+                            window.redirectProtection.safeRedirect('user-management.html', 'توجيه مسؤول النظام');
+                        } else {
+                            window.location.href = 'user-management.html';
+                        }
+                        return;
+                    }
+                    
+                    // Check if user has a specific department dashboard
+                    if (window.roleBasedRouter && (userData.department || userData.role)) {
+                        const correctDashboard = window.roleBasedRouter.getDashboardRoute(userData);
+                        const currentPage = window.location.pathname.split('/').pop();
+                        
+                        // Don't redirect if:
+                        // 1. Already on the correct page
+                        // 2. Current page is dashboard.html and user chose to be here
+                        // 3. User specifically navigated to dashboard.html
+                        const shouldRedirect = correctDashboard !== currentPage && 
+                                             correctDashboard !== 'dashboard.html' &&
+                                             !sessionStorage.getItem('userChooseDashboard');
+                        
+                        if (shouldRedirect) {
+                            console.log(`🔄 توجيه للداشبورد المناسب: ${correctDashboard} (من ${currentPage})`);
+                            console.log('بيانات المستخدم:', userData);
+                            
+                            // Add a small delay to allow user to cancel if needed
+                            const redirectTimer = setTimeout(() => {
+                                if (window.redirectProtection && window.redirectProtection.safeRedirect) {
+                                    window.redirectProtection.safeRedirect(correctDashboard, 'توجيه حسب الإدارة');
+                                } else {
+                                    window.location.href = correctDashboard;
+                                }
+                            }, 3000); // 3 seconds delay
+                            
+                            // Show notification with option to cancel
+                            if (typeof showAlert === 'function') {
+                                showAlert(
+                                    `سيتم توجيهك تلقائياً إلى لوحة تحكم ${userData.department || 'القسم الخاص بك'} خلال 3 ثواني. <button onclick="cancelRedirect()" class="btn btn-sm btn-outline-secondary ms-2">البقاء هنا</button>`,
+                                    'info'
+                                );
+                            }
+                            
+                            // Global function to cancel redirect
+                            window.cancelRedirect = function() {
+                                clearTimeout(redirectTimer);
+                                sessionStorage.setItem('userChooseDashboard', 'true');
+                                console.log('تم إلغاء إعادة التوجيه بواسطة المستخدم');
+                                if (typeof showAlert === 'function') {
+                                    showAlert('تم إلغاء إعادة التوجيه. ستبقى في هذه الصفحة.', 'success');
+                                }
+                            };
+                            
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ خطأ في فحص التوجيه الذكي:', error);
+            }
+
             // Set up auth state listener with unified auth
             authSystem.onAuthStateChanged(async (user) => {
                 handleAuthStateChange(user);
             });
+            
+            // Handle URL parameters for messages
+            handleURLMessages();
+
+            // Wire sidebar controls initially
+            ensureSidebar();
+
+            // Rebind after auth-driven UI re-render events
+            window.addEventListener('firebaseAuthReady', () => {
+                try {
+                    if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                        window.unifiedUI.updateSidebar();
+                    }
+                } catch (e) { /* ignore */ }
+                ensureSidebar();
+            });
         });
+
+        // Ensure sidebar exists and controls are wired; provide a fallback if unified UI isn't available
+        function ensureSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay') || document.querySelector('.sidebar-overlay');
+            const menuBtn = document.getElementById('menuToggle');
+            const closeBtn = document.getElementById('sidebarClose');
+
+            const ui = window.unifiedUI;
+
+            const openSidebar = () => {
+                if (ui && typeof ui.openSidebar === 'function') return ui.openSidebar();
+                if (sidebar) sidebar.classList.add('active');
+                if (sidebar) sidebar.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('sidebar-open');
+                if (overlay) overlay.classList.add('active');
+            };
+            const closeSidebar = () => {
+                if (ui && typeof ui.closeSidebar === 'function') return ui.closeSidebar();
+                if (sidebar) sidebar.classList.remove('active');
+                if (sidebar) sidebar.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('sidebar-open');
+                if (overlay) overlay.classList.remove('active');
+            };
+
+            if (menuBtn) {
+                menuBtn.onclick = (e) => {
+                    e.preventDefault();
+                    const isOpen = sidebar && sidebar.getAttribute('aria-hidden') === 'false';
+                    if (isOpen) closeSidebar(); else openSidebar();
+                };
+            }
+            if (closeBtn) closeBtn.onclick = (e) => { e.preventDefault(); closeSidebar(); };
+            if (overlay) overlay.onclick = (e) => { e.preventDefault(); closeSidebar(); };
+        }
+
+        function handleURLMessages() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const message = urlParams.get('message');
+            
+            if (message) {
+                let alertMessage = '';
+                let alertType = 'info';
+                
+                switch (message) {
+                    case 'wrong-department':
+                        alertMessage = 'تم توجيهك هنا لأنك لا تملك صلاحية الوصول للقسم المطلوب';
+                        alertType = 'warning';
+                        break;
+                    case 'permission-denied':
+                        alertMessage = 'تم رفض الوصول للصفحة المطلوبة';
+                        alertType = 'danger';
+                        break;
+                    case 'session-expired':
+                        alertMessage = 'انتهت جلسة العمل، يرجى تسجيل الدخول مرة أخرى';
+                        alertType = 'warning';
+                        break;
+                }
+                
+                if (alertMessage) {
+                    setTimeout(() => {
+                        showAlert(alertMessage, alertType);
+                    }, 1000);
+                    
+                    // Clear the URL parameter
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.createElement('div');
+            alertContainer.className = 'container mt-3';
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            document.body.insertBefore(alertContainer, document.querySelector('.container'));
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = alertContainer.querySelector('.alert');
+                if (alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            }, 5000);
+        }
 
         async function handleAuthStateChange(user) {
             if (!user) {
+                // Check for demo mode
+                const demoMode = localStorage.getItem('archiveDemoMode');
+                if (demoMode === 'enabled') {
+                    // انتظر قليلاً للتأكد من عدم وجود جلسة فعلية وجاهزية Firebase قبل التبديل لوضع العرض
+                    setTimeout(async () => {
+                        // إذا تم تسجيل دخول مستخدم حقيقي لاحقاً، لا تفعل وضع العرض
+                        if (authSystem?.currentUser || window.auth?.currentUser || demoModeActivated) return;
+                        await waitForFirebaseReady(1200);
+                        if (authSystem?.currentUser || window.auth?.currentUser || demoModeActivated) return;
+                        console.log('🎭 Dashboard في وضع العرض التوضيحي');
+                        showDashboardDemoNotice();
+                        enableDashboardDemoMode();
+                        demoModeActivated = true;
+                    }, 800);
+                    // لا نعيد هنا مباشرةً لأن مستمع المصادقة قد يستدعى مرة أخرى
+                }
+                
                 // التوجيه لتسجيل الدخول
                 setTimeout(() => {
-                    if (!authSystem.currentUser && !window.auth?.currentUser) {
+                    if (!authSystem?.currentUser && !window.auth?.currentUser && !demoModeActivated) {
                         console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
                         window.location.href = 'login.html?message=session-expired';
                     }
@@ -182,28 +628,109 @@
                 return;
             }
 
-            // التحقق من التوجيه التلقائي لوحة الإدارة
-            if (window.departmentRouter) {
-                const wasRedirected = await window.departmentRouter.redirectToDepartmentDashboard();
-                if (wasRedirected) {
-                    return; // توقف هنا إذا تم التوجيه
-                }
+            console.log('✅ المستخدم مسجل الدخول:', user.email);
+
+            // إلغاء أي وضع عرض تم تفعيله سابقاً إذا تم تسجيل الدخول
+            demoModeActivated = false;
+
+            // السماح فقط لمسؤولي النظام بعرض هذه الصفحة
+            const userRole = authSystem.userProfile?.role;
+            if (userRole !== 'system_admin') {
+                // توجيه المستخدم إلى لوحة إدارته
+                try {
+                    if (window.departmentRouter && typeof window.departmentRouter.redirectToDepartmentDashboard === 'function') {
+                        const redirected = await window.departmentRouter.redirectToDepartmentDashboard();
+                        if (redirected) {
+                            console.log('📍 تم توجيه المستخدم إلى لوحة إدارة القسم الخاصة به');
+                            return;
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+
+                // مسار بديل للتوجيه في حال عدم توفر الراوتر
+                const dept = authSystem.userDepartment || '';
+                const deptMap = {
+                    'إدارة الأرشيف': 'archive-dashboard.html',
+                    'الأرشيف': 'archive-dashboard.html',
+                    'archive': 'archive-dashboard.html',
+                    'إدارة التحصيل': 'collection-dashboard.html',
+                    'التحصيل': 'collection-dashboard.html',
+                    'collection': 'collection-dashboard.html',
+                    'الشؤون القانونية': 'legal-dashboard.html',
+                    'legal': 'legal-dashboard.html',
+                    'إدارة الحوكمة والامتثال': 'governance-dashboard.html',
+                    'الحوكمة': 'governance-dashboard.html',
+                    'governance': 'governance-dashboard.html',
+                    'التوريق': 'securitization-dashboard.html',
+                    'securitization': 'securitization-dashboard.html',
+                    'تقنية المعلومات': 'it-dashboard.html',
+                    'IT': 'it-dashboard.html',
+                    'it': 'it-dashboard.html'
+                };
+                const target = deptMap[dept] || 'index.html';
+                window.location.href = target;
+                return;
             }
 
+            // إظهار محتوى الصفحة لمسؤولي النظام فقط
+            const adminOnlyEl = document.getElementById('adminOnly');
+            if (adminOnlyEl) adminOnlyEl.classList.remove('d-none');
+
+            // انتظر جاهزية Firebase/Firestore لتجنب تحذيرات "Firestore غير متاح"
+            await waitForFirebaseReady(4000);
+            await waitFor(() => !!window.db, 2000);
+
             // Update user info display with enhanced styling
-            const displayName = user.displayName || user.email.split('@')[0];
-            const userDepartment = authSystem.userDepartment;
-            const departmentBadge = userDepartment !== 'عام' ? 
-                `<span class="badge bg-primary ms-2">${userDepartment}</span>` : '';
+            const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم');
+            const userDepartment = authSystem.userDepartment || 'عام';
             
-            document.getElementById('userInfo').innerHTML = `
-                <i class="fas fa-user me-1"></i> ${displayName}
-                ${departmentBadge}
-            `;
+            console.log('👤 معلومات المستخدم:', { displayName, userDepartment, userRole });
+
+            let badgeText = userDepartment;
+            let badgeClass = 'bg-primary';
+            
+            // تخصيص شارة حسب الدور
+            if (userRole === 'system_admin') {
+                badgeText = 'مسؤول النظام';
+                badgeClass = 'bg-danger';
+            } else if (userRole === 'admin') {
+                badgeText = 'مدير';
+                badgeClass = 'bg-warning text-dark';
+            } else if (userDepartment && userDepartment !== 'عام') {
+                badgeClass = 'bg-success';
+            }
+            
+            const departmentBadge = badgeText !== 'عام' ? 
+                `<span class="badge ${badgeClass} ms-2">${badgeText}</span>` : '';
+
+            const userInfoEl = document.getElementById('userInfo');
+            if (userInfoEl) {
+                userInfoEl.innerHTML = `
+                    <i class="fas fa-user me-1"></i> ${displayName}
+                    ${departmentBadge}
+                `;
+            } else {
+                // If navbar is controlled by unified UI, let it refresh itself
+                try {
+                    if (window.unifiedUI && typeof window.unifiedUI.updateNavbar === 'function') {
+                        window.unifiedUI.updateNavbar();
+                    }
+                } catch (e) { /* ignore */ }
+            }
+            
+            // Update sidebar user info
+            const elUserName = document.getElementById('userName');
+            const elUserRole = document.getElementById('userRole');
+            const elUserAvatar = document.getElementById('userAvatar');
+            if (elUserName) elUserName.textContent = displayName;
+            if (elUserRole) elUserRole.textContent = badgeText;
+            if (elUserAvatar) elUserAvatar.innerHTML = 
+                `<i class="fas fa-${userRole === 'system_admin' ? 'crown' : userRole === 'admin' ? 'star' : 'user'}"></i>`;
             
             // Update sidebar with permission-based navigation
-            if (window.sidebarManager) {
-                window.sidebarManager.updateSidebarNav(true);
+            const ui = window.unifiedUI;
+            if (ui && typeof ui.updateSidebar === 'function') {
+                ui.updateSidebar();
             }
 
             // Update permission-based UI
@@ -211,7 +738,9 @@
                 permissionController.updateUI();
             }
             
-            // Load dashboard statistics with enhanced error handling
+            // Load dashboard data بعد التأكد من توفر Firestore
+            await loadRecentActivity();
+            await loadDepartmentOverview();
             await loadDashboardStats();
             
             // Load department dashboards for admins
@@ -220,86 +749,422 @@
 
         async function loadDepartmentDashboards() {
             try {
-                // إظهار لوحات الإدارات للمديرين فقط
-                if (authSystem.hasPermission('system.admin') || authSystem.hasPermission('departments.manage')) {
+                // إظهار لوحات الإدارات للمديرين أو أصحاب الصلاحيات
+                const userRole = authSystem.userProfile?.role;
+                const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin';
+                const hasManagementAccess = authSystem.hasPermission && 
+                    (authSystem.hasPermission('system.admin') || authSystem.hasPermission('departments.manage'));
+                
+                console.log('🏢 فحص صلاحيات لوحات الإدارات:', {
+                    userRole,
+                    isSystemAdmin,
+                    hasManagementAccess
+                });
+
+                if (isSystemAdmin || hasManagementAccess) {
                     const departmentDashboards = document.getElementById('departmentDashboards');
                     const departmentLinks = document.getElementById('departmentLinks');
                     
-                    if (window.departmentRouter) {
-                        const departments = window.departmentRouter.getAllDepartments();
-                        const currentDept = authSystem.userDepartment;
+                    // قائمة الإدارات المتاحة
+                    const departments = [
+                        {
+                            id: 'archive',
+                            name: 'إدارة الأرشيف العام',
+                            dashboard: 'archive-dashboard.html',
+                            icon: 'fas fa-archive',
+                            color: '#2E8B57',
+                            description: 'إدارة وحفظ الوثائق'
+                        },
+                        {
+                            id: 'collection',
+                            name: 'إدارة التحصيل',
+                            dashboard: 'collection-dashboard.html',
+                            icon: 'fas fa-money-bill-wave',
+                            color: '#DC143C',
+                            description: 'متابعة وتحصيل المستحقات'
+                        },
+                        {
+                            id: 'legal',
+                            name: 'إدارة الشؤون القانونية',
+                            dashboard: 'legal-dashboard.html',
+                            icon: 'fas fa-balance-scale',
+                            color: '#B8860B',
+                            description: 'الشؤون القانونية والقضايا'
+                        },
+                        {
+                            id: 'governance',
+                            name: 'إدارة الحوكمة والامتثال',
+                            dashboard: 'governance-dashboard.html',
+                            icon: 'fas fa-shield-alt',
+                            color: '#4682B4',
+                            description: 'ضمان الامتثال للقوانين واللوائح'
+                        },
+                        {
+                            id: 'securitization',
+                            name: 'التوريق',
+                            dashboard: 'securitization-dashboard.html',
+                            icon: 'fas fa-coins',
+                            color: '#8B4513',
+                            description: 'إدارة عمليات التوريق والأصول'
+                        },
+                        {
+                            id: 'it',
+                            name: 'إدارة تقنية المعلومات',
+                            dashboard: 'it-dashboard.html',
+                            icon: 'fas fa-laptop-code',
+                            color: '#2F4F4F',
+                            description: 'الدعم التقني والأنظمة'
+                        }
+                    ];
+                    
+                    const currentDept = authSystem.userDepartment;
+                    
+                    let departmentHTML = '';
+                    departments.forEach(dept => {
+                        const isCurrentDept = dept.id === currentDept || 
+                                            dept.name === currentDept ||
+                                            currentDept?.includes(dept.name) ||
+                                            dept.name.includes(currentDept || '');
                         
-                        let departmentHTML = '';
-                        departments.forEach(dept => {
-                            const isCurrentDept = dept.id === currentDept || dept.name === currentDept;
-                            departmentHTML += `
-                                <div class="col-md-4 col-lg-3 mb-3">
-                                    <a href="${dept.dashboard}" class="text-decoration-none">
-                                        <div class="card h-100 ${isCurrentDept ? 'border-primary' : ''}" 
-                                             style="border-right: 4px solid ${dept.color};">
-                                            <div class="card-body text-center">
-                                                <i class="${dept.icon} fa-2x mb-2" style="color: ${dept.color};"></i>
-                                                <h6 class="card-title">${dept.name}</h6>
-                                                <small class="text-muted">${dept.description}</small>
-                                                ${isCurrentDept ? '<div class="badge bg-primary mt-2">إدارتك</div>' : ''}
-                                            </div>
+                        departmentHTML += `
+                            <div class="col-md-4 col-lg-3 mb-3">
+                                <a href="${dept.dashboard}" class="text-decoration-none">
+                                    <div class="card h-100 ${isCurrentDept ? 'border-primary' : ''} 
+                                               hover-card" 
+                                         style="border-right: 4px solid ${dept.color}; transition: transform 0.2s ease;">
+                                        <div class="card-body text-center">
+                                            <i class="${dept.icon} fa-2x mb-2" style="color: ${dept.color};"></i>
+                                            <h6 class="card-title">${dept.name}</h6>
+                                            <small class="text-muted">${dept.description}</small>
+                                            ${isCurrentDept ? '<div class="badge bg-primary mt-2">إدارتك</div>' : ''}
                                         </div>
-                                    </a>
-                                </div>
-                            `;
-                        });
-                        
-                        departmentLinks.innerHTML = departmentHTML;
-                        departmentDashboards.classList.remove('department-dashboards-hidden');
-                    }
+                                    </div>
+                                </a>
+                            </div>
+                        `;
+                    });
+                    
+                    departmentLinks.innerHTML = departmentHTML;
+                    departmentDashboards.classList.remove('department-dashboards-hidden');
+                    
+                    console.log('✅ تم تحميل لوحات الإدارات');
+                } else {
+                    console.log('ℹ️ المستخدم لا يملك صلاحية عرض لوحات الإدارات');
                 }
             } catch (error) {
                 console.warn('لا يمكن تحميل لوحات الإدارات:', error);
             }
         }
 
+        async function loadRecentActivity() {
+            try {
+                console.log('🕒 بدء تحميل النشاطات الحديثة');
+                
+                if (!window.db) {
+                    console.warn('⚠️ Firestore غير متاح لتحميل النشاطات');
+                    return;
+                }
+
+                const activityList = document.getElementById('recentActivityList');
+                
+                // جلب آخر 10 نشاطات
+                const activitiesSnap = await window.db.collection('activity_logs')
+                    .orderBy('timestamp', 'desc')
+                    .limit(10)
+                    .get();
+
+                if (activitiesSnap.empty) {
+                    activityList.innerHTML = `
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-clock me-2"></i>
+                            لا توجد نشاطات حديثة
+                        </div>
+                    `;
+                    return;
+                }
+
+                let activitiesHTML = '';
+                activitiesSnap.forEach(doc => {
+                    const activity = doc.data();
+                    const timeAgo = getTimeAgo(activity.timestamp);
+                    const actor = activity.userDisplayName || activity.userEmail || 'مستخدم';
+                    const category = activity.category ? ` • ${activity.category}` : '';
+                    
+                    activitiesHTML += `
+                        <div class="list-group-item border-0">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-3">
+                                    <i class="fas fa-user-circle text-primary fs-5"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 fw-normal">${activity.action || 'نشاط غير محدد'}</h6>
+                                    <p class="mb-0 text-muted small">
+                                        ${actor} • ${timeAgo}${category}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                activityList.innerHTML = activitiesHTML;
+                console.log('✅ تم تحميل النشاطات الحديثة بنجاح');
+                
+            } catch (error) {
+                console.warn('خطأ في تحميل النشاطات الحديثة:', error);
+                document.getElementById('recentActivityList').innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        خطأ في تحميل النشاطات
+                    </div>
+                `;
+            }
+        }
+
+        async function loadDepartmentOverview() {
+            try {
+                console.log('🏢 بدء تحميل نظرة عامة على الأقسام');
+                
+                if (!window.db) {
+                    console.warn('⚠️ Firestore غير متاح لتحميل بيانات الأقسام');
+                    return;
+                }
+
+                const departmentOverview = document.getElementById('departmentOverview');
+                
+                // جلب الأقسام الرئيسية
+                const departments = [
+                    { id: 'archive', name: 'الأرشيف', icon: 'fas fa-archive' },
+                    { id: 'collection', name: 'التحصيل', icon: 'fas fa-money-bill-wave' },
+                    { id: 'legal', name: 'الشؤون القانونية', icon: 'fas fa-gavel' },
+                    { id: 'governance', name: 'الحوكمة والامتثال', icon: 'fas fa-shield-alt' },
+                    { id: 'securitization', name: 'التوريق', icon: 'fas fa-coins' },
+                    { id: 'it', name: 'تقنية المعلومات', icon: 'fas fa-laptop' }
+                ];
+
+                let overviewHTML = '';
+                
+                for (const dept of departments) {
+                    try {
+                        // حساب عدد الوثائق لكل قسم
+                        const deptDocsSnap = await window.db.collection('documents')
+                            .where('department', '==', dept.id)
+                            .get();
+                        
+                        const docsCount = deptDocsSnap.size;
+                        
+                        overviewHTML += `
+                            <div class="col-md-4 col-lg-2 mb-3">
+                                <div class="card h-100 text-center">
+                                    <div class="card-body">
+                                        <i class="${dept.icon} text-primary fs-3 mb-2"></i>
+                                        <h6 class="card-title small">${dept.name}</h6>
+                                        <span class="badge bg-primary">${docsCount}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } catch (error) {
+                        console.warn(`خطأ في تحميل بيانات قسم ${dept.name}:`, error);
+                        overviewHTML += `
+                            <div class="col-md-4 col-lg-2 mb-3">
+                                <div class="card h-100 text-center">
+                                    <div class="card-body">
+                                        <i class="${dept.icon} text-muted fs-3 mb-2"></i>
+                                        <h6 class="card-title small">${dept.name}</h6>
+                                        <span class="badge bg-secondary">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                departmentOverview.innerHTML = overviewHTML;
+                console.log('✅ تم تحميل نظرة عامة على الأقسام بنجاح');
+                
+            } catch (error) {
+                console.warn('خطأ في تحميل نظرة عامة على الأقسام:', error);
+                document.getElementById('departmentOverview').innerHTML = `
+                    <div class="col-12 text-center text-muted py-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        خطأ في تحميل بيانات الأقسام
+                    </div>
+                `;
+            }
+        }
+
+        function getTimeAgo(timestamp) {
+            try {
+                const now = new Date();
+                let activityDate;
+                
+                if (timestamp && timestamp.toDate) {
+                    activityDate = timestamp.toDate();
+                } else if (timestamp instanceof Date) {
+                    activityDate = timestamp;
+                } else if (typeof timestamp === 'string') {
+                    activityDate = new Date(timestamp);
+                } else {
+                    return 'منذ وقت غير محدد';
+                }
+                
+                const diffMs = now - activityDate;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                if (diffMins < 1) return 'الآن';
+                if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+                if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+                if (diffDays < 7) return `منذ ${diffDays} يوم`;
+                
+                return activityDate.toLocaleDateString('ar');
+            } catch (error) {
+                console.warn('خطأ في حساب الوقت المنقضي:', error);
+                return 'وقت غير محدد';
+            }
+        }
+
         async function loadDashboardStats() {
             try {
+                console.log('📊 بدء تحميل إحصائيات لوحة التحكم');
+
+                // التحقق من توفر Firebase
+                if (!window.db) {
+                    console.warn('⚠️ Firestore غير متاح لتحميل الإحصائيات');
+                    return;
+                }
+
+                // صلاحيات عرض الإحصائيات الشاملة للنظام (ملفات اليوم + المساحة من جميع الملفات)
+                const userRole = authSystem.userProfile?.role;
+                const canViewSystemStats = (
+                    userRole === 'system_admin' ||
+                    userRole === 'admin' ||
+                    authSystem.hasPermission?.('view-reports') ||
+                    authSystem.hasPermission?.('system.admin') ||
+                    authSystem.hasPermission?.('files.view_all')
+                );
+
                 // إحصائيات الوثائق
                 try {
-                    const docsSnap = await authSystem.db.collection('documents').get();
-                    document.getElementById('statDocuments').textContent = docsSnap.size;
+                    const docsCollection = window.db.collection('documents');
+                    const docsSnap = await docsCollection.get();
+                    const docsCount = docsSnap.size;
+                    document.getElementById('statDocuments').textContent = docsCount;
+                    console.log('📄 عدد الوثائق:', docsCount);
                 } catch (error) {
                     console.warn('لا يمكن الوصول لإحصائيات الوثائق:', error);
-                    authSystem.logError('dashboard-docs-stats-error', error);
                     document.getElementById('statDocuments').textContent = '0';
                 }
 
-                // إحصائيات المستخدمين - admin only
+                // إحصائيات الملفات المرفوعة اليوم
+                if (canViewSystemStats) {
+                    try {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+
+                        const filesCollection = window.db.collection('files');
+                        const todayFilesSnap = await filesCollection
+                            .where('uploadDate', '>=', today)
+                            .get();
+
+                        const todayFilesCount = todayFilesSnap.size;
+                        document.getElementById('statFiles').textContent = todayFilesCount;
+                        console.log('📁 ملفات اليوم:', todayFilesCount);
+                    } catch (error) {
+                        console.warn('لا يمكن الوصول لإحصائيات ملفات اليوم (صلاحيات النظام):', error);
+                        document.getElementById('statFiles').textContent = '0';
+                    }
+                } else {
+                    // للمستخدمين بدون صلاحيات تقرير/إدارة، لا تحاول قراءة مجموعة الملفات الشاملة
+                    document.getElementById('statFiles').innerHTML = 
+                        '<i class="fas fa-lock text-muted" title="غير مصرح"></i>';
+                    console.log('🔒 إحصائيات ملفات اليوم محجوبة بسبب الصلاحيات');
+                }
+
+                // إحصائيات المستخدمين - للمدراء فقط
                 try {
-                    if (authSystem.hasPermission('user-management')) {
-                        const usersSnap = await authSystem.db.collection('users').get();
-                        document.getElementById('statUsers').textContent = usersSnap.size;
+                    const canViewUsers = userRole === 'system_admin' || 
+                                       userRole === 'admin' || 
+                                       authSystem.hasPermission?.('user-management');
+                    
+                    if (canViewUsers) {
+                        const usersCollection = window.db.collection('users');
+                        const usersSnap = await usersCollection.get();
+                        const usersCount = usersSnap.size;
+                        document.getElementById('statUsers').textContent = usersCount;
+                        console.log('👥 عدد المستخدمين:', usersCount);
                     } else {
-                        document.getElementById('statUsers').textContent = 'غير مصرح';
+                        document.getElementById('statUsers').innerHTML = 
+                            '<i class="fas fa-lock text-muted" title="غير مصرح"></i>';
+                        console.log('🔒 إحصائيات المستخدمين محجوبة');
                     }
                 } catch (error) {
                     console.warn('لا يمكن الوصول لإحصائيات المستخدمين:', error);
-                    authSystem.logError('dashboard-users-stats-error', error);
                     document.getElementById('statUsers').textContent = '0';
                 }
 
                 // المساحة المستخدمة (تقدير)
                 try {
                     let totalSize = 0;
-                    const docsSnap = await authSystem.db.collection('documents').get();
-                    docsSnap.forEach(doc => {
-                        const data = doc.data();
-                        if (data.fileSize) totalSize += data.fileSize;
-                    });
-                    document.getElementById('statStorage').textContent = (totalSize/1024/1024).toFixed(2) + ' MB';
+                    // احسب من الوثائق (غالباً مسموح للجميع)
+                    try {
+                        const docsCollection = window.db.collection('documents');
+                        const docsSnap = await docsCollection.get();
+                        docsSnap.forEach(doc => {
+                            const data = doc.data();
+                            if (data.fileSize && typeof data.fileSize === 'number') {
+                                totalSize += data.fileSize;
+                            }
+                        });
+                    } catch (errDocs) {
+                        console.warn('لا يمكن قراءة أحجام الوثائق لحساب المساحة:', errDocs);
+                    }
+
+                    // أضف من مجموعة الملفات فقط إن كانت الصلاحيات تسمح
+                    if (canViewSystemStats) {
+                        try {
+                            const filesCollection = window.db.collection('files');
+                            const filesSnap = await filesCollection.get();
+                            filesSnap.forEach(doc => {
+                                const data = doc.data();
+                                if (data.size && typeof data.size === 'number') {
+                                    totalSize += data.size;
+                                }
+                            });
+                        } catch (errFiles) {
+                            console.warn('لا يمكن قراءة أحجام الملفات لحساب المساحة (صلاحيات النظام):', errFiles);
+                        }
+                    } else {
+                        console.log('🔒 حساب المساحة من مجموعة files محجوب بسبب الصلاحيات — سيتم الاعتماد على documents فقط');
+                    }
+
+                    // تحويل إلى MB مع تنسيق أفضل
+                    const sizeInMB = totalSize / (1024 * 1024);
+                    let displaySize;
+                    if (sizeInMB < 1) {
+                        displaySize = (totalSize / 1024).toFixed(1) + ' KB';
+                    } else if (sizeInMB < 1024) {
+                        displaySize = sizeInMB.toFixed(1) + ' MB';
+                    } else {
+                        displaySize = (sizeInMB / 1024).toFixed(1) + ' GB';
+                    }
+                    document.getElementById('statStorage').textContent = displaySize;
+                    console.log('💾 المساحة المستخدمة:', displaySize);
                 } catch (error) {
                     console.warn('لا يمكن حساب المساحة المستخدمة:', error);
-                    authSystem.logError('dashboard-storage-stats-error', error);
                     document.getElementById('statStorage').textContent = '0 MB';
                 }
+
+                console.log('✅ تم تحميل إحصائيات لوحة التحكم بنجاح');
             } catch (error) {
                 console.error('خطأ في تحميل إحصائيات لوحة التحكم:', error);
+                
+                // Log error for debugging
+                if (authSystem?.logError) {
+                    authSystem.logError('dashboard-stats-error', error);
+                }
             }
         }
 
@@ -309,9 +1174,123 @@
                 window.location.href = 'index.html';
             } catch (error) {
                 console.error('خطأ في تسجيل الخروج:', error);
-                alert('حدث خطأ أثناء تسجيل الخروج');
             }
         }
+        
+        function enableDashboardDemoMode() {
+            console.log('🎭 تفعيل وضع العرض التوضيحي للوحة الرئيسية');
+            
+            // Create demo user
+            const demoUser = {
+                email: 'demo@archive-tech.com',
+                displayName: 'مستخدم تجريبي',
+                uid: 'demo-user-id'
+            };
+            
+            // Set demo auth system
+            window.authSystem = {
+                currentUser: demoUser,
+                userDepartment: 'تقنية المعلومات',
+                userProfile: { role: 'system_admin' },
+                hasPermission: () => true,
+                signOut: () => Promise.resolve()
+            };
+            // اجعل المتغير العام المستخدم في الصفحة يشير لنفس الكائن
+            authSystem = window.authSystem;
+            
+            // Load demo dashboard data
+            loadDemoDashboardStats();
+            
+            // Update user display
+            const displayName = demoUser.displayName;
+            const userDepartment = 'تقنية المعلومات';
+            const userRole = 'system_admin';
+            
+            console.log('👤 معلومات المستخدم التجريبي:', { displayName, userDepartment, userRole });
+            
+            // Reveal admin-only container for demo
+            const adminOnlyEl = document.getElementById('adminOnly');
+            if (adminOnlyEl) adminOnlyEl.classList.remove('d-none');
+
+            // Update sidebar
+            try {
+                if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                    window.unifiedUI.updateSidebar();
+                }
+            } catch (_) { /* ignore */ }
+        }
+        
+        function loadDemoDashboardStats() {
+            // Demo statistics
+            const demoStats = {
+                totalDocuments: 245,
+                todayFiles: 8,
+                totalUsers: 32,
+                totalStorage: '2.4 GB'
+            };
+            
+            // Update stats display
+            document.getElementById('statDocuments').textContent = demoStats.totalDocuments;
+            document.getElementById('statFiles').textContent = demoStats.todayFiles;
+            document.getElementById('statUsers').textContent = demoStats.totalUsers;
+            document.getElementById('statStorage').textContent = demoStats.totalStorage;
+            
+            console.log('✅ تم تحميل إحصائيات لوحة التحكم التجريبية');
+        }
+        
+        function showDashboardDemoNotice() {
+            setTimeout(() => {
+                const notice = document.createElement('div');
+                notice.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                    z-index: 1000;
+                    max-width: 300px;
+                    font-family: 'Cairo', sans-serif;
+                `;
+                notice.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <div>
+                            <strong>وضع العرض التوضيحي</strong>
+                            <br><small>لوحة التحكم في وضع المحاكاة</small>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">&times;</button>
+                    </div>
+                `;
+                document.body.appendChild(notice);
+                
+                setTimeout(() => {
+                    if (notice.parentElement) {
+                        notice.remove();
+                    }
+                }, 8000);
+            }, 500);
+        }
+        
+        // تحديث التوقيت في التنبيهات كل دقيقة
+        setInterval(() => {
+            const timeElement = document.querySelector('#quickAlerts .alert-light');
+            if (timeElement) {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('ar-SA', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                timeElement.innerHTML = `
+                    <i class="fas fa-clock me-1"></i>
+                    آخر تحديث: ${timeString}
+                `;
+            }
+        }, 60000);
     </script>
 </body>
 </html>
+
+

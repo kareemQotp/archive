@@ -4,6 +4,7 @@
  */
 
 // تجنب إعادة التعريف
+const __DISABLE_NOTIFS__ = !!(window.__DISABLE_NOTIFICATIONS__ || window.__NOTIFICATIONS_QUIET_MODE__);
 if (typeof NotificationService === 'undefined') {
     window.NotificationService = class NotificationService {
     constructor() {
@@ -111,7 +112,9 @@ if (typeof NotificationService === 'undefined') {
             // حفظ في Firebase - استخدام الدالة المساعدة
             if (!this.isDatabaseAvailable()) {
                 console.warn('قاعدة البيانات غير متاحة، سيتم إرسال الإشعار محلياً فقط');
-                this.showWebNotification(notification);
+                if (!__DISABLE_NOTIFS__) {
+                    this.showWebNotification(notification);
+                }
                 return { id: 'local-' + Date.now(), ...notification };
             }
             
@@ -123,11 +126,11 @@ if (typeof NotificationService === 'undefined') {
             console.log('✅ تم إرسال الإشعار:', notificationRef.id);
 
             // إرسال عبر القنوات المطلوبة
-            if (channels.includes('web') && recipientId === window.unifiedAuth.currentUser?.uid) {
+            if (!__DISABLE_NOTIFS__ && channels.includes('web') && recipientId === window.unifiedAuth.currentUser?.uid) {
                 this.showWebNotification(notification);
             }
 
-            if (channels.includes('push')) {
+            if (!__DISABLE_NOTIFS__ && channels.includes('push')) {
                 await this.sendPushNotification(notification);
             }
 
@@ -267,7 +270,7 @@ if (typeof NotificationService === 'undefined') {
      * عرض إشعار ويب
      */
     showWebNotification(notification) {
-        if (window.notify) {
+    if (!__DISABLE_NOTIFS__ && window.notify) {
             const typeInfo = this.notificationTypes[notification.type] || 
                            this.notificationTypes['system_alert'];
 
@@ -291,6 +294,7 @@ if (typeof NotificationService === 'undefined') {
      */
     async sendPushNotification(notification) {
         try {
+            if (__DISABLE_NOTIFS__) return;
             if ('Notification' in window && Notification.permission === 'granted') {
                 const options = {
                     body: notification.message,

@@ -1,1 +1,2 @@
-// Cloud Functions helpers skeleton
+// Deprecated legacy utils helpers stub.
+module.exports = {};

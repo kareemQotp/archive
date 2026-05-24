@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/sidebar.css">
+    <link rel="stylesheet" href="assets/css/unified-sidebar.css">
     <link rel="stylesheet" href="assets/css/permissions.css">
     <style>
         .department-header {
@@ -182,28 +182,12 @@
             width: 0%;
         }
     </style>
+    <script defer src="assets/js/format-utils.js"></script>
+    <script defer src="assets/js/ux-core.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
-            <div class="d-flex align-items-center">
-                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="index.html">
-                    <i class="fas fa-archive me-2"></i>
-                    نظام الأرشيف
-                </a>
-            </div>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3" id="userInfo"></span>
-                <button class="btn btn-outline-danger btn-sm" onclick="logout()">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    خروج
-                </button>
-            </div>
-        </div>
-    </nav>
+    <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
+    
 
     <!-- Department Header -->
     <div class="department-header">
@@ -216,7 +200,7 @@
                 </div>
                 <div class="col">
                     <h1 class="mb-1">إدارة التحصيل</h1>
-                    <p class="mb-0 opacity-75">متابعة وتحصيل المستحقات والديون</p>
+                    <p class="mb-0 opacity-75" id="departmentSubtitle">متابعة وتحصيل المستحقات والديون</p>
                 </div>
                 <div class="col-auto">
                     <div class="text-end">
@@ -392,7 +376,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/sidebar.js"></script>
+    <!-- Unified UI Template System -->
+    <script src="assets/js/unified-ui-template.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -406,6 +391,9 @@
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
+    <!-- Role-Based Routing System -->
+    <script src="assets/js/role-based-routing.js"></script>
+    
     <!-- Notification System -->
     <script src="assets/js/notifications.js"></script>
     <script src="assets/js/notification-service.js"></script>
@@ -416,6 +404,14 @@
         let permissionController;
 
         document.addEventListener('DOMContentLoaded', async function() {
+            // تعطيل نظام التوجيه الذكي التلقائي في هذه الصفحة
+            window.__DISABLE_AUTO_ROUTING__ = true;
+            
+            // Refresh Unified UI if available; avoid instantiating to prevent duplicates
+            const unifiedUI = window.unifiedUI;
+            if (unifiedUI && typeof unifiedUI.updateSidebar === 'function') {
+                try { await unifiedUI.updateSidebar(); } catch (_) { /* ignore */ }
+            }
             console.log('🔧 تحميل لوحة تحكم إدارة التحصيل');
             
             // Wait for unified auth to initialize
@@ -449,24 +445,84 @@
                 return;
             }
 
-            // Check if user belongs to Collection department
-            const userDepartment = authSystem.userDepartment;
-            if (userDepartment !== 'collection' && userDepartment !== 'إدارة التحصيل') {
-                console.log('❌ المستخدم لا ينتمي لإدارة التحصيل، التوجيه للوحة العامة');
+            // Check if user belongs to Collection department or has admin privileges
+            const userDepartment = authSystem.userProfile?.department || authSystem.userProfile?.departmentId;
+            const userRole = authSystem.userProfile?.role;
+            const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin';
+            const isCollectionOfficer = userRole === 'collection-officer' || userRole === 'collection_officer';
+            
+            console.log('🔍 فحص صلاحيات الوصول للتحصيل:', {
+                userDepartment,
+                userRole,
+                isSystemAdmin,
+                isCollectionOfficer,
+                userEmail: user.email,
+                fullProfile: authSystem.userProfile
+            });
+            
+            // Allow access for:
+            // 1. Collection department users (by department name or ID)
+            // 2. Collection officers (by role)
+            // 3. System admins
+            // 4. Users with admin role
+            // 5. Admin emails
+            const hasAccess = userDepartment === 'collection' || 
+                            userDepartment === 'إدارة التحصيل' ||
+                            userDepartment === 'التحصيل' ||
+                            userDepartment === 'تحصيل' ||
+                            isCollectionOfficer ||
+                            isSystemAdmin ||
+                            userRole === 'admin' ||
+                            user.email?.includes('admin');
+            
+            if (!hasAccess) {
+                console.log('❌ المستخدم لا يملك صلاحية الوصول لإدارة التحصيل، التوجيه للوحة العامة');
+                console.log('تفاصيل المستخدم:', {
+                    department: userDepartment,
+                    role: userRole,
+                    email: user.email
+                });
+                alert('ليس لديك صلاحية للوصول إلى لوحة تحكم إدارة التحصيل. سيتم توجيهك للوحة التحكم العامة.');
                 window.location.href = 'dashboard.html?message=wrong-department';
                 return;
             }
+            
+            console.log('✅ تم منح الوصول لإدارة التحصيل');
+
+            // Update department subtitle for system admins
+            if (isSystemAdmin) {
+                document.getElementById('departmentSubtitle').textContent = 
+                    'لوحة تحكم شاملة - عرض جميع بيانات التحصيل عبر النظام';
+            } else if (isCollectionOfficer) {
+                document.getElementById('departmentSubtitle').textContent = 
+                    'لوحة تحكم موظف التحصيل - إدارة الديون والمدفوعات';
+            }
 
             // Update user info display
-            const displayName = user.displayName || user.email.split('@')[0];
+            const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم');
+            
+            let badgeText = 'إدارة التحصيل';
+            let badgeClass = 'bg-danger';
+            
+            if (isSystemAdmin) {
+                badgeText = 'مسؤول النظام';
+                badgeClass = 'bg-danger';
+            } else if (userRole === 'admin') {
+                badgeText = 'مدير';
+                badgeClass = 'bg-warning';
+            }
+            
             document.getElementById('userInfo').innerHTML = `
                 <i class="fas fa-user me-1"></i> ${displayName}
-                <span class="badge bg-danger ms-2">إدارة التحصيل</span>
+                <span class="badge ${badgeClass} ms-2">${badgeText}</span>
             `;
             
             // Update sidebar
             if (window.sidebarManager) {
-                window.sidebarManager.updateSidebarNav(true);
+                const unifiedUI = window.unifiedUITemplate;
+            if (unifiedUI) {
+                unifiedUI.updateSidebar();
+            };
             }
 
             // Update permission-based UI
@@ -499,11 +555,29 @@
 
         async function loadDepartmentStats() {
             try {
+                // التحقق من توفر قاعدة البيانات
+                if (!window.db) {
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة لتحميل إحصائيات التحصيل');
+                    // تعيين قيم افتراضية
+                    document.getElementById('statTotalDebts').textContent = '0';
+                    document.getElementById('statOverdueDebts').textContent = '0';
+                    document.getElementById('statCollectedMonth').textContent = '0';
+                    document.getElementById('statCollectionRate').textContent = '0';
+                    return;
+                }
+
+                const isSystemAdmin = authSystem.userProfile?.role === 'system_admin' || 
+                                    authSystem.userProfile?.role === 'admin';
+                
+                // For system admins, show all collection records, for others show department-specific
+                let debtsQuery = window.db.collection('collection_records');
+                if (!isSystemAdmin) {
+                    debtsQuery = debtsQuery.where('department', '==', 'collection');
+                }
+                
                 // Total debts amount
-                const debtsQuery = authSystem.db.collection('collection_records')
-                    .where('department', '==', 'collection')
-                    .where('status', 'in', ['pending', 'overdue', 'in-progress']);
-                const debtsSnap = await debtsQuery.get();
+                const debtsWithStatusQuery = debtsQuery.where('status', 'in', ['pending', 'overdue', 'in-progress']);
+                const debtsSnap = await debtsWithStatusQuery.get();
                 
                 let totalDebts = 0;
                 let overdueDebts = 0;
@@ -524,10 +598,12 @@
                 thisMonth.setDate(1);
                 thisMonth.setHours(0, 0, 0, 0);
                 
-                const collectedQuery = authSystem.db.collection('collection_records')
-                    .where('department', '==', 'collection')
+                let collectedQuery = window.db.collection('collection_records')
                     .where('status', '==', 'collected')
                     .where('collectionDate', '>=', thisMonth);
+                if (!isSystemAdmin) {
+                    collectedQuery = collectedQuery.where('department', '==', 'collection');
+                }
                 const collectedSnap = await collectedQuery.get();
                 
                 let collectedMonth = 0;
@@ -579,8 +655,20 @@
 
         async function loadDepartmentUserCount() {
             try {
-                const usersQuery = authSystem.db.collection('users')
-                    .where('department', '==', 'collection');
+                if (!window.db) {
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة لتحميل عدد المستخدمين');
+                    document.getElementById('departmentUserCount').textContent = '0';
+                    return;
+                }
+
+                const isSystemAdmin = authSystem.userProfile?.role === 'system_admin' || 
+                                    authSystem.userProfile?.role === 'admin';
+                
+                let usersQuery = window.db.collection('users');
+                if (!isSystemAdmin) {
+                    usersQuery = usersQuery.where('department', '==', 'collection');
+                }
+                
                 const usersSnap = await usersQuery.get();
                 document.getElementById('departmentUserCount').textContent = usersSnap.size;
             } catch (error) {
@@ -591,12 +679,29 @@
 
         async function loadUrgentDebts() {
             try {
+                if (!window.db) {
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة لتحميل الديون العاجلة');
+                    document.getElementById('urgentDebts').innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-database me-2"></i>
+                            قاعدة البيانات غير متوفرة حالياً
+                        </div>
+                    `;
+                    return;
+                }
+
+                const isSystemAdmin = authSystem.userProfile?.role === 'system_admin' || 
+                                    authSystem.userProfile?.role === 'admin';
+                
                 // Get overdue and high priority debts
-                const urgentQuery = authSystem.db.collection('collection_records')
-                    .where('department', '==', 'collection')
+                let urgentQuery = window.db.collection('collection_records')
                     .where('status', 'in', ['overdue', 'urgent'])
                     .orderBy('amount', 'desc')
                     .limit(8);
+                
+                if (!isSystemAdmin) {
+                    urgentQuery = urgentQuery.where('department', '==', 'collection');
+                }
                 
                 const urgentSnap = await urgentQuery.get();
                 const urgentContainer = document.getElementById('urgentDebts');
@@ -638,6 +743,8 @@
                     }
 
                     const formattedAmount = (debt.amount / 1000000).toFixed(2);
+                    const departmentInfo = isSystemAdmin && debt.department ? 
+                        `<small class="text-muted ms-2">• ${debt.department}</small>` : '';
 
                     debtsHTML += `
                         <div class="debt-item">
@@ -652,6 +759,7 @@
                                             استحقاق: ${dueDateStr}
                                         </small>
                                         <span class="${priorityClass}">${priorityText}</span>
+                                        ${departmentInfo}
                                     </div>
                                 </div>
                                 <div class="text-end">
@@ -707,4 +815,7 @@
     </script>
 </body>
 </html>
+
+
+
 
