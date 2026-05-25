@@ -15,6 +15,9 @@ class UnifiedAuth {
         this.currentUser = null;
         this.userProfile = null;
         this.permissions = [];
+        this.lastLoginUpdateDisabled = false;
+        this.lastLoginWarnedAt = 0;
+        this.pendingLastLoginSync = false;
         this.loginAttempts = 0;
         this.maxLoginAttempts = 5;
         this.lockoutDuration = 15 * 60 * 1000; // 15 minutes
@@ -336,14 +339,19 @@ class UnifiedAuth {
 
     async updateLastLogin(uid) {
         try {
+            if (this.lastLoginUpdateDisabled) return;
             // التحقق من توفر قاعدة البيانات
             if (!window.db) {
-                console.warn('⚠️ قاعدة البيانات غير متوفرة، سيتم تحديث آخر دخول عند جاهزية Firebase');
-                window.addEventListener('firebaseReady', () => {
-                    if (this.currentUser && window.db) {
-                        this.updateLastLogin(uid).catch(() => {});
-                    }
-                }, { once: true });
+                if (!this.pendingLastLoginSync) {
+                    this.pendingLastLoginSync = true;
+                    console.warn('⚠️ قاعدة البيانات غير متوفرة، سيتم تحديث آخر دخول عند جاهزية Firebase');
+                    window.addEventListener('firebaseReady', () => {
+                        this.pendingLastLoginSync = false;
+                        if (this.currentUser && window.db) {
+                            this.updateLastLogin(uid).catch(() => {});
+                        }
+                    }, { once: true });
+                }
                 return;
             }
             
@@ -352,7 +360,23 @@ class UnifiedAuth {
                 loginCount: firebase.firestore.FieldValue.increment(1)
             });
         } catch (error) {
-            console.warn('فشل في تحديث وقت آخر دخول:', error);
+            const isPermissionError = error && (
+                error.code === 'permission-denied' ||
+                error.code === 'firestore/permission-denied' ||
+                String(error.message || '').toLowerCase().includes('missing or insufficient permissions')
+            );
+
+            if (isPermissionError) {
+                this.lastLoginUpdateDisabled = true;
+                console.warn('⚠️ تم تعطيل تحديث آخر دخول بسبب صلاحيات Firestore غير كافية.');
+                return;
+            }
+
+            const now = Date.now();
+            if (now - this.lastLoginWarnedAt > 10000) {
+                this.lastLoginWarnedAt = now;
+                console.warn('فشل في تحديث وقت آخر دخول:', error);
+            }
         }
     }
 
@@ -780,6 +804,9 @@ class UnifiedAuth {
     }
 
     redirectToLoginWithSessionExpired(redirectTo = 'login.html') {
+        if (window.__ALLOW_GUEST_ACCESS__) {
+            return;
+        }
         // Save current page for redirect after login
         const currentPage = window.location.href;
         const loginUrl = new URL(redirectTo, window.location.origin);
@@ -797,6 +824,10 @@ class UnifiedAuth {
     }
 
     handleSessionExpiration() {
+        if (window.__ALLOW_GUEST_ACCESS__) {
+            console.log('⚠️ Session expiration ignored in local smoke mode');
+            return;
+        }
         console.log('⚠️ انتهت صلاحية الجلسة');
         
         // Show immediate notification if possible
@@ -851,7 +882,10 @@ class UnifiedAuth {
         if (!this.authStateListeners) {
             this.authStateListeners = [];
         }
-        this.authStateListeners.push(callback);
+        this.authStateListeners.push({
+            mode: 'user',
+            callback
+        });
         
         // Call immediately if already initialized
         if (this.isInitialized) {
@@ -863,7 +897,10 @@ class UnifiedAuth {
         if (!this.authStateListeners) {
             this.authStateListeners = [];
         }
-        this.authStateListeners.push(callback);
+        this.authStateListeners.push({
+            mode: 'state',
+            callback
+        });
         
         // Call immediately if already initialized
         if (this.isInitialized) {
@@ -888,9 +925,23 @@ class UnifiedAuth {
             this.authStateListeners = [];
             return;
         }
-        this.authStateListeners.forEach(callback => {
+        this.authStateListeners.forEach(listener => {
             try {
-                callback(state, user);
+                // Backward-compatible with old function-only listeners.
+                if (typeof listener === 'function') {
+                    listener(user);
+                    return;
+                }
+
+                if (!listener || typeof listener.callback !== 'function') {
+                    return;
+                }
+
+                if (listener.mode === 'state') {
+                    listener.callback(state, user);
+                } else {
+                    listener.callback(user);
+                }
             } catch (error) {
                 console.error('خطأ في استدعاء مستمع حالة المصادقة:', error);
             }

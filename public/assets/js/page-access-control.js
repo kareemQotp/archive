@@ -21,10 +21,26 @@ class PageAccessControl {
         this.setupPageLoadListener();
     }
 
+    getAuth() {
+        if (window.auth && typeof window.auth.onAuthStateChanged === 'function') {
+            return window.auth;
+        }
+        if (typeof firebase !== 'undefined' && firebase.auth && firebase.apps && firebase.apps.length) {
+            try { return firebase.auth(); } catch (_) { return null; }
+        }
+        return null;
+    }
+
+    getCurrentAuthUser() {
+        const auth = this.getAuth();
+        return auth ? auth.currentUser : null;
+    }
+
     setupAuthStateListener() {
+        const auth = this.getAuth();
         // التحقق من Firebase Auth
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            firebase.auth().onAuthStateChanged((user) => {
+        if (auth) {
+            auth.onAuthStateChanged((user) => {
                 console.log('🔐 Page Access Control - Auth state changed:', user ? user.email : 'No user');
                 this.isAuthenticated = !!user;
                 if (user) {
@@ -33,7 +49,7 @@ class PageAccessControl {
                     // إعطاء وقت إضافي قبل معالجة عدم المصادقة
                     console.log('⏳ لا يوجد مستخدم - انتظار 8 ثوان للتحقق مرة أخرى');
                     setTimeout(() => {
-                        const currentUser = firebase.auth().currentUser;
+                        const currentUser = this.getCurrentAuthUser();
                         if (!currentUser) {
                             console.log('❌ لا يوجد مستخدم مصادق عليه بعد 8 ثوان');
                             this.handleUnauthenticatedUser();
@@ -94,7 +110,7 @@ class PageAccessControl {
             
             // في حالة عدم وجود قاعدة البيانات أو عدم وجود المستخدم
             // التحقق من كونه مدير بناءً على الإيميل
-            const currentUser = firebase.auth().currentUser;
+            const currentUser = this.getCurrentAuthUser();
             if (currentUser) {
                 const isAdminEmail = currentUser.email && (
                     currentUser.email.includes('admin') || 
@@ -213,7 +229,7 @@ class PageAccessControl {
             // انتظار إضافي للتأكد من عدم وجود مصادقة
             setTimeout(() => {
                 // التحقق النهائي من المصادقة
-                const finalUser = firebase.auth && firebase.auth().currentUser;
+                const finalUser = this.getCurrentAuthUser();
                 if (!finalUser) {
                     console.log('❌ لا يوجد مستخدم مصادق عليه نهائياً - إعادة توجيه');
                     // إعادة توجيه لصفحة تسجيل الدخول

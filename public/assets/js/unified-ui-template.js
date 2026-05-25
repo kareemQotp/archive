@@ -47,13 +47,7 @@
                     role = ua.userRole || role;
                     department = ua.userDepartment || department;
                 }
-                // رجوع إلى Firebase auth عند الحاجة
-                if (!uid && window.firebase && firebase.auth) {
-                    const u = firebase.auth().currentUser;
-                    if (u) {
-                        uid = u.uid; email = u.email; displayName = u.displayName || u.email;
-                    }
-                }
+                // لا تعتمد على firebase.auth هنا لتجنب استدعاء مبكر قبل تهيئة التطبيق.
                 if (uid) {
                     this.userInfo = { uid, email, displayName, role: role || 'user', department: department || '' };
                     await this.loadUserOverrides();
@@ -70,8 +64,9 @@
                 if (!this.userInfo || !this.userInfo.uid) return;
                 window.__userPagePermissionsCache = window.__userPagePermissionsCache || {};
                 if (window.__userPagePermissionsCache[this.userInfo.uid]) return;
-                if (!window.firebase || !firebase.firestore) return;
-                const doc = await firebase.firestore().collection('user_page_permissions').doc(this.userInfo.uid).get();
+                if (!window.firebase || !firebase.firestore || !firebase.apps || !firebase.apps.length) return;
+                const app = firebase.apps[0];
+                const doc = await app.firestore().collection('user_page_permissions').doc(this.userInfo.uid).get();
                 if (doc.exists) {
                     const data = doc.data() || {};
                     window.__userPagePermissionsCache[this.userInfo.uid] = {
@@ -215,6 +210,10 @@
             ];
         }
 
+        isAdminRole(role) {
+            return role === 'admin' || role === 'system_admin';
+        }
+
         filterSidebarItems(items) {
             try {
                 if (window.__DISABLE_SIDEBAR_FILTER__) return items;
@@ -222,7 +221,7 @@
                 const uid = this.userInfo.uid;
                 const role = this.userInfo.role || '';
                 const department = this.normalizeDepartment(this.userInfo.department || '');
-                if (role === 'admin') return items;
+                if (this.isAdminRole(role)) return items;
                 const externalConfig = window.__DEPT_SIDEBAR_CONFIG__ || null;
                 const userOverrides = (window.__userPagePermissionsCache && window.__userPagePermissionsCache[uid]) || { pages: {} };
                 const userPages = userOverrides.pages || {};
@@ -230,7 +229,7 @@
 
                 return items.filter(item => {
                     if (item.separator) return true;
-                    if (item.requiresAdmin && role !== 'admin') return false;
+                    if (item.requiresAdmin && !this.isAdminRole(role)) return false;
                     const pageKey = item.page ? this.mapPageAlias(item.page) : null;
                     const eqKeys = pageKey ? this.getEquivalentPageKeys(pageKey) : [];
                     if (hasUserWhitelist) {
@@ -273,10 +272,10 @@
                 if (!this.userInfo) return false;
                 const role = this.userInfo.role || '';
                 const department = this.normalizeDepartment(this.userInfo.department || '');
-                if (role === 'admin') return true;
+                if (this.isAdminRole(role)) return true;
                 const items = this.getSidebarItems();
                 const item = items.find(i => i.page === pageKey);
-                if (item && item.requiresAdmin && role !== 'admin') return false;
+                if (item && item.requiresAdmin && !this.isAdminRole(role)) return false;
                 const uid = this.userInfo.uid;
                 const userOverrides = (window.__userPagePermissionsCache && window.__userPagePermissionsCache[uid]) || { pages: {} };
                 const userPages = userOverrides.pages || {};
@@ -309,6 +308,7 @@
 
         async enforcePageAccessGuard() {
             try {
+                if (window.__ALLOW_GUEST_ACCESS__) return;
                 if (window.__PAGE_ACCESS_ENFORCED__) return;
                 window.__PAGE_ACCESS_ENFORCED__ = true;
                 const pageKey = this.mapPageAlias(this.currentPage);
@@ -322,7 +322,7 @@
                 };
                 if (!this.userInfo) {
                     try {
-                        const maybeAuth = (window.auth || (window.firebase && firebase.auth ? firebase.auth() : null));
+                        const maybeAuth = window.auth || null;
                         // Base delay plus deep-wait multiplier for selected pages
                         const baseDelay = window.__ACCESS_GUARD_DELAY_MS__ || 4000;
                         const guardDelayMs = isDeepWait ? baseDelay + 4000 : baseDelay; // extend for deep pages
@@ -339,7 +339,7 @@
                                     }
                                 } catch (_) {}
                                 try {
-                                    document.addEventListener('firebaseAuthReady', () => {
+                                    window.addEventListener('firebaseAuthReady', () => {
                                         const hasUser = !!(window.unifiedAuth && (window.unifiedAuth.currentUser || window.unifiedAuth.user));
                                         finish(hasUser);
                                     }, { once: true });
@@ -488,7 +488,7 @@
         }
 
         getRoleText(role) {
-            const roleTexts = { 'admin': 'مدير النظام', 'archive_officer': 'موظف أرشيف', 'user': 'مستخدم', 'viewer': 'مشاهد' };
+            const roleTexts = { 'admin': 'مدير النظام', 'system_admin': 'مدير النظام', 'archive_officer': 'موظف أرشيف', 'user': 'مستخدم', 'viewer': 'مشاهد' };
             return roleTexts[role] || 'مستخدم';
         }
 
@@ -605,7 +605,7 @@
             window.unifiedUI = new UnifiedUITemplate();
         }
     });
-    document.addEventListener('firebaseAuthReady', () => { if (window.unifiedUI) { window.unifiedUI.loadUserInfo(); window.unifiedUI.renderNavbar(); window.unifiedUI.renderSidebar(); window.unifiedUI.setupFixedSidebarMode(); } });
+    window.addEventListener('firebaseAuthReady', () => { if (window.unifiedUI) { window.unifiedUI.loadUserInfo(); window.unifiedUI.renderNavbar(); window.unifiedUI.renderSidebar(); window.unifiedUI.setupFixedSidebarMode(); } });
 
     if (typeof module !== 'undefined' && module.exports) { module.exports = UnifiedUITemplate; }
     if (typeof window !== 'undefined' && !window.logout) {

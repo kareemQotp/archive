@@ -118,7 +118,7 @@ class RoleBasedRouter {
             console.log('🔄 تحديد مسار التوجيه:', { role, department, departmentId });
 
             // إذا كان المستخدم مسؤول نظام عام، يذهب لإدارة المستخدمين
-            if (role === 'admin') {
+            if (role === 'admin' || role === 'system_admin') {
                 console.log('✅ مسؤول نظام → إدارة المستخدمين');
                 return 'user-management.html';
             }
@@ -224,7 +224,7 @@ class RoleBasedRouter {
             'الحوكمة': 'governance',
             'إدارة الحوكمة والامتثال': 'governance',
             'الامتثال': 'governance',
-            'governنسe': 'governance',
+            'governance': 'governance',
             'governance': 'governance',
 
             // التوريق

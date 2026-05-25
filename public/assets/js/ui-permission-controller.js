@@ -8,6 +8,7 @@ class UIPermissionController {
         this.auth = authSystem;
         this.protectedElements = new Map();
         this.permissionGroups = new Map();
+        this.originalParents = new WeakMap();
         
         // Ensure auth system is properly initialized before attaching listeners
         if (!this.auth || typeof this.auth !== 'object') {
@@ -113,8 +114,8 @@ class UIPermissionController {
                 element.style.opacity = '1';
                 break;
             case 'remove':
-                if (element.dataset.originalParent) {
-                    const parent = document.querySelector(element.dataset.originalParent);
+                {
+                    const parent = this.originalParents.get(element);
                     if (parent && !parent.contains(element)) {
                         parent.appendChild(element);
                     }
@@ -143,7 +144,7 @@ class UIPermissionController {
                 break;
             case 'remove':
                 if (element.parentNode) {
-                    element.dataset.originalParent = element.parentNode.id || element.parentNode.className;
+                    this.originalParents.set(element, element.parentNode);
                     element.remove();
                 }
                 break;

@@ -512,7 +512,9 @@ class AnalyticsManager {
 
     // وظائف مساعدة
     getCurrentUserId() {
-        return firebase.auth().currentUser?.uid || 'anonymous';
+        const user = (window.unifiedAuth && window.unifiedAuth.currentUser) ||
+            (window.auth && window.auth.currentUser) || null;
+        return user?.uid || 'anonymous';
     }
 
     generateSessionId() {

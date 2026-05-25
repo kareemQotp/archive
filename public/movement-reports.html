@@ -22,46 +22,7 @@
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
-    <!-- Unified Navbar -->
-    <!-- Unified navbar is injected by unified-ui-template.js -->
-        <div class="container">
-            <div class="d-flex align-items-center">
-                <button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="index.html">
-                    <i class="fas fa-archive me-2"></i>
-                    نظام الأرشيف
-                </a>
-            </div>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3" id="topUserInfo"></span>
-            </div>
-        </div>
-    </nav>
-    <!-- Sidebar -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <aside class="sidebar" id="sidebar" aria-hidden="true">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-archive"></i>
-                <span>نظام الأرشيف</span>
-            </div>
-            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="user-info" id="userInfo">
-            <!-- سيتم ملؤها بـ JavaScript -->
-        </div>
-        
-        <nav class="sidebar-nav" id="sidebarNav">
-            <!-- سيتم ملؤها بـ JavaScript -->
-        </nav>
-    </aside>
-
-    <div class="overlay" id="overlay"></div>
+    <!-- Unified navbar/sidebar are injected by unified-ui-template.js -->
 
     <main class="main-content" role="main" aria-label="تقارير حركة الملفات" id="mainContent" tabindex="-1">
         <div class="container py-3">
@@ -185,12 +146,19 @@
     <script src="assets/js/unified-auth.js"></script>
         <!-- Early guard tuning: increase wait time before any redirect & mark page to defer access guard -->
         <script>
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const isLocalSmoke = params.has('smoke') && (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost');
+                if (isLocalSmoke) {
+                    window.__ALLOW_GUEST_ACCESS__ = true;
+                }
+            } catch (_) {}
             // Increase guard delay (ms) to prevent premature session-expired redirect on slower connections
             window.__ACCESS_GUARD_DELAY_MS__ = 6000;
             // Flag to let unified UI know to hold off enforcing guard immediately (optional future use)
             window.__DELAY_PAGE_GUARD__ = true;
             // If unifiedAuth fires ready earlier, we clear the delay flag so guard can proceed
-            document.addEventListener('firebaseAuthReady', ()=> { setTimeout(()=>{ delete window.__DELAY_PAGE_GUARD__; }, 250); }, { once:true });
+            window.addEventListener('firebaseAuthReady', ()=> { setTimeout(()=>{ delete window.__DELAY_PAGE_GUARD__; }, 250); }, { once:true });
         </script>
     <!-- movement-reports-page.js will be auto-loaded via manifest (feature stage) -->
     <script src="assets/js/unified-ui-template.js" defer></script>

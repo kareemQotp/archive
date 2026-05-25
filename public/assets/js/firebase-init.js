@@ -137,9 +137,16 @@ async function initializeFirebase() {
         console.log('✅ تم تعيين window.auth فوراً');
         
         // إرسال حدث أولي للإشارة إلى تهيئة Auth
-        window.dispatchEvent(new CustomEvent('firebaseAuthReady', {
+        const authReadyEvent = new CustomEvent('firebaseAuthReady', {
             detail: { auth: window.auth }
-        }));
+        });
+        window.dispatchEvent(authReadyEvent);
+        // توافقية مع صفحات قديمة ما زالت تستمع على document
+        try {
+            document.dispatchEvent(new CustomEvent('firebaseAuthReady', {
+                detail: { auth: window.auth }
+            }));
+        } catch (_) {}
         
         // Set auth persistence to LOCAL to maintain session across browser restarts
         try {

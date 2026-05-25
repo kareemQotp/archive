@@ -10,6 +10,7 @@ class ActivityLogger {
         this.flushInterval = 30000; // 30 seconds
         this.pendingActivities = [];
         this.currentUser = null;
+        this.sessionStartTime = Date.now();
         this.sessionId = this.generateSessionId();
         this.init();
     }
@@ -22,9 +23,16 @@ class ActivityLogger {
     }
 
     setupAuthListener() {
+        const extractUserFromArgs = (...args) => {
+            // Supports both signatures: callback(user) and callback(state, user).
+            if (args.length >= 2) return args[1] || null;
+            return args[0] || null;
+        };
+
         // Listen for auth state changes
         if (window.unifiedAuth) {
-            window.unifiedAuth.onAuthStateChanged((user) => {
+            window.unifiedAuth.onAuthStateChanged((...args) => {
+                const user = extractUserFromArgs(...args);
                 this.currentUser = user;
                 if (user) {
                     this.logActivity('auth', 'login', {
@@ -42,7 +50,8 @@ class ActivityLogger {
             // Wait for unifiedAuth to be available
             const checkAuth = () => {
                 if (window.unifiedAuth) {
-                    window.unifiedAuth.onAuthStateChanged((user) => {
+                    window.unifiedAuth.onAuthStateChanged((...args) => {
+                        const user = extractUserFromArgs(...args);
                         this.currentUser = user;
                         if (user) {
                             this.logActivity('auth', 'login', {
@@ -393,7 +402,7 @@ class ActivityLogger {
                 };
                 
                 // Listen for firebaseReady event
-                document.addEventListener('firebaseReady', resolve, { once: true });
+                window.addEventListener('firebaseReady', resolve, { once: true });
                 
                 // Also check periodically in case event was missed
                 setTimeout(checkFirebase, 100);
@@ -473,18 +482,9 @@ class ActivityLogger {
     }
 
     sendBeaconSync() {
-        if (!navigator.sendBeacon) return;
-
-        try {
-            const data = JSON.stringify({
-                activities: this.pendingActivities,
-                type: 'page_unload_sync'
-            });
-
-            navigator.sendBeacon('/api/activity-logs/sync', data);
-        } catch (error) {
-            console.error('Failed to send beacon:', error);
-        }
+        // Legacy endpoint (/api/activity-logs/sync) is not available on Firebase Hosting.
+        // Persist pending activities locally and let regular Firestore sync flush them later.
+        this.saveToLocalStorage();
     }
 
     dispatchActivityEvent(activity) {

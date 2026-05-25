@@ -635,7 +635,7 @@
 
             // السماح فقط لمسؤولي النظام بعرض هذه الصفحة
             const userRole = authSystem.userProfile?.role;
-            if (userRole !== 'system_admin') {
+            if (!['system_admin', 'admin'].includes(userRole)) {
                 // توجيه المستخدم إلى لوحة إدارته
                 try {
                     if (window.departmentRouter && typeof window.departmentRouter.redirectToDepartmentDashboard === 'function') {

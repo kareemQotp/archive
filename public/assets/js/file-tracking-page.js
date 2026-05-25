@@ -86,7 +86,13 @@
     if (!user){
       setTimeout(()=>{
         const u = state.authSystem ? state.authSystem.getCurrentUser() : (window.firebase && firebase.auth ? firebase.auth().currentUser : null);
-        if(!u){ window.location.href = 'login.html?message=session-expired'; }
+        if(!u){
+          if (window.__ALLOW_GUEST_ACCESS__) {
+            log('Smoke mode active - skip session-expired redirect');
+            return;
+          }
+          window.location.href = 'login.html?message=session-expired';
+        }
       },10000);
       return;
     }

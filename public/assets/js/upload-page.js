@@ -14,8 +14,9 @@
       // Respect page-level overrides and demo mode to avoid unwanted redirects
       const redirectDisabled = !!(window.__UPLOAD_PAGE_REDIRECT_DISABLED__);
       const allowDemo = !!(window.__ALLOW_DEMO_MODE__);
+      const allowGuest = !!(window.__ALLOW_GUEST_ACCESS__);
       const demoEnabled = localStorage.getItem('demo_mode') === 'true';
-      if (redirectDisabled || allowDemo || demoEnabled) {
+      if (redirectDisabled || allowDemo || demoEnabled || allowGuest) {
         // Do not redirect; page will handle demo/guest state
         return;
       }

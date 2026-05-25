@@ -528,10 +528,13 @@
 
             const effectiveUser = hasUser || { email: 'demo@example.com', displayName: 'مستخدم تجريبي' };
             const displayName = (window.unifiedAuth?.userName) || effectiveUser.displayName || (effectiveUser.email ? effectiveUser.email.split('@')[0] : 'مستخدم');
-            document.getElementById('userInfo').innerHTML = `
-                <i class="fas fa-user me-1"></i>
-                ${displayName}
-            `;
+            const userInfoEl = document.getElementById('userInfo');
+            if (userInfoEl) {
+                userInfoEl.innerHTML = `
+                    <i class="fas fa-user me-1"></i>
+                    ${displayName}
+                `;
+            }
             
             const isDemoModeActive = localStorage.getItem('demo_mode') === 'true';
             const demoModeInfo = document.getElementById('demoModeInfo');

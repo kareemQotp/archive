@@ -9,6 +9,7 @@
   class ActivityLogsDashboard {
     constructor(){
       this.currentPage=1; this.pageSize=50; this.totalPages=1; this.activities=[]; this.filteredActivities=[]; this.realTimeListener=null;
+      this.activityIds = new Set();
       this.init();
     }
     waitForAuth(){
@@ -38,7 +39,7 @@
         // Check if user is authenticated (more flexible check)
         const isAuthenticated = !!(window.unifiedAuth?.isAuthenticated || window.unifiedAuth?.currentUser);
         
-        if (!isAuthenticated && window.unifiedAuth?.isInitialized) {
+        if (!isAuthenticated && window.unifiedAuth?.isInitialized && !window.__ALLOW_GUEST_ACCESS__) {
           log('User not authenticated, redirecting to login');
           location.href = 'login.html?redirect=' + encodeURIComponent(location.pathname);
           return;
@@ -77,6 +78,7 @@
         switch(action){
           case 'export': this.exportReport(); break;
           case 'refresh': this.refreshData(); break;
+          case 'apply-filters': this.applyFilters(); break;
           case 'clear-filters': this.clearFilters(); break;
           case 'show-details': {
             const id = btn.getAttribute('data-activity-id');
@@ -96,10 +98,16 @@
     }
     handleNewActivity(activity){
       const normalized = this.normalizeActivity(activity);
+      if (normalized?.id && this.activityIds.has(normalized.id)) {
+        return;
+      }
+      if (normalized?.id) {
+        this.activityIds.add(normalized.id);
+      }
       this.activities.unshift(normalized);
       this.showRealTimeIndicator();
       this.updateStats();
-      if(window.analytics){ window.analytics.addRealTimeActivity?.(activity); }
+      if(window.analytics){ window.analytics.updateData?.(this.activities); }
   try { window.__EVENT_BUS__?.emit && window.__EVENT_BUS__.emit('activities:updated', { count:this.activities.length, latest:activity }); document.dispatchEvent(new CustomEvent('activities:updated', { detail:{ count:this.activities.length, latest:activity } })); } catch(e){}
       this.applyFilters();
     }
@@ -126,10 +134,12 @@
 
         const snapshot = await db.collection('activity_logs').orderBy('timestamp','desc').limit(1000).get();
         log('Loaded', snapshot.docs.length, 'activities from Firebase');
+        this.activityIds.clear();
         this.activities = snapshot.docs.map(d=> {
           const data = d.data();
           // Normalize Firestore Timestamp to millis
           const ts = data.timestamp && typeof data.timestamp.toMillis === 'function' ? data.timestamp.toMillis() : (data.timestamp || Date.now());
+          this.activityIds.add(d.id);
           return { id: d.id, ...data, timestamp: ts };
         });
         

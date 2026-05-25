@@ -769,6 +769,22 @@
             }
         }
 
+        // Fallback binding: some async navbar re-renders can replace #menuToggle element.
+        // Use delegated listener to keep mobile sidebar toggle reliable.
+        (function bindDelegatedMenuToggle() {
+            if (window.__profileSidebarToggleBound) return;
+            window.__profileSidebarToggleBound = true;
+
+            document.addEventListener('click', (e) => {
+                const menuBtn = e.target.closest('#menuToggle');
+                if (!menuBtn) return;
+                if (window.unifiedUI && typeof window.unifiedUI.toggleSidebar === 'function') {
+                    e.preventDefault();
+                    window.unifiedUI.toggleSidebar();
+                }
+            });
+        })();
+
         // دالة اختبار حالة المصادقة (للتشخيص)
         function checkAuthStatus() {
             console.log('=== فحص حالة المصادقة ===');

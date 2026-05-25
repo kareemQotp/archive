@@ -16,7 +16,24 @@
     setDefaultDates();
     await loadStatistics();
   }
-  function waitForAuth(){ return new Promise(res=>{ const check=()=>{ if (window.unifiedAuth && window.unifiedAuth.currentUser){ return res(); } setTimeout(check,120); }; check(); }); }
+  function waitForAuth(){
+    return new Promise(res=>{
+      let attempts = 0;
+      const maxAttempts = 100; // ~12s
+      const check = ()=>{
+        attempts++;
+        if ((window.unifiedAuth && window.unifiedAuth.currentUser) || window.db) {
+          return res();
+        }
+        if (attempts >= maxAttempts) {
+          log('auth wait timeout - continuing with best-effort init');
+          return res();
+        }
+        setTimeout(check,120);
+      };
+      check();
+    });
+  }
 
   function qs(id){ return document.getElementById(id); }
 
@@ -44,8 +61,8 @@
         // If DB not ready yet, try once after firebaseReady
         state.movements = [];
         renderStats(); renderDepartmentChart(); renderTable();
-        const onReady = () => { document.removeEventListener('firebaseReady', onReady); loadStatistics(); };
-        document.addEventListener('firebaseReady', onReady, { once: true });
+        const onReady = () => { window.removeEventListener('firebaseReady', onReady); loadStatistics(); };
+        window.addEventListener('firebaseReady', onReady, { once: true });
         return;
       }
   const snap = await window.db.collection('file_movements').orderBy('timestamp','desc').limit(200).get();
@@ -103,8 +120,8 @@
       setLoading(true); UX && UX.showLoading && UX.showLoading('إنشاء التقرير ...');
       if(!window.db){
         state.movements=[]; renderStats(); renderDepartmentChart(); renderTable();
-        const onReady = () => { document.removeEventListener('firebaseReady', onReady); generateReport(); };
-        document.addEventListener('firebaseReady', onReady, { once: true });
+        const onReady = () => { window.removeEventListener('firebaseReady', onReady); generateReport(); };
+        window.addEventListener('firebaseReady', onReady, { once: true });
         return;
       }
       let query = window.db.collection('file_movements')

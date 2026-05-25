@@ -121,6 +121,10 @@ async function handleAuthStateChange(user) {
                             (window.firebase && firebase.auth ? firebase.auth().currentUser : null);
             
             if (!checkUser) {
+                if (window.__ALLOW_GUEST_ACCESS__) {
+                    console.log('🧪 Smoke mode active - skipping session-expired redirect');
+                    return;
+                }
                 console.log('❌ Still no user - redirecting');
                 window.location.href = 'login.html?message=session-expired';
             } else {
