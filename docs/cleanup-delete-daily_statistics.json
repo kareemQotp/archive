@@ -1,0 +1,10 @@
+﻿{
+  "collection": "daily_statistics",
+  "dryRun": false,
+  "beforeCount": 84,
+  "afterCount": 0,
+  "deletedDocs": 84,
+  "touchedCollections": [
+    "daily_statistics"
+  ]
+}

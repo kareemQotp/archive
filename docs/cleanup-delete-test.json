@@ -1,0 +1,10 @@
+﻿{
+  "collection": "test",
+  "dryRun": false,
+  "beforeCount": 5,
+  "afterCount": 0,
+  "deletedDocs": 5,
+  "touchedCollections": [
+    "test"
+  ]
+}

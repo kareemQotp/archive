@@ -111,14 +111,14 @@ class RoleBasedRouter {
      */
     getDashboardRoute(userData) {
         try {
-            const role = userData?.role;
-            const department = userData?.department;
-            const departmentId = userData?.departmentId;
+            const role = this.normalizeRole(userData?.role);
+            const department = this.normalizeDepartmentName(userData?.department);
+            const departmentId = this.normalizeDepartmentName(userData?.departmentId);
             
             console.log('🔄 تحديد مسار التوجيه:', { role, department, departmentId });
 
             // إذا كان المستخدم مسؤول نظام عام، يذهب لإدارة المستخدمين
-            if (role === 'admin' || role === 'system_admin') {
+            if (role === 'admin') {
                 console.log('✅ مسؤول نظام → إدارة المستخدمين');
                 return 'user-management.html';
             }
@@ -131,22 +131,20 @@ class RoleBasedRouter {
                     console.log(`✅ توجيه حسب معرف الإدارة (${departmentId}) والدور (${role}):`, dashboardUrl);
                     return dashboardUrl;
                 }
-                const normalizedDeptId = this.normalizeDepartmentName(departmentId);
-                if (this.routes[normalizedDeptId]) {
-                    const departmentRoute = this.routes[normalizedDeptId];
+                if (this.routes[departmentId]) {
+                    const departmentRoute = this.routes[departmentId];
                     const dashboardUrl = departmentRoute.roles[role] || departmentRoute.defaultDashboard;
-                    console.log(`✅ توجيه حسب معرف الإدارة (مطبع: ${normalizedDeptId}) والدور (${role}):`, dashboardUrl);
+                    console.log(`✅ توجيه حسب معرف الإدارة (مطبع: ${departmentId}) والدور (${role}):`, dashboardUrl);
                     return dashboardUrl;
                 }
             }
 
             // محاولة التوجيه حسب اسم الإدارة
             if (department) {
-                const normalizedDepartment = this.normalizeDepartmentName(department);
-                if (this.routes[normalizedDepartment]) {
-                    const departmentRoute = this.routes[normalizedDepartment];
+                if (this.routes[department]) {
+                    const departmentRoute = this.routes[department];
                     const dashboardUrl = departmentRoute.roles[role] || departmentRoute.defaultDashboard;
-                    console.log(`✅ توجيه حسب اسم الإدارة (${normalizedDepartment}) والدور (${role}):`, dashboardUrl);
+                    console.log(`✅ توجيه حسب اسم الإدارة (${department}) والدور (${role}):`, dashboardUrl);
                     return dashboardUrl;
                 }
             }
@@ -212,6 +210,12 @@ class RoleBasedRouter {
             'إدارة التحصيل': 'collection',
             'collection': 'collection',
 
+            // الإدارة العامة
+            'عام': 'admin',
+            'الإدارة العامة': 'admin',
+            'general': 'admin',
+            'admin': 'admin',
+
             // تقنية المعلومات
             'تقنية المعلومات': 'it',
             'إدارة تقنية المعلومات': 'it',
@@ -233,6 +237,31 @@ class RoleBasedRouter {
         };
 
         return mappings[name] || name;
+    }
+
+    normalizeRole(roleName) {
+        if (!roleName) return 'viewer';
+
+        const role = String(roleName).toLowerCase().trim().replace(/\s+/g, '_');
+        const mappings = {
+            admin: 'admin',
+            system_admin: 'admin',
+            super_admin: 'admin',
+            department_admin: 'department-admin',
+            'department-admin': 'department-admin',
+            manager: 'department-admin',
+            supervisor: 'viewer',
+            employee: 'archive-officer',
+            user: 'viewer',
+            viewer: 'viewer',
+            archive_officer: 'archive-officer',
+            'archive-officer': 'archive-officer',
+            legal_officer: 'archive-officer',
+            collection_officer: 'archive-officer',
+            file_manager: 'archive-officer'
+        };
+
+        return mappings[role] || role;
     }
 
     /**

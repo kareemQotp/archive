@@ -46,6 +46,54 @@
   function getFileIcon(ext){ switch(ext){ case 'pdf':return '-pdf'; case 'doc': case 'docx': return '-word'; case 'xls': case 'xlsx': return '-excel'; case 'png': case 'jpg': case 'jpeg': return '-image'; default: return ''; } }
   function displayFiles(){ const list=qs('fileList'); if(!list) return; list.innerHTML=''; selectedFiles.forEach((file,i)=>{ const ext=file.name.split('.').pop().toLowerCase(); const size=formatFileSize(file.size); const item=document.createElement('div'); item.className='file-item'; item.innerHTML=`<div class="d-flex align-items-center"><div class="file-icon ${ext}"><i class="fas fa-file${getFileIcon(ext)}"></i></div><div class="flex-grow-1 ms-3"><h6 class="mb-1">${file.name}</h6><small class="text-muted">${size}</small><div class="progress mt-2" style="height:6px;"><div class="progress-bar" id="progress-${i}" style="width:0%"></div></div></div><button class="btn btn-outline-danger btn-sm" data-remove-index="${i}"><i class="fas fa-times"></i></button></div>`; list.appendChild(item); }); const btn=qs('uploadBtn'); if(btn) btn.disabled=selectedFiles.length===0; }
   function updateFileProgress(i,progress,err){ const bar=qs(`progress-${i}`); if(!bar) return; bar.style.width=`${progress}%`; if(err){ bar.classList.add('bg-danger'); } else if(progress===100){ bar.classList.add('bg-success'); } }
+  function generateBarcode(clientId, contractNumber, caseNumber){
+    const seed = `${clientId || 'CLIENT'}-${contractNumber || 'DOC'}-${caseNumber || Date.now()}`.replace(/\s+/g, '').toUpperCase();
+    return `DOC-${seed}-${Date.now().toString().slice(-6)}`;
+  }
+  function getClientFields(){
+    const clientFileId = qs('clientFileId')?.value || '';
+    const clientName = qs('clientNameField')?.value?.trim() || '';
+    const clientId = qs('clientIdField')?.value?.trim() || '';
+    const nationalId = qs('nationalIdField')?.value?.trim() || '';
+    const contractNumber = qs('contractNumberField')?.value?.trim() || '';
+    const caseNumber = qs('caseNumberField')?.value?.trim() || '';
+    let barcode = qs('barcodeField')?.value?.trim() || '';
+    if (!barcode && (clientId || contractNumber || caseNumber)) {
+      barcode = generateBarcode(clientId, contractNumber, caseNumber);
+      if (qs('barcodeField')) qs('barcodeField').value = barcode;
+    }
+    return { clientFileId, clientName, clientId, nationalId, contractNumber, caseNumber, barcode };
+  }
+  async function loadClientFileOptions(){
+    const select = qs('clientFileId');
+    if(!select || !window.db) return;
+    try {
+      const snap = await window.db.collection('client_files').orderBy('createdAt','desc').limit(300).get();
+      const options = ['<option value="">بدون ربط ملف عميل</option>'];
+      snap.docs.forEach(doc => {
+        const data = doc.data() || {};
+        const label = `${data.clientName || 'عميل'} | ${data.contractNumber || '-'} | ${data.caseNumber || '-'} | ${data.barcode || '-'}`;
+        options.push(`<option value="${doc.id}" data-client-name="${data.clientName || ''}" data-client-id="${data.clientId || ''}" data-national-id="${data.nationalId || ''}" data-contract-number="${data.contractNumber || ''}" data-case-number="${data.caseNumber || ''}" data-barcode="${data.barcode || ''}">${label}</option>`);
+      });
+      select.innerHTML = options.join('');
+    } catch (e) {
+      console.warn('تعذر تحميل ملفات العملاء:', e);
+    }
+  }
+  function bindClientFileSelection(){
+    const select = qs('clientFileId');
+    if(!select) return;
+    select.addEventListener('change', () => {
+      const opt = select.options[select.selectedIndex];
+      if(!opt || !opt.value) return;
+      if(qs('clientNameField')) qs('clientNameField').value = opt.getAttribute('data-client-name') || '';
+      if(qs('clientIdField')) qs('clientIdField').value = opt.getAttribute('data-client-id') || '';
+      if(qs('nationalIdField')) qs('nationalIdField').value = opt.getAttribute('data-national-id') || '';
+      if(qs('contractNumberField')) qs('contractNumberField').value = opt.getAttribute('data-contract-number') || '';
+      if(qs('caseNumberField')) qs('caseNumberField').value = opt.getAttribute('data-case-number') || '';
+      if(qs('barcodeField')) qs('barcodeField').value = opt.getAttribute('data-barcode') || '';
+    });
+  }
   function simulateSingleUpload(i){
     return new Promise(resolve=>{
       let p=0; const iv=setInterval(()=>{ p+=Math.random()*20; if(p>=100){ p=100; clearInterval(iv); updateFileProgress(i,100); resolve(); } else { updateFileProgress(i,p); } }, 180);
@@ -58,6 +106,7 @@
     const description=qs('documentDescription').value.trim();
     const category=qs('documentCategory').value;
     const tags=qs('documentTags').value.split(',').map(t=>t.trim()).filter(Boolean);
+    const clientFields = getClientFields();
     if(!title){ showAlert('يرجى إدخال عنوان الوثيقة','danger'); return; }
     if(!category){ showAlert('يرجى اختيار فئة الوثيقة','danger'); return; }
     showLoading(true,'upload-batch'); uploadInProgress=true;
@@ -72,6 +121,13 @@
         showAlert('تم رفع الملف بنجاح (وضع تجريبي)!','success');
         selectedFiles=[]; displayFiles();
         qs('documentTitle').value=''; qs('documentDescription').value=''; qs('documentCategory').value=''; qs('documentTags').value='';
+        if(qs('clientFileId')) qs('clientFileId').value='';
+        if(qs('clientNameField')) qs('clientNameField').value='';
+        if(qs('clientIdField')) qs('clientIdField').value='';
+        if(qs('nationalIdField')) qs('nationalIdField').value='';
+        if(qs('contractNumberField')) qs('contractNumberField').value='';
+        if(qs('caseNumberField')) qs('caseNumberField').value='';
+        if(qs('barcodeField')) qs('barcodeField').value='';
         return;
       }
       let allSuccess=true;
@@ -108,6 +164,14 @@
             department: userDept,
             departmentId: userDept,
             currentDepartment: userDept,
+            // Client file linkage fields
+            clientFileId: clientFields.clientFileId || null,
+            clientName: clientFields.clientName || null,
+            clientId: clientFields.clientId || null,
+            nationalId: clientFields.nationalId || null,
+            contractNumber: clientFields.contractNumber || null,
+            caseNumber: clientFields.caseNumber || null,
+            barcode: clientFields.barcode || null,
             // File fields
             fileName: file.name,
             filePath: res.filePath,
@@ -129,7 +193,7 @@
           if(window.activityLogger){ window.activityLogger.logFileUpload(file.name, file.size, file.type, false, e); }
         }
       }
-      if(allSuccess){ showAlert('تم رفع جميع الملفات بنجاح!','success'); selectedFiles=[]; displayFiles(); qs('documentTitle').value=''; qs('documentDescription').value=''; qs('documentCategory').value=''; qs('documentTags').value=''; }
+      if(allSuccess){ showAlert('تم رفع جميع الملفات بنجاح!','success'); selectedFiles=[]; displayFiles(); qs('documentTitle').value=''; qs('documentDescription').value=''; qs('documentCategory').value=''; qs('documentTags').value=''; if(qs('clientFileId')) qs('clientFileId').value=''; if(qs('clientNameField')) qs('clientNameField').value=''; if(qs('clientIdField')) qs('clientIdField').value=''; if(qs('nationalIdField')) qs('nationalIdField').value=''; if(qs('contractNumberField')) qs('contractNumberField').value=''; if(qs('caseNumberField')) qs('caseNumberField').value=''; if(qs('barcodeField')) qs('barcodeField').value=''; }
       else { showAlert('انتهى الرفع مع بعض الإخفاقات. راجع السجلات.','warning'); }
       // Emit activities update for global search indexing if needed
       try { document.dispatchEvent(new CustomEvent('documents:uploaded',{ detail: { count: selectedFiles.length, title } })); } catch{}
@@ -160,6 +224,6 @@
     }
   }
   function bindGlobal(){ document.addEventListener('click',e=>{ const rm=e.target.closest('[data-remove-index]'); if(rm){ removeFile(parseInt(rm.getAttribute('data-remove-index'))); } }); const uploadBtn=qs('uploadBtn'); if(uploadBtn) uploadBtn.addEventListener('click',e=>{ e.preventDefault(); uploadFiles(); }); }
-  async function bootstrap(){ await waitFor(()=>window.unifiedAuth && window.unifiedAuth.isInitialized); if(window.UIPermissionController) permissionController = new UIPermissionController(window.unifiedAuth); window.unifiedAuth.onAuthStateChanged(onAuth); initDropZones(); bindGlobal(); }
+  async function bootstrap(){ await waitFor(()=>window.unifiedAuth && window.unifiedAuth.isInitialized); if(window.UIPermissionController) permissionController = new UIPermissionController(window.unifiedAuth); window.unifiedAuth.onAuthStateChanged(onAuth); initDropZones(); bindGlobal(); bindClientFileSelection(); await loadClientFileOptions(); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bootstrap); else bootstrap();
 })();

@@ -194,6 +194,7 @@
                 { icon: 'fas fa-coins', title: 'التوريق', href: 'securitization-dashboard.html', page: 'securitization-dashboard', departments: ['securitization'] },
                 { separator: true, title: 'العمليات' },
                 { icon: 'fas fa-folder-open', title: 'إدارة الملفات', href: 'file-management-dashboard.html', page: 'file-management-dashboard' },
+                { icon: 'fas fa-address-book', title: 'ملفات العملاء', href: 'client-files.html', page: 'client-files' },
                 { icon: 'fas fa-file-upload', title: 'رفع الملفات', href: 'upload.html', page: 'upload' },
                 { icon: 'fas fa-search', title: 'البحث', href: 'search.html', page: 'search' },
                 { icon: 'fas fa-qrcode', title: 'ماسح الباركود', href: 'scanner.html', page: 'scanner' },
@@ -211,7 +212,8 @@
         }
 
         isAdminRole(role) {
-            return role === 'admin' || role === 'system_admin';
+            const normalizedRole = this.normalizeRole(role);
+            return normalizedRole === 'admin';
         }
 
         filterSidebarItems(items) {
@@ -219,7 +221,7 @@
                 if (window.__DISABLE_SIDEBAR_FILTER__) return items;
                 if (!this.userInfo) return items;
                 const uid = this.userInfo.uid;
-                const role = this.userInfo.role || '';
+                const role = this.normalizeRole(this.userInfo.role || '');
                 const department = this.normalizeDepartment(this.userInfo.department || '');
                 if (this.isAdminRole(role)) return items;
                 const externalConfig = window.__DEPT_SIDEBAR_CONFIG__ || null;
@@ -270,7 +272,7 @@
                 const eqKeys = this.getEquivalentPageKeys(pageKey);
                 if (this.isPublicPage(pageKey)) return true;
                 if (!this.userInfo) return false;
-                const role = this.userInfo.role || '';
+                const role = this.normalizeRole(this.userInfo.role || '');
                 const department = this.normalizeDepartment(this.userInfo.department || '');
                 if (this.isAdminRole(role)) return true;
                 const items = this.getSidebarItems();
@@ -441,6 +443,26 @@
             try { const cleaned = dep.trim().toLowerCase(); return map[dep] || map[cleaned] || dep; } catch (_) { return dep; }
         }
 
+        normalizeRole(role) {
+            if (!role) return 'viewer';
+            const cleaned = String(role).trim().toLowerCase().replace(/\s+/g, '_');
+            const map = {
+                admin: 'admin',
+                system_admin: 'admin',
+                super_admin: 'admin',
+                department_admin: 'department_admin',
+                'department-admin': 'department_admin',
+                manager: 'department_admin',
+                supervisor: 'supervisor',
+                user: 'employee',
+                employee: 'employee',
+                archive_officer: 'employee',
+                'archive-officer': 'employee',
+                viewer: 'viewer'
+            };
+            return map[cleaned] || cleaned;
+        }
+
         renderSidebarItem(item) {
             if (item.separator) return `<div class="sidebar-separator"><span>${item.title}</span></div>`;
             const isActive = item.page === this.currentPage;
@@ -488,8 +510,15 @@
         }
 
         getRoleText(role) {
-            const roleTexts = { 'admin': 'مدير النظام', 'system_admin': 'مدير النظام', 'archive_officer': 'موظف أرشيف', 'user': 'مستخدم', 'viewer': 'مشاهد' };
-            return roleTexts[role] || 'مستخدم';
+            const normalizedRole = this.normalizeRole(role);
+            const roleTexts = {
+                admin: 'مدير النظام',
+                department_admin: 'مدير إدارة',
+                supervisor: 'مشرف',
+                employee: 'موظف',
+                viewer: 'مشاهد'
+            };
+            return roleTexts[normalizedRole] || 'مستخدم';
         }
 
         setupEventListeners() {

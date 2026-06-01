@@ -19,7 +19,41 @@ class ActivityLogger {
         this.setupAuthListener();
         this.startBatchProcessor();
         this.setupPageUnloadHandler();
+        this.setupSensitiveActionListeners();
         this.logPageActivity();
+    }
+
+    normalizePriority(priority) {
+        const value = (priority || '').toString().toLowerCase();
+        if (['low', 'normal', 'high', 'critical'].includes(value)) {
+            return value === 'low' ? 'normal' : value;
+        }
+        return 'normal';
+    }
+
+    deriveSeverity(category, action, priority, details = {}) {
+        if (priority === 'critical') return 'critical';
+        if (priority === 'high') return 'high';
+
+        const criticalActions = ['delete_user', 'suspicious_activity', 'access_denied'];
+        const highActions = ['delete', 'move', 'role_change', 'permission_change', 'print'];
+        const mediumActions = ['edit', 'download', 'dispatch', 'receive', 'return'];
+
+        if (criticalActions.includes(action)) return 'critical';
+        if (highActions.includes(action)) return 'high';
+        if (mediumActions.includes(action)) return 'medium';
+        if (category === 'security') return 'high';
+        if (details && details.before && details.after) return 'high';
+        return 'low';
+    }
+
+    buildAuditDetails(details = {}, options = {}) {
+        const merged = { ...details };
+        if (options.before !== undefined) merged.before = options.before;
+        if (options.after !== undefined) merged.after = options.after;
+        if (options.diff !== undefined) merged.diff = options.diff;
+        if (options.reason !== undefined) merged.reason = options.reason;
+        return merged;
     }
 
     setupAuthListener() {
@@ -73,8 +107,13 @@ class ActivityLogger {
         }
     }
 
-    logActivity(category, action, details = {}, priority = 'normal') {
+    logActivity(category, action, details = {}, priority = 'normal', options = {}) {
         if (!this.isEnabled) return;
+
+        const normalizedPriority = this.normalizePriority(priority);
+        const auditDetails = this.buildAuditDetails(details, options);
+        const eventType = options.eventType || `${category}.${action}`;
+        const severity = options.severity || this.deriveSeverity(category, action, normalizedPriority, auditDetails);
 
         // Sanitize details to avoid Firestore undefined field errors
         const sanitize = (value) => {
@@ -96,7 +135,7 @@ class ActivityLogger {
         };
 
         const baseDetails = {
-            ...details,
+            ...auditDetails,
             url: window.location.href,
             userAgent: navigator.userAgent,
             platform: navigator.platform,
@@ -114,8 +153,13 @@ class ActivityLogger {
             userDisplayName: this.currentUser?.displayName || null,
             category,
             action,
+            eventType,
+            severity,
+            entityType: options.entityType || details.entityType || null,
+            entityId: options.entityId || details.entityId || null,
+            outcome: options.outcome || details.outcome || 'success',
             details: safeDetails,
-            priority,
+            priority: normalizedPriority,
             synced: false
         };
 
@@ -177,9 +221,31 @@ class ActivityLogger {
 
     logFileDownload(fileId, fileName) {
         this.logActivity('file_management', 'download', {
+            entityType: 'file',
+            entityId: fileId,
             fileId,
             fileName
-        }, 'normal');
+        }, 'normal', {
+            eventType: 'file.download',
+            severity: 'medium',
+            entityType: 'file',
+            entityId: fileId
+        });
+    }
+
+    logFilePrint(fileId, fileName, details = {}) {
+        this.logActivity('file_management', 'print', {
+            entityType: 'file',
+            entityId: fileId,
+            fileId,
+            fileName,
+            ...details
+        }, 'high', {
+            eventType: 'file.print',
+            severity: 'high',
+            entityType: 'file',
+            entityId: fileId
+        });
     }
 
     logFileDelete(fileId, fileName) {
@@ -191,19 +257,63 @@ class ActivityLogger {
 
     logFileMove(fileId, fromDepartment, toDepartment, priority = 'normal') {
         this.logActivity('file_management', 'move', {
+            entityType: 'file',
+            entityId: fileId,
             fileId,
             fromDepartment,
             toDepartment,
             priority
-        }, 'high');
+        }, 'high', {
+            eventType: 'file.transfer',
+            severity: 'high',
+            entityType: 'file',
+            entityId: fileId
+        });
+    }
+
+    logFileOpen(fileId, fileName, context = 'viewer') {
+        this.logActivity('file_management', 'open', {
+            entityType: 'file',
+            entityId: fileId,
+            fileId,
+            fileName,
+            context
+        }, 'normal', {
+            eventType: 'file.open',
+            severity: 'low',
+            entityType: 'file',
+            entityId: fileId
+        });
+    }
+
+    logSensitiveEdit(entityType, entityId, before, after, context = {}) {
+        this.logActivity('audit', 'sensitive_edit', {
+            entityType,
+            entityId,
+            context
+        }, 'high', {
+            eventType: `${entityType}.sensitive_edit`,
+            severity: 'high',
+            entityType,
+            entityId,
+            before,
+            after
+        });
     }
 
     logFileView(fileId, fileName, viewDuration = null) {
         this.logActivity('file_management', 'view', {
+            entityType: 'file',
+            entityId: fileId,
             fileId,
             fileName,
             viewDuration
-        }, 'normal');
+        }, 'normal', {
+            eventType: 'file.view',
+            severity: 'low',
+            entityType: 'file',
+            entityId: fileId
+        });
     }
 
     logFileSearch(query, resultsCount, searchType = 'text') {
@@ -211,7 +321,12 @@ class ActivityLogger {
             query,
             resultsCount,
             searchType
-        }, 'normal');
+        }, 'normal', {
+            eventType: 'file.search',
+            severity: 'low',
+            entityType: 'search',
+            outcome: 'success'
+        });
     }
 
     // User Management Activities
@@ -325,8 +440,8 @@ class ActivityLogger {
     }
 
     // Custom Activity Logging
-    logCustomActivity(category, action, details = {}, priority = 'normal') {
-        this.logActivity(category, action, details, priority);
+    logCustomActivity(category, action, details = {}, priority = 'normal', options = {}) {
+        this.logActivity(category, action, details, priority, options);
     }
 
     // Page and Navigation Activities
@@ -478,6 +593,46 @@ class ActivityLogger {
                 // Use sendBeacon for reliable delivery
                 this.sendBeaconSync();
             }
+        });
+    }
+
+    setupSensitiveActionListeners() {
+        // Browser print flow (where supported) for audit traceability.
+        window.addEventListener('beforeprint', () => {
+            this.logFilePrint(null, document.title || 'document', {
+                page: window.location.pathname,
+                trigger: 'beforeprint'
+            });
+        });
+
+        document.addEventListener('keydown', (event) => {
+            const key = (event.key || '').toLowerCase();
+            const ctrl = event.ctrlKey || event.metaKey;
+            if (ctrl && key === 'p') {
+                this.logFilePrint(null, document.title || 'document', {
+                    page: window.location.pathname,
+                    trigger: 'keyboard_shortcut'
+                });
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            const target = event.target && event.target.closest ? event.target.closest('a[download],a[data-download],button[data-download]') : null;
+            if (!target) return;
+            const fileName = target.getAttribute('download') || target.getAttribute('data-file-name') || target.textContent || 'unknown-file';
+            const fileId = target.getAttribute('data-file-id') || null;
+            this.logActivity('file_management', 'download_attempt', {
+                entityType: 'file',
+                entityId: fileId,
+                fileId,
+                fileName,
+                source: 'dom_click'
+            }, 'normal', {
+                eventType: 'file.download_attempt',
+                severity: 'medium',
+                entityType: 'file',
+                entityId: fileId
+            });
         });
     }
 

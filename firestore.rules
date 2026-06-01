@@ -26,9 +26,19 @@ service cloud.firestore {
       return currentUserDoc().data.role;
     }
 
+    // هل الدور الحالي يعادل دور admin؟ (توافق مرحلي)
+    function isAdminRole(role) {
+      return role in ['admin', 'system_admin', 'super_admin'];
+    }
+
+    // هل الدور الحالي يعادل دور archive officer؟ (توافق مرحلي)
+    function isArchiveOfficerRole(role) {
+      return role in ['archive_officer', 'archive-officer'];
+    }
+
     // هل المستخدم إداري؟ (يدعم admin و system_admin)
     function isAdmin() {
-      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'system_admin');
+      return isAuthenticated() && isAdminRole(getUserRole());
     }
 
     // السماح بترقية ذاتية محدودة لحسابات إدارية موثوقة (bootstrap)
@@ -40,7 +50,7 @@ service cloud.firestore {
 
     // هل المستخدم موظف أرشيف؟ (يدعم الكتابة بالشرطة أو الشرطة السفلية)
     function isArchiveOfficer() {
-      return isAuthenticated() && (getUserRole() == 'archive_officer' || getUserRole() == 'archive-officer');
+      return isAuthenticated() && isArchiveOfficerRole(getUserRole());
     }
 
     // هل هو المالك أو إداري؟
@@ -51,7 +61,9 @@ service cloud.firestore {
     // السماح فقط للأدوار المحددة (توسيع لدعم أدوار الواجهة)
     function isAllowedRole(role) {
       return role in [
-        'admin', 'system_admin',
+        'admin', 'system_admin', 'super_admin',
+        'department_admin', 'department-admin',
+        'manager', 'supervisor', 'employee',
         'archive_officer', 'archive-officer',
         'legal', 'governance', 'collection', 'securitization',
         'user', 'viewer'
@@ -110,6 +122,11 @@ service cloud.firestore {
         'title', 'description', 'status', 'tags', 'category', 'isActive',
         // التعريف بالقسم
         'department', 'departmentId', 'currentDepartment',
+        // ربط العميل وملف العميل
+        'clientId', 'clientName', 'clientFileId',
+        'nationalId', 'contractNumber', 'caseNumber',
+        // تتبع الباركود
+        'barcode', 'qrCode',
         // بيانات الإنشاء والتتبع
         'createdBy', 'createdAt', 'updatedAt',
         // ربط التخزين والتحميل
@@ -119,15 +136,119 @@ service cloud.firestore {
       ]);
     }
 
+    // الحقول المسموحة في مستند العميل
+    function clientAllowedKeys(keys) {
+      return keys.hasOnly([
+        'name', 'nameNormalized',
+        'clientId', 'nationalId',
+        'phone', 'email', 'notes',
+        'status', 'isActive',
+        'createdBy', 'createdAt', 'updatedAt'
+      ]);
+    }
+
+    // الحقول المسموحة في مستند ملف العميل
+    function clientFileAllowedKeys(keys) {
+      return keys.hasOnly([
+        'clientRef', 'clientId', 'clientName',
+        'fileNumber', 'barcode',
+        'nationalId', 'contractNumber', 'caseNumber',
+        'status', 'currentHolder', 'locked',
+        'requestType', 'lastTransitionBy', 'lastTransitionAt',
+        'notes',
+        'createdBy', 'createdAt', 'updatedAt'
+      ]);
+    }
+
+    // الحالات المسموحة لملف العميل
+    function isAllowedClientFileStatus(value) {
+      return value in [
+        'archived', 'requested', 'transferred',
+        'in_legal', 'in_collection',
+        'digital_shared', 'returned'
+      ];
+    }
+
+    // الأقسام/الجهات المسموحة لحيازة الملف
+    function isAllowedHolder(value) {
+      return value in ['archive', 'legal', 'collection', 'governance', 'securitization', 'bank'];
+    }
+
+    // هل الانتقال بين حالتين صالح وفق state machine؟
+    function isValidClientFileStatusTransition(oldStatus, newStatus) {
+      return oldStatus == newStatus ||
+        (oldStatus == 'archived' && newStatus in ['requested', 'digital_shared']) ||
+        (oldStatus == 'requested' && newStatus in ['transferred', 'archived']) ||
+        (oldStatus == 'transferred' && newStatus in ['in_legal', 'in_collection', 'returned']) ||
+        (oldStatus == 'in_legal' && newStatus in ['returned', 'digital_shared']) ||
+        (oldStatus == 'in_collection' && newStatus in ['returned', 'digital_shared']) ||
+        (oldStatus == 'digital_shared' && newStatus in ['archived', 'requested']) ||
+        (oldStatus == 'returned' && newStatus == 'archived');
+    }
+
+    // التحقق من منطق القفل: إذا خرج الأصل من archive يصبح locked=true
+    function isValidClientFileLockState() {
+      // الطلب الرقمي لا يخرج الأصل من الأرشيف ويجب أن يبقى دون قفل
+      let digitalRule = !('requestType' in request.resource.data) ||
+        request.resource.data.requestType != 'digital' || (
+          request.resource.data.status == 'digital_shared' &&
+          request.resource.data.currentHolder == 'archive' &&
+          request.resource.data.locked == false
+        );
+
+      // الحالة requested لا تُسمح إلا داخل الأرشيف وبدون قفل
+      let requestedRule = request.resource.data.status != 'requested' || (
+        request.resource.data.currentHolder == 'archive' &&
+        request.resource.data.locked == false
+      );
+
+      // الحالات التشغيلية خارج الأرشيف يجب أن تكون مقفلة
+      let outOfArchiveOperationalRule =
+        !(request.resource.data.status in ['transferred', 'in_legal', 'in_collection']) ||
+        (request.resource.data.currentHolder != 'archive' && request.resource.data.locked == true);
+
+      // حالات الإرجاع/الأرشفة يجب أن تنتهي داخل الأرشيف وبدون قفل
+      let archiveEndStateRule =
+        !(request.resource.data.status in ['returned', 'archived']) ||
+        (request.resource.data.currentHolder == 'archive' && request.resource.data.locked == false);
+
+      return (
+        request.resource.data.currentHolder == 'archive' ||
+        request.resource.data.locked == true
+      ) && (
+        !('requestType' in request.resource.data) ||
+        request.resource.data.requestType in ['physical', 'digital']
+      ) && digitalRule && requestedRule && outOfArchiveOperationalRule && archiveEndStateRule;
+    }
+
+    // شروط إنشاء ملف العميل في الحالة الابتدائية
+    function isValidClientFileCreateState() {
+      return isAllowedClientFileStatus(request.resource.data.status) &&
+        isAllowedHolder(request.resource.data.currentHolder) &&
+        request.resource.data.status == 'archived' &&
+        request.resource.data.currentHolder == 'archive' &&
+        request.resource.data.locked == false;
+    }
+
+    // شروط تحديث ملف العميل حسب state machine
+    function isValidClientFileUpdateState() {
+      return isAllowedClientFileStatus(request.resource.data.status) &&
+        isAllowedHolder(request.resource.data.currentHolder) &&
+        isValidClientFileStatusTransition(resource.data.status, request.resource.data.status) &&
+        isValidClientFileLockState();
+    }
+
     // الحقول المسموحة في حركة الملف (مطابقة لما يتم إرساله من الواجهة)
     function movementAllowedKeys(keys) {
       return keys.hasOnly([
         'fileNumber',
+        'clientFileId',
         'fileName',
         'fromDepartment',
         'toDepartment',
         'action',
         'status',
+        'requestType',
         'priority',
         'condition',
         'scanMethod',
@@ -137,6 +258,100 @@ service cloud.firestore {
         'userDisplayName',
         'timestamp'
       ]);
+    }
+
+    // الحقول المسموحة في طلب التحويل
+    function transferRequestAllowedKeys(keys) {
+      return keys.hasOnly([
+        'requestType',
+        'clientFileId', 'fileNumber',
+        'fromDepartment', 'toDepartment',
+        'status', 'notes',
+        'createdBy', 'createdByName', 'createdAt',
+        'reviewedBy', 'reviewedByName', 'reviewedAt', 'reviewNotes',
+        'shareToken', 'shareUrl', 'shareExpiresAt',
+        'updatedAt'
+      ]);
+    }
+
+    function transferRequestStatusUnchanged() {
+      return request.resource.data.status == resource.data.status;
+    }
+
+    function isWorkflowReviewer() {
+      return isAdmin() || isArchiveOfficer() ||
+        (isAuthenticated() && getUserRole() in ['department_admin', 'department-admin', 'manager', 'supervisor']);
+    }
+
+    function isAllowedTransferRequestStatus(value) {
+      return value in ['pending', 'approved', 'rejected', 'dispatched', 'received', 'returned', 'completed'];
+    }
+
+    function isValidTransferRequestTransition(oldStatus, newStatus) {
+      return oldStatus == newStatus ||
+        (oldStatus == 'pending' && newStatus in ['approved', 'rejected']) ||
+        (oldStatus == 'approved' && newStatus in ['dispatched', 'completed']) ||
+        (oldStatus == 'dispatched' && newStatus == 'received') ||
+        (oldStatus == 'received' && newStatus == 'returned');
+    }
+
+    function isValidTransferRequestStateOnCreate() {
+      return request.resource.data.status == 'pending' &&
+        request.resource.data.requestType in ['physical', 'digital'];
+    }
+
+    function isValidTransferRequestStateOnUpdate() {
+      return isAllowedTransferRequestStatus(request.resource.data.status) &&
+        request.resource.data.requestType in ['physical', 'digital'] &&
+        isValidTransferRequestTransition(resource.data.status, request.resource.data.status) &&
+        (
+          request.resource.data.requestType != 'digital' ||
+          request.resource.data.status in ['pending', 'approved', 'rejected', 'completed']
+        ) &&
+        (
+          request.resource.data.requestType != 'physical' ||
+          request.resource.data.status in ['pending', 'approved', 'rejected', 'dispatched', 'received', 'returned']
+        );
+    }
+
+    // الحقول المسموحة في سجل التحويلات (Chain of Custody)
+    function transferAllowedKeys(keys) {
+      return keys.hasOnly([
+        'requestId',
+        'requestType',
+        'clientFileId', 'fileNumber',
+        'action',
+        'fromDepartment', 'toDepartment',
+        'status',
+        'shareToken', 'shareUrl',
+        'notes',
+        'actorId', 'actorName', 'actorEmail',
+        'timestamp', 'createdAt'
+      ]);
+    }
+
+    function sharedLinkAllowedKeys(keys) {
+      return keys.hasOnly([
+        'requestId', 'requestType',
+        'clientFileId', 'fileNumber',
+        'documentId', 'documentTitle', 'documentCategory',
+        'contentType', 'filePath', 'downloadURL',
+        'toDepartment', 'bankName',
+        'viewOnly', 'allowDownload', 'allowPrint', 'allowEdit',
+        'watermarkEnabled',
+        'active',
+        'createdBy', 'createdByName', 'createdAt',
+        'expiresAt',
+        'lastAccessAt', 'accessCount'
+      ]);
+    }
+
+    function isAllowedTransferAction(value) {
+      return value in ['dispatch', 'receive', 'return', 'digital_share'];
+    }
+
+    function isAllowedTransferStatus(value) {
+      return value in ['in_transit', 'received', 'returned', 'completed'];
     }
 
     // الحقول المسموحة في سجل النشاط
@@ -154,6 +369,11 @@ service cloud.firestore {
         'userDisplayName',
         'category',
         'action',
+        'eventType',
+        'severity',
+        'entityType',
+        'entityId',
+        'outcome',
         'details',
         'priority',
         'synced',
@@ -255,6 +475,89 @@ service cloud.firestore {
 
       allow delete: if isAdmin() ||
         (isAuthenticated() && resource.data.createdBy == request.auth.uid);
+    }
+
+    // Clients collection
+    match /clients/{clientDocId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        clientAllowedKeys(request.resource.data.keys()) &&
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        clientAllowedKeys(request.resource.data.keys()) &&
+        (isAdmin() || isArchiveOfficer() || resource.data.createdBy == request.auth.uid) &&
+        createdAtImmutableOnUpdate() &&
+        createdByImmutableOnUpdate();
+      allow delete: if isAdmin();
+    }
+
+    // Client files collection
+    match /client_files/{clientFileId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        clientFileAllowedKeys(request.resource.data.keys()) &&
+        isValidClientFileCreateState() &&
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        clientFileAllowedKeys(request.resource.data.keys()) &&
+        isValidClientFileUpdateState() &&
+        (isAdmin() || isArchiveOfficer() || resource.data.createdBy == request.auth.uid) &&
+        createdAtImmutableOnUpdate() &&
+        createdByImmutableOnUpdate();
+      allow delete: if isAdmin();
+    }
+
+    // Transfer requests collection
+    match /transfer_requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        transferRequestAllowedKeys(request.resource.data.keys()) &&
+        isValidTransferRequestStateOnCreate() &&
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        transferRequestAllowedKeys(request.resource.data.keys()) &&
+        isValidTransferRequestStateOnUpdate() &&
+        (
+          isWorkflowReviewer() ||
+          (resource.data.createdBy == request.auth.uid && transferRequestStatusUnchanged())
+        ) &&
+        createdAtImmutableOnUpdate() &&
+        createdByImmutableOnUpdate();
+      allow delete: if isAdmin();
+    }
+
+    // Transfers collection (chain of custody)
+    match /transfers/{transferId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        transferAllowedKeys(request.resource.data.keys()) &&
+        isAllowedTransferAction(request.resource.data.action) &&
+        isAllowedTransferStatus(request.resource.data.status) &&
+        request.resource.data.actorId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Shared links collection for secure digital viewer
+    match /shared_links/{linkId} {
+      // السماح بالقراءة العامة فقط للروابط المفعلة وغير المنتهية وبوضع العرض فقط
+      allow read: if (
+        resource.data.active == true &&
+        resource.data.viewOnly == true &&
+        resource.data.expiresAt != null &&
+        resource.data.expiresAt > request.time
+      ) || (
+        isAuthenticated() && (isAdmin() || isArchiveOfficer())
+      );
+
+      // الإنشاء/التعديل: إداري أو موظف أرشيف أو مسؤول إدارة قسم
+      allow create, update: if isAuthenticated() && (
+        sharedLinkAllowedKeys(request.resource.data.keys()) &&
+        isWorkflowReviewer()
+      );
+
+      // الحذف: إداري فقط
+      allow delete: if isAdmin();
     }
 
     // File movements collection

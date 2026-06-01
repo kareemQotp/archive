@@ -1,0 +1,10 @@
+﻿{
+  "collection": "notification_settings",
+  "dryRun": false,
+  "beforeCount": 10,
+  "afterCount": 0,
+  "deletedDocs": 10,
+  "touchedCollections": [
+    "notification_settings"
+  ]
+}

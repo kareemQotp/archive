@@ -49,6 +49,13 @@
             <div class="mr-stats-card"><div class="mr-stats-number danger" id="activeFiles">-</div><div class="text-muted">ملفات نشطة</div></div>
         </div>
 
+        <div class="mr-stats-grid mb-4">
+            <div class="mr-stats-card"><div class="mr-stats-number info" id="openRequestsCount">-</div><div class="text-muted">الطلبات المفتوحة</div></div>
+            <div class="mr-stats-card"><div class="mr-stats-number danger" id="lockedFilesCount">-</div><div class="text-muted">الملفات المقفلة</div></div>
+            <div class="mr-stats-card"><div class="mr-stats-number success" id="avgDeliveryHours">-</div><div class="text-muted">متوسط زمن التسليم (ساعة)</div></div>
+            <div class="mr-stats-card"><div class="mr-stats-number secondary" id="avgReturnHours">-</div><div class="text-muted">متوسط زمن الإرجاع (ساعة)</div></div>
+        </div>
+
         <!-- Department Activity Chart -->
     <div class="mr-card mb-4">
             <h5 class="mb-3">
@@ -57,6 +64,44 @@
             </h5>
             <div class="department-chart" id="departmentChart">
                 <!-- سيتم ملؤها بـ JavaScript -->
+            </div>
+        </div>
+
+        <div class="mr-card mb-4">
+            <h5 class="mb-3">
+                <i class="fas fa-building me-2"></i>
+                الملفات داخل كل إدارة
+            </h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الإدارة</th>
+                            <th>عدد الملفات</th>
+                            <th>نسبة من الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filesByDepartmentBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mr-card mb-4">
+            <h5 class="mb-3">
+                <i class="fas fa-clock me-2"></i>
+                أداء التسليم والإرجاع
+            </h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>نوع المؤشر</th>
+                            <th>القيمة</th>
+                            <th>الوحدة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="slaMetricsBody"></tbody>
+                </table>
             </div>
         </div>
 

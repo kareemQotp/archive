@@ -6,6 +6,26 @@
   const els = {};
   const state = { user:null, profile:null, loading:false };
 
+  function normalizeRole(role){
+    if(!role) return 'viewer';
+    const normalized = String(role).trim().toLowerCase().replace(/\s+/g,'_');
+    const aliases = {
+      admin:'super_admin', system_admin:'super_admin', super_admin:'super_admin',
+      manager:'department_admin', 'department-admin':'department_admin', department_admin:'department_admin',
+      supervisor:'supervisor', department_head:'supervisor',
+      employee:'employee', user:'employee', archive_officer:'employee', 'archive-officer':'employee',
+      viewer:'viewer'
+    };
+    return aliases[normalized] || normalized;
+  }
+
+  function normalizeDepartment(department){
+    if(!department) return '';
+    const normalized = String(department).trim().toLowerCase();
+    const aliases = { 'الأرشيف':'archive', 'ارشيف':'archive' };
+    return aliases[department] || aliases[normalized] || normalized;
+  }
+
   function qs(id){ return document.getElementById(id); }
 
   function initEls(){
@@ -167,7 +187,9 @@
 
   function enforceRole(){
     if(!state.profile) return;
-    if(!(state.profile.role === 'admin' || state.profile.department === 'archive')){
+    const role = normalizeRole(state.profile.role);
+    const department = normalizeDepartment(state.profile.department);
+    if(!(role === 'super_admin' || department === 'archive')){
       showToast('قراءة فقط - صلاحيات محدودة');
       // allow viewing but maybe restrict export
       els.btnExport.disabled = true;

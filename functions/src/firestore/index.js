@@ -6,7 +6,7 @@
 const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
-const { buildResponse, checkRateLimit, verifyAppCheck } = require('../utils/helpers');
+const { buildResponse, checkRateLimit, verifyAppCheck, normalizeRole, isAdminRole } = require('../utils/helpers');
 const { serverTS } = require('../utils/serverTimestamp');
 const { COLLECTIONS, ROLES, ACTIVITY } = require('../config/constants');
 
@@ -153,10 +153,10 @@ exports.updateDocumentMetadata = onCall({
 
         const docData = doc.data();
     const userDoc = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
-        const userRole = userDoc.data()?.role;
+        const userRole = normalizeRole(userDoc.data()?.role);
 
         // Check permissions
-    if (docData.createdBy !== request.auth.uid && userRole !== ROLES.ADMIN && userRole !== ROLES.ARCHIVE_OFFICER) {
+    if (docData.createdBy !== request.auth.uid && !isAdminRole(userRole) && userRole !== 'archive_officer') {
             throw new HttpsError('permission-denied', 'Insufficient permissions');
         }
 
@@ -207,10 +207,10 @@ exports.deleteDocument = onCall({
 
         const docData = doc.data();
     const userDoc = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
-        const userRole = userDoc.data()?.role;
+        const userRole = normalizeRole(userDoc.data()?.role);
 
         // Check permissions
-    if (docData.createdBy !== request.auth.uid && userRole !== ROLES.ADMIN) {
+    if (docData.createdBy !== request.auth.uid && !isAdminRole(userRole)) {
             throw new HttpsError('permission-denied', 'Insufficient permissions');
         }
 
@@ -523,7 +523,7 @@ exports.onActivityLogCreate = async (event) => {
 
             // Create notification for admins
             const adminUsersQuery = await db.collection(COLLECTIONS.USERS)
-                .where('role', '==', ROLES.ADMIN)
+                .where('role', 'in', [ROLES.ADMIN, 'system_admin', 'super_admin'])
                 .where('isActive', '==', true)
                 .get();
 

@@ -1,0 +1,10 @@
+﻿{
+  "collection": "counters",
+  "dryRun": false,
+  "beforeCount": 1,
+  "afterCount": 0,
+  "deletedDocs": 1,
+  "touchedCollections": [
+    "counters"
+  ]
+}

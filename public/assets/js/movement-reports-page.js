@@ -1,7 +1,22 @@
 // movement-reports-page.js
 // Modularized logic extracted from legacy inline script in movement-reports.html
 (function(){
-  const state = { movements: [], filtered: [], loading:false, initialized:false };
+  const state = {
+    movements: [],
+    filtered: [],
+    transferRequests: [],
+    transfers: [],
+    clientFiles: [],
+    operational: {
+      openRequests: 0,
+      lockedFiles: 0,
+      avgDeliveryHours: 0,
+      avgReturnHours: 0,
+      filesByDepartment: {}
+    },
+    loading:false,
+    initialized:false
+  };
   const departmentNames = { archive:'الأرشيف', legal:'الشؤون القانونية', governance:'الحوكمة والامتثال', collection:'إدارة التحصيل', securitization:'إدارة التوريق' };
   const statusNames = { in_archive:'في الأرشيف', transferred:'تم النقل', received:'تم الاستلام', in_transit:'في الطريق', pending:'معلق', completed:'مكتمل' };
 
@@ -60,17 +75,108 @@
       if (!window.db){
         // If DB not ready yet, try once after firebaseReady
         state.movements = [];
-        renderStats(); renderDepartmentChart(); renderTable();
+        resetOperationalState();
+        renderStats(); renderDepartmentChart(); renderOperationalSections(); renderTable();
         const onReady = () => { window.removeEventListener('firebaseReady', onReady); loadStatistics(); };
         window.addEventListener('firebaseReady', onReady, { once: true });
         return;
       }
   const snap = await window.db.collection('file_movements').orderBy('timestamp','desc').limit(200).get();
   state.movements = snap.docs.map(d=> normalizeMovement(d.id, d.data()));
+  await loadOperationalData();
   window.__MOVEMENTS_CACHE__ = state.movements.slice();
-  renderStats(); renderDepartmentChart(); renderTable();
+  renderStats(); renderDepartmentChart(); renderOperationalSections(); renderTable();
   try { window.__EVENT_BUS__?.emit && window.__EVENT_BUS__.emit('movements:updated', { count: state.movements.length }); document.dispatchEvent(new CustomEvent('movements:updated', { detail:{ count: state.movements.length } })); } catch(e){}
   } catch(err){ console.error(err); notify('حدث خطأ في تحميل البيانات','error'); } finally { setLoading(false); UX && UX.hideLoading && UX.hideLoading(); }
+  }
+
+  function resetOperationalState(){
+    state.transferRequests = [];
+    state.transfers = [];
+    state.clientFiles = [];
+    state.operational = {
+      openRequests: 0,
+      lockedFiles: 0,
+      avgDeliveryHours: 0,
+      avgReturnHours: 0,
+      filesByDepartment: {}
+    };
+  }
+
+  async function loadOperationalData(){
+    resetOperationalState();
+    const [clientFilesSnap, requestSnap, transfersSnap] = await Promise.all([
+      window.db.collection('client_files').limit(1000).get(),
+      window.db.collection('transfer_requests').limit(1000).get(),
+      window.db.collection('transfers').limit(2000).get()
+    ]);
+
+    state.clientFiles = clientFilesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    state.transferRequests = requestSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    state.transfers = transfersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    computeOperationalMetrics();
+  }
+
+  function toDateValue(value){
+    if (!value) return null;
+    if (typeof value.toDate === 'function') return value.toDate();
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function toHours(diffMs){
+    return diffMs / (1000 * 60 * 60);
+  }
+
+  function round2(value){
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  }
+
+  function computeOperationalMetrics(){
+    const openStatuses = new Set(['pending', 'approved', 'dispatched', 'received']);
+    state.operational.openRequests = state.transferRequests.filter(req => openStatuses.has(req.status)).length;
+    state.operational.lockedFiles = state.clientFiles.filter(file => file.locked === true).length;
+
+    const deptStats = {};
+    state.clientFiles.forEach(file => {
+      const holder = file.currentHolder || 'unknown';
+      deptStats[holder] = (deptStats[holder] || 0) + 1;
+    });
+    state.operational.filesByDepartment = deptStats;
+
+    const transfersByRequest = {};
+    state.transfers.forEach(item => {
+      if (!item.requestId) return;
+      transfersByRequest[item.requestId] = transfersByRequest[item.requestId] || [];
+      transfersByRequest[item.requestId].push(item);
+    });
+
+    let deliverySamples = [];
+    let returnSamples = [];
+
+    Object.values(transfersByRequest).forEach((items) => {
+      const dispatch = items.find(i => i.action === 'dispatch');
+      const receive = items.find(i => i.action === 'receive');
+      const ret = items.find(i => i.action === 'return');
+
+      const dispatchTime = toDateValue(dispatch?.timestamp || dispatch?.createdAt);
+      const receiveTime = toDateValue(receive?.timestamp || receive?.createdAt);
+      const returnTime = toDateValue(ret?.timestamp || ret?.createdAt);
+
+      if (dispatchTime && receiveTime && receiveTime >= dispatchTime) {
+        deliverySamples.push(toHours(receiveTime - dispatchTime));
+      }
+      if (receiveTime && returnTime && returnTime >= receiveTime) {
+        returnSamples.push(toHours(returnTime - receiveTime));
+      }
+    });
+
+    const deliveryAvg = deliverySamples.length ? (deliverySamples.reduce((a,b)=>a+b,0) / deliverySamples.length) : 0;
+    const returnAvg = returnSamples.length ? (returnSamples.reduce((a,b)=>a+b,0) / returnSamples.length) : 0;
+
+    state.operational.avgDeliveryHours = round2(deliveryAvg);
+    state.operational.avgReturnHours = round2(returnAvg);
   }
 
   function normalizeMovement(id,data){
@@ -83,6 +189,10 @@
     const pending = state.movements.filter(m=> m.status==='in_transit' || m.status==='pending').length;
     const activeFiles = new Set(state.movements.map(m=> m.fileNumber)).size;
     setNumber('totalMovements', total); setNumber('completedMovements', completed); setNumber('pendingMovements', pending); setNumber('activeFiles', activeFiles);
+    setNumber('openRequestsCount', state.operational.openRequests || 0);
+    setNumber('lockedFilesCount', state.operational.lockedFiles || 0);
+    setNumber('avgDeliveryHours', state.operational.avgDeliveryHours || 0);
+    setNumber('avgReturnHours', state.operational.avgReturnHours || 0);
   }
   function setNumber(id,val){ const el = qs(id); if (el) el.textContent = val; }
 
@@ -94,6 +204,44 @@
       const h = (count/max)*200; const pct = Math.round((count/max)*100);
       return `<div class="chart-bar" style="height:${h}px" title="${departmentNames[dept]}: ${count} حركة (${pct}%)">${count}<div class="chart-label">${departmentNames[dept]}</div></div>`;
     }).join('');
+  }
+
+  function renderOperationalSections(){
+    renderFilesByDepartment();
+    renderSlaMetrics();
+  }
+
+  function renderFilesByDepartment(){
+    const body = qs('filesByDepartmentBody');
+    if (!body) return;
+
+    const data = state.operational.filesByDepartment || {};
+    const total = Object.values(data).reduce((a,b)=>a+b,0) || 1;
+    const entries = Object.entries(data).sort((a,b)=> b[1] - a[1]);
+
+    if (!entries.length) {
+      body.innerHTML = '<tr><td colspan="3" class="mr-empty">لا توجد بيانات حالية</td></tr>';
+      return;
+    }
+
+    body.innerHTML = entries.map(([dept,count]) => {
+      const pct = round2((count / total) * 100);
+      return `<tr><td>${departmentNames[dept] || dept}</td><td>${count}</td><td>${pct}%</td></tr>`;
+    }).join('');
+  }
+
+  function renderSlaMetrics(){
+    const body = qs('slaMetricsBody');
+    if (!body) return;
+
+    const rows = [
+      { label: 'متوسط زمن التسليم (Dispatch -> Receive)', value: state.operational.avgDeliveryHours || 0, unit: 'ساعة' },
+      { label: 'متوسط زمن الإرجاع (Receive -> Return)', value: state.operational.avgReturnHours || 0, unit: 'ساعة' },
+      { label: 'إجمالي الطلبات المفتوحة', value: state.operational.openRequests || 0, unit: 'طلب' },
+      { label: 'الملفات المقفلة', value: state.operational.lockedFiles || 0, unit: 'ملف' }
+    ];
+
+    body.innerHTML = rows.map(row => `<tr><td>${row.label}</td><td>${row.value}</td><td>${row.unit}</td></tr>`).join('');
   }
 
   function renderTable(){
@@ -131,8 +279,9 @@
       if (dept) query = query.where('toDepartment','==',dept);
       const snap = await query.get();
   state.movements = snap.docs.map(d=> normalizeMovement(d.id,d.data()));
+      await loadOperationalData();
   window.__MOVEMENTS_CACHE__ = state.movements.slice();
-  renderStats(); renderDepartmentChart(); renderTable();
+      renderStats(); renderDepartmentChart(); renderOperationalSections(); renderTable();
   try { window.__EVENT_BUS__?.emit && window.__EVENT_BUS__.emit('movements:updated', { count: state.movements.length }); document.dispatchEvent(new CustomEvent('movements:updated', { detail:{ count: state.movements.length } })); } catch(e){}
       notify(`تم إنشاء التقرير. (${state.movements.length} حركة)`, 'success');
   } catch(err){ console.error(err); notify('خطأ في إنشاء التقرير','error'); }

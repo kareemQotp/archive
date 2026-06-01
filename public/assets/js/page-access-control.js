@@ -7,7 +7,28 @@ class PageAccessControl {
         this.userRole = null;
         this.isAuthenticated = false;
         this.permissionsLoaded = false;
+        this.roleAliases = {
+            admin: 'super_admin',
+            system_admin: 'super_admin',
+            super_admin: 'super_admin',
+            manager: 'department_admin',
+            'department-admin': 'department_admin',
+            department_admin: 'department_admin',
+            department_head: 'supervisor',
+            supervisor: 'supervisor',
+            employee: 'employee',
+            user: 'employee',
+            archive_officer: 'employee',
+            'archive-officer': 'employee',
+            viewer: 'viewer'
+        };
         this.init();
+    }
+
+    normalizeRole(role) {
+        if (!role) return 'viewer';
+        const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
+        return this.roleAliases[normalized] || normalized;
     }
 
     init() {
@@ -97,7 +118,7 @@ class PageAccessControl {
                 
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    this.userRole = userData.role;
+                    this.userRole = this.normalizeRole(userData.role);
                     
                     // حفظ دور المستخدم في localStorage للوصول السريع
                     localStorage.setItem('userRole', this.userRole);
@@ -119,6 +140,7 @@ class PageAccessControl {
                 );
                 
                 this.userRole = isAdminEmail ? 'admin' : 'viewer';
+                this.userRole = this.normalizeRole(this.userRole);
                 localStorage.setItem('userRole', this.userRole);
                 
                 console.log('✅ تم تعيين دور افتراضي:', this.userRole, 'للمستخدم:', currentUser.email);
@@ -130,12 +152,13 @@ class PageAccessControl {
             // محاولة الحصول على الدور من localStorage
             const savedRole = localStorage.getItem('userRole');
             if (savedRole) {
-                this.userRole = savedRole;
+                this.userRole = this.normalizeRole(savedRole);
                 console.log('✅ تم استرداد الدور من localStorage:', this.userRole);
                 this.checkPageAccess();
             } else {
                 // دور افتراضي في حالة الفشل الكامل
                 this.userRole = 'viewer';
+                this.userRole = this.normalizeRole(this.userRole);
                 console.log('⚠️ تم تعيين دور افتراضي: viewer');
                 this.checkPageAccess();
             }
@@ -187,36 +210,32 @@ class PageAccessControl {
 
     getDefaultPagePermission() {
         const defaultPermissions = {
-            // صفحات المدراء فقط - السماح لجميع المستخدمين المصادق عليهم مؤقتاً
-            'admin-management': ['admin', 'manager', 'employee', 'viewer'],
-            'user-management': ['admin', 'manager', 'employee', 'viewer'],
-            'page-permissions': ['admin', 'manager', 'employee', 'viewer'],
-            'create-admin': ['admin'],
-            'role-manager': ['admin'],
-            'system-analytics': ['admin'],
-            
-            // صفحات المدراء والمديرين
-            'movement-reports': ['admin', 'manager'],
-            'system-integration-test': ['admin', 'manager'],
-            
-            // صفحات المدراء والموظفين
-            'upload': ['admin', 'manager', 'employee'],
-            'file-management': ['admin', 'manager', 'employee'],
-            'file-management-dashboard': ['admin', 'manager', 'employee'],
-            'file-tracking.html': ['admin', 'manager', 'employee'],
-            'qr-generator': ['admin', 'manager', 'employee'],
-            
-            // صفحات الجميع (المسجلين)
-            'dashboard': ['admin', 'manager', 'employee', 'viewer'],
-            'search': ['admin', 'manager', 'employee', 'viewer'],
-            'file-tracking': ['admin', 'manager', 'employee', 'viewer'],
-            'scanner': ['admin', 'manager', 'employee', 'viewer'],
-            'profile': ['admin', 'manager', 'employee', 'viewer'],
-            'activity-logs': ['admin', 'manager', 'employee', 'viewer']
+            'admin-management': ['super_admin'],
+            'user-management': ['super_admin'],
+            'page-permissions': ['super_admin'],
+            'create-admin': ['super_admin'],
+            'role-manager': ['super_admin'],
+            'system-analytics': ['super_admin', 'department_admin'],
+
+            'movement-reports': ['super_admin', 'department_admin', 'supervisor'],
+            'system-integration-test': ['super_admin', 'department_admin'],
+
+            'upload': ['super_admin', 'department_admin', 'supervisor', 'employee'],
+            'file-management': ['super_admin', 'department_admin', 'supervisor', 'employee'],
+            'file-management-dashboard': ['super_admin', 'department_admin', 'supervisor', 'employee'],
+            'file-tracking': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
+            'qr-generator': ['super_admin', 'department_admin', 'supervisor', 'employee'],
+
+            'dashboard': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
+            'search': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
+            'scanner': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
+            'profile': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
+            'activity-logs': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer']
         };
 
         const allowedRoles = defaultPermissions[this.currentPage];
-        return allowedRoles ? allowedRoles.includes(this.userRole) : true; // السماح بالوصول افتراضياً
+        const normalizedRole = this.normalizeRole(this.userRole);
+        return allowedRoles ? allowedRoles.includes(normalizedRole) : false;
     }
 
     handleUnauthenticatedUser() {
@@ -245,11 +264,7 @@ class PageAccessControl {
 
     handleUnauthorizedAccess() {
         console.warn(`ليس لديك صلاحية للوصول للصفحة: ${this.currentPage}`);
-        
-        // تعطيل إعادة التوجيه مؤقتاً للسماح بالاختبار
-        console.log('تم تعطيل إعادة التوجيه مؤقتاً - يُسمح بالوصول للصفحة');
-        return;
-        
+
         // إعادة توجيه للصفحة المناسبة حسب الدور
         const redirectPage = this.getRedirectPage();
         
@@ -267,13 +282,14 @@ class PageAccessControl {
     getRedirectPage() {
         // تحديد الصفحة المناسبة للإعادة التوجيه حسب الدور
         const rolePages = {
-            admin: 'dashboard.html',
-            manager: 'dashboard.html',
+            super_admin: 'dashboard.html',
+            department_admin: 'dashboard.html',
+            supervisor: 'dashboard.html',
             employee: 'dashboard.html',
             viewer: 'search.html'
         };
 
-        return rolePages[this.userRole] || 'index.html';
+        return rolePages[this.normalizeRole(this.userRole)] || 'index.html';
     }
 
     showAccessDeniedMessage() {
@@ -316,8 +332,11 @@ class PageAccessControl {
 
         // العناصر المشروطة بالصلاحيات
         document.querySelectorAll('[data-role-permission]').forEach(element => {
-            const requiredRoles = element.getAttribute('data-role-permission').split(',');
-            if (!requiredRoles.includes(this.userRole)) {
+            const requiredRoles = element
+                .getAttribute('data-role-permission')
+                .split(',')
+                .map(item => this.normalizeRole(item));
+            if (!requiredRoles.includes(this.normalizeRole(this.userRole))) {
                 element.style.display = 'none';
             }
         });
@@ -344,16 +363,16 @@ class PageAccessControl {
     hasActionPermission(action) {
         // تحديد الصلاحيات للإجراءات المختلفة
         const actionPermissions = {
-            'create': ['admin', 'manager', 'employee'],
-            'edit': ['admin', 'manager', 'employee'],
-            'delete': ['admin', 'manager'],
-            'manage_users': ['admin'],
-            'view_reports': ['admin', 'manager'],
-            'export_data': ['admin', 'manager']
+            'create': ['super_admin', 'department_admin', 'supervisor', 'employee'],
+            'edit': ['super_admin', 'department_admin', 'supervisor', 'employee'],
+            'delete': ['super_admin', 'department_admin'],
+            'manage_users': ['super_admin'],
+            'view_reports': ['super_admin', 'department_admin', 'supervisor'],
+            'export_data': ['super_admin', 'department_admin']
         };
 
         const allowedRoles = actionPermissions[action];
-        return allowedRoles ? allowedRoles.includes(this.userRole) : false;
+        return allowedRoles ? allowedRoles.includes(this.normalizeRole(this.userRole)) : false;
     }
 
     updatePageUI() {
@@ -369,12 +388,13 @@ class PageAccessControl {
 
     getRoleDisplayName() {
         const roleNames = {
-            admin: 'مدير النظام',
-            manager: 'مدير',
+            super_admin: 'مدير النظام',
+            department_admin: 'مدير إدارة',
+            supervisor: 'مشرف',
             employee: 'موظف',
             viewer: 'مستعرض'
         };
-        return roleNames[this.userRole] || 'مستخدم';
+        return roleNames[this.normalizeRole(this.userRole)] || 'مستخدم';
     }
 
     logPageAccess() {

@@ -1,0 +1,10 @@
+﻿{
+  "collection": "rate_limits",
+  "dryRun": false,
+  "beforeCount": 13,
+  "afterCount": 0,
+  "deletedDocs": 13,
+  "touchedCollections": [
+    "rate_limits"
+  ]
+}

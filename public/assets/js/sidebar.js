@@ -28,6 +28,34 @@ class SidebarManager {
         this.initializeSidebar();
     }
 
+    normalizeRole(role) {
+        if (!role) return 'viewer';
+        const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
+        const aliases = {
+            admin: 'super_admin',
+            system_admin: 'super_admin',
+            super_admin: 'super_admin',
+            manager: 'department_admin',
+            'department-admin': 'department_admin',
+            department_admin: 'department_admin',
+            archive_officer: 'employee',
+            'archive-officer': 'employee',
+            employee: 'employee',
+            user: 'employee',
+            viewer: 'viewer'
+        };
+        return aliases[normalized] || normalized;
+    }
+
+    isAdminRole(role) {
+        return this.normalizeRole(role) === 'super_admin';
+    }
+
+    isArchiveRole(role) {
+        const normalized = this.normalizeRole(role);
+        return normalized === 'employee' || normalized === 'department_admin' || normalized === 'super_admin';
+    }
+
     createSidebarHTML() {
         // Check if sidebar already exists
         if (document.getElementById('sidebar')) return;
@@ -632,7 +660,7 @@ class SidebarManager {
         `;
 
         // إضافة الصفحات حسب الدور
-        if (userRole === 'admin') {
+        if (this.isAdminRole(userRole)) {
             defaultNav += `
                 <li class="sidebar-nav-item">
                     <a href="qr-generator.html" class="sidebar-nav-link ${this.isActivePage(['qr-generator.html']) ? 'active' : ''}">
@@ -685,8 +713,8 @@ class SidebarManager {
     }
 
     getEnhancedDefaultNavigation(userRole) {
-        const isAdmin = userRole === 'admin';
-        const isArchiveOfficer = userRole === 'archive-officer' || isAdmin;
+        const isAdmin = this.isAdminRole(userRole);
+        const isArchiveOfficer = this.isArchiveRole(userRole);
         
         let defaultNav = `
             <!-- الصفحات الرئيسية -->

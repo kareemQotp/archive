@@ -20,7 +20,7 @@
     
     <style>
         /* Register page specific styles */
-        html, body { height: 100%; overflow-x: hidden; }
+        html, body { min-height: 100%; overflow-x: hidden; }
 
         body {
             background: linear-gradient(135deg, 
@@ -38,6 +38,7 @@
             justify-content: center;
             padding: 2rem 1rem;
             margin: 0;
+            overflow-y: auto;
         }
 
         /* Hide global UI on auth pages for a clean layout */
@@ -595,6 +596,17 @@
                 font-size: 2rem; /* align with login */
             }
             /* Keep sections flat and padding-free on small screens as well */
+        }
+
+        /* On short screens, anchor the card to top so users can scroll naturally */
+        @media (max-height: 900px) {
+            body {
+                align-items: flex-start;
+            }
+
+            .auth-container {
+                margin: 0 auto;
+            }
         }
 
         @media (max-width: 480px) {

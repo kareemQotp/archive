@@ -16,6 +16,26 @@
 
   const els = {};
 
+  function normalizeRole(role){
+    if(!role) return 'viewer';
+    const normalized = String(role).trim().toLowerCase().replace(/\s+/g,'_');
+    const aliases = {
+      admin:'super_admin', system_admin:'super_admin', super_admin:'super_admin',
+      manager:'department_admin', 'department-admin':'department_admin', department_admin:'department_admin',
+      supervisor:'supervisor', department_head:'supervisor',
+      employee:'employee', user:'employee', archive_officer:'employee', 'archive-officer':'employee',
+      viewer:'viewer'
+    };
+    return aliases[normalized] || normalized;
+  }
+
+  function normalizeDepartment(department){
+    if(!department) return '';
+    const normalized = String(department).trim().toLowerCase();
+    const aliases = { 'الأرشيف':'archive', 'ارشيف':'archive' };
+    return aliases[department] || aliases[normalized] || normalized;
+  }
+
   function qs(id){ return document.getElementById(id); }
 
   function initElements(){
@@ -289,7 +309,9 @@
     // Only admin or archive department can access fully
     if(!window.unifiedAuth || !window.unifiedAuth.currentUserProfile) return;
     const profile = window.unifiedAuth.currentUserProfile;
-    if(!(profile.role === 'admin' || profile.department === 'archive')){
+    const role = normalizeRole(profile.role);
+    const department = normalizeDepartment(profile.department);
+    if(!(role === 'super_admin' || department === 'archive')){
       showAlert('danger','ليست لديك صلاحية كاملة لإدارة التصنيفات (عرض فقط)');
       els.form.querySelectorAll('input,select,button').forEach(el=>{
         if(el.id !== 'categorySearch') el.disabled = true;

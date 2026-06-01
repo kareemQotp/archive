@@ -6,6 +6,79 @@ class PagePermissionsManager {
         this.permissions = {};
         this.userRole = null;
         this.isLoaded = false;
+        this.roleAliases = {
+            admin: 'super_admin',
+            system_admin: 'super_admin',
+            super_admin: 'super_admin',
+            manager: 'department_admin',
+            'department-admin': 'department_admin',
+            department_admin: 'department_admin',
+            department_head: 'supervisor',
+            supervisor: 'supervisor',
+            employee: 'employee',
+            user: 'employee',
+            archive_officer: 'employee',
+            'archive-officer': 'employee',
+            viewer: 'viewer'
+        };
+        this.canonicalRoles = ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'];
+    }
+
+    normalizeRole(role) {
+        if (!role) return 'viewer';
+        const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
+        return this.roleAliases[normalized] || normalized;
+    }
+
+    getRolePermissionKeys(role) {
+        const normalizedRole = this.normalizeRole(role);
+        const keys = new Set([normalizedRole]);
+
+        if (normalizedRole === 'super_admin') {
+            keys.add('admin');
+            keys.add('system_admin');
+        }
+        if (normalizedRole === 'department_admin') {
+            keys.add('manager');
+            keys.add('department-admin');
+        }
+        if (normalizedRole === 'employee') {
+            keys.add('employee');
+            keys.add('user');
+            keys.add('archive_officer');
+            keys.add('archive-officer');
+        }
+
+        return Array.from(keys);
+    }
+
+    normalizePermissionsSchema(pages = {}) {
+        const normalizedPages = {};
+
+        Object.entries(pages || {}).forEach(([pageId, pageDef]) => {
+            const sourcePermissions = (pageDef && pageDef.permissions) ? pageDef.permissions : {};
+            const canonicalPermissions = {
+                super_admin: false,
+                department_admin: false,
+                supervisor: false,
+                employee: false,
+                viewer: false
+            };
+
+            Object.entries(sourcePermissions).forEach(([roleKey, allowed]) => {
+                const normalizedRole = this.normalizeRole(roleKey);
+                if (this.canonicalRoles.includes(normalizedRole)) {
+                    canonicalPermissions[normalizedRole] = canonicalPermissions[normalizedRole] || (allowed === true);
+                }
+            });
+
+            normalizedPages[pageId] = {
+                ...pageDef,
+                permissions: canonicalPermissions
+            };
+        });
+
+        return normalizedPages;
     }
 
     // تحميل صلاحيات الصفحات من قاعدة البيانات
@@ -21,7 +94,7 @@ class PagePermissionsManager {
             const permissionsDoc = await db.collection('system_settings').doc('page_permissions').get();
             
             if (permissionsDoc.exists) {
-                this.permissions = permissionsDoc.data().pages || {};
+                this.permissions = this.normalizePermissionsSchema(permissionsDoc.data().pages || {});
             } else {
                 this.loadDefaultPermissions();
             }
@@ -56,6 +129,19 @@ class PagePermissionsManager {
                 path: 'file-management-dashboard.html',
                 icon: 'fas fa-folder-open',
                 description: 'إدارة وتنظيم الملفات والوثائق',
+                category: 'files',
+                permissions: {
+                    admin: true,
+                    manager: true,
+                    employee: true,
+                    viewer: false
+                }
+            },
+            'client-files': {
+                name: 'ملفات العملاء',
+                path: 'client-files.html',
+                icon: 'fas fa-address-book',
+                description: 'إدارة العملاء وملفاتهم الأساسية',
                 category: 'files',
                 permissions: {
                     admin: true,
@@ -234,6 +320,8 @@ class PagePermissionsManager {
                 }
             }
         };
+
+        this.permissions = this.normalizePermissionsSchema(this.permissions);
         
         this.isLoaded = true;
         console.log('تم تحميل الصلاحيات الافتراضية');
@@ -241,26 +329,27 @@ class PagePermissionsManager {
 
     // تعيين دور المستخدم الحالي
     setUserRole(role) {
-        this.userRole = role;
+        this.userRole = this.normalizeRole(role);
     }
 
     // التحقق من صلاحية الوصول لصفحة معينة
     hasPageAccess(pageId, userRole = null) {
-        const role = userRole || this.userRole;
+        const role = this.normalizeRole(userRole || this.userRole);
         if (!role || !this.permissions[pageId]) {
             return false;
         }
-        
-        return this.permissions[pageId].permissions[role] === true;
+
+        const permissionKeys = this.getRolePermissionKeys(role);
+        return permissionKeys.some((key) => this.permissions[pageId].permissions[key] === true);
     }
 
     // الحصول على قائمة الصفحات المتاحة للمستخدم
     getAvailablePages(userRole = null) {
-        const role = userRole || this.userRole;
+        const role = this.normalizeRole(userRole || this.userRole);
         if (!role) return [];
 
         return Object.entries(this.permissions)
-            .filter(([pageId, page]) => page.permissions[role])
+            .filter(([pageId]) => this.hasPageAccess(pageId, role))
             .map(([pageId, page]) => ({
                 id: pageId,
                 ...page
@@ -389,7 +478,7 @@ class PagePermissionsManager {
 
     // فلترة الأزرار والعناصر بناءً على الصلاحيات
     filterPageElements(userRole = null) {
-        const role = userRole || this.userRole;
+        const role = this.normalizeRole(userRole || this.userRole);
         
         // إخفاء الروابط غير المصرح بها
         document.querySelectorAll('[data-page-permission]').forEach(element => {
@@ -401,7 +490,10 @@ class PagePermissionsManager {
 
         // إخفاء العناصر بناءً على الدور
         document.querySelectorAll('[data-role-permission]').forEach(element => {
-            const requiredRoles = element.getAttribute('data-role-permission').split(',');
+            const requiredRoles = element
+                .getAttribute('data-role-permission')
+                .split(',')
+                .map(item => this.normalizeRole(item));
             if (!requiredRoles.includes(role)) {
                 element.style.display = 'none';
             }

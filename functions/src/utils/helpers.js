@@ -41,10 +41,61 @@ async function getUserRole(uid) {
 }
 
 /**
+ * Normalize role to canonical runtime values while supporting legacy aliases
+ */
+function normalizeRole(role) {
+	if (!role) return 'viewer';
+	const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
+	const aliases = {
+		admin: 'admin',
+		system_admin: 'admin',
+		super_admin: 'admin',
+		department_admin: 'department_admin',
+		'department-admin': 'department_admin',
+		manager: 'department_admin',
+		supervisor: 'supervisor',
+		employee: 'employee',
+		archive_officer: 'archive_officer',
+		'archive-officer': 'archive_officer',
+		user: 'user',
+		viewer: 'viewer'
+	};
+	return aliases[normalized] || normalized;
+}
+
+/**
+ * Normalize department names to stable ids while supporting Arabic/legacy aliases
+ */
+function normalizeDepartment(department) {
+	if (!department) return '';
+	const normalized = String(department).trim().toLowerCase().replace(/\s+/g, '_');
+	const aliases = {
+		archive: 'archive',
+		'ارشيف': 'archive',
+		'الأرشيف': 'archive',
+		legal: 'legal',
+		'قانونية': 'legal',
+		'الشؤون_القانونية': 'legal',
+		collection: 'collection',
+		'التحصيل': 'collection',
+		admin: 'admin',
+		general: 'admin',
+		'عام': 'admin'
+	};
+	return aliases[normalized] || normalized;
+}
+
+function isAdminRole(role) {
+	return normalizeRole(role) === 'admin';
+}
+
+/**
  * Check if role is one of allowed
  */
 function assertRole(role, allowed) {
-	if (!allowed.includes(role)) {
+	const normalizedRole = normalizeRole(role);
+	const normalizedAllowed = allowed.map(normalizeRole);
+	if (!normalizedAllowed.includes(normalizedRole)) {
 		throw new HttpsError('permission-denied', 'Insufficient role');
 	}
 }
@@ -89,6 +140,9 @@ module.exports = {
 	buildResponse,
 	requireAuth,
 	getUserRole,
+	normalizeRole,
+	normalizeDepartment,
+	isAdminRole,
 	assertRole,
 	checkRateLimit,
 	verifyAppCheck

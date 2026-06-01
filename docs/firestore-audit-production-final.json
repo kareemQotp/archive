@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-06-01T09:43:36.223Z",
+  "totalCollections": 14,
+  "collections": [
+    {
+      "collection": "activity_logs",
+      "documentCount": 1052
+    },
+    {
+      "collection": "audit_logs",
+      "documentCount": 13
+    },
+    {
+      "collection": "auth_logs",
+      "documentCount": 67
+    },
+    {
+      "collection": "departments",
+      "documentCount": 6
+    },
+    {
+      "collection": "documents",
+      "documentCount": 9
+    },
+    {
+      "collection": "file_movements",
+      "documentCount": 7
+    },
+    {
+      "collection": "invitations",
+      "documentCount": 2
+    },
+    {
+      "collection": "notification_queue",
+      "documentCount": 8
+    },
+    {
+      "collection": "notifications",
+      "documentCount": 38
+    },
+    {
+      "collection": "sent_notifications",
+      "documentCount": 8
+    },
+    {
+      "collection": "system_settings",
+      "documentCount": 1
+    },
+    {
+      "collection": "user_page_permissions",
+      "documentCount": 2
+    },
+    {
+      "collection": "user_preferences",
+      "documentCount": 1
+    },
+    {
+      "collection": "users",
+      "documentCount": 15
+    }
+  ]
+}

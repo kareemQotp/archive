@@ -10,7 +10,7 @@ const functionsLib = require('firebase-functions');
 const admin = require('firebase-admin');
 const sharp = require('sharp');
 const path = require('path');
-const { buildResponse } = require('../utils/helpers');
+const { buildResponse, normalizeRole, isAdminRole } = require('../utils/helpers');
 const { serverTS } = require('../utils/serverTimestamp');
 const { COLLECTIONS, ROLES, ACTIVITY } = require('../config/constants');
 
@@ -239,10 +239,10 @@ exports.deleteFile = onCall({
 
         const docData = documentsQuery.docs[0].data();
         const userDoc = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
-        const userRole = userDoc.data()?.role;
+        const userRole = normalizeRole(userDoc.data()?.role);
 
         // Check permissions
-        if (docData.createdBy !== request.auth.uid && userRole !== ROLES.ADMIN) {
+        if (docData.createdBy !== request.auth.uid && !isAdminRole(userRole)) {
             throw new HttpsError('permission-denied', 'Insufficient permissions');
         }
 
@@ -442,8 +442,8 @@ exports.cleanupThumbnails = onCall({ enforceAppCheck: false }, async (request) =
         if (!userDoc.exists) {
             logger.warn('cleanupThumbnails: user document missing', { uid: request.auth.uid });
         }
-        const role = userDoc.data()?.role;
-        if (role !== ROLES.ADMIN) {
+        const role = normalizeRole(userDoc.data()?.role);
+        if (!isAdminRole(role)) {
             throw new HttpsError('permission-denied', 'Admins only');
         }
         logger.info('cleanupThumbnails invoked by admin', { uid: request.auth.uid });

@@ -22,6 +22,36 @@ class UnifiedAuth {
         this.maxLoginAttempts = 5;
         this.lockoutDuration = 15 * 60 * 1000; // 15 minutes
         this.isInitialized = false;
+
+        this.roleAliases = {
+            admin: 'super_admin',
+            system_admin: 'super_admin',
+            super_admin: 'super_admin',
+            'department-admin': 'department_admin',
+            department_admin: 'department_admin',
+            manager: 'supervisor',
+            department_head: 'supervisor',
+            supervisor: 'supervisor',
+            user: 'employee',
+            employee: 'employee',
+            archive_officer: 'employee',
+            'archive-officer': 'employee',
+            viewer: 'viewer'
+        };
+
+        this.departmentAliases = {
+            admin: 'admin',
+            'عام': 'admin',
+            general: 'admin',
+            archive: 'archive',
+            'ارشيف': 'archive',
+            'الأرشيف': 'archive',
+            legal: 'legal',
+            'قانونية': 'legal',
+            'الشؤون القانونية': 'legal',
+            collection: 'collection',
+            'التحصيل': 'collection'
+        };
         
         // Event listeners for auth state changes
         this.authStateListeners = [];
@@ -249,6 +279,8 @@ class UnifiedAuth {
                     uid: uid,
                     ...userDoc.data()
                 };
+
+                this.userProfile.department = this.normalizeDepartment(this.userProfile.department || this.userProfile.departmentId || '');
                 
                 // Force admin role for admin emails even if stored differently
                 if (isAdminEmail && this.userProfile.role !== 'admin') {
@@ -295,20 +327,42 @@ class UnifiedAuth {
     async loadUserPermissions(uid = null) {
         try {
             const targetUid = uid || this.currentUser?.uid;
-            const role = this.userProfile?.role || 'viewer';
+            const role = this.normalizeRole(this.userProfile?.role || 'viewer');
             
             // Define role-based permissions
             const rolePermissions = {
+                'super_admin': [
+                    'users.view', 'users.create', 'users.edit', 'users.delete',
+                    'files.view', 'files.create', 'files.edit', 'files.delete',
+                    'departments.manage', 'system.admin', 'reports.view',
+                    'invitations.manage', 'roles.manage', 'scanner.access'
+                ],
                 'admin': [
                     'users.view', 'users.create', 'users.edit', 'users.delete',
                     'files.view', 'files.create', 'files.edit', 'files.delete',
                     'departments.manage', 'system.admin', 'reports.view',
                     'invitations.manage', 'roles.manage', 'scanner.access'
                 ],
+                'system_admin': [
+                    'users.view', 'users.create', 'users.edit', 'users.delete',
+                    'files.view', 'files.create', 'files.edit', 'files.delete',
+                    'departments.manage', 'system.admin', 'reports.view',
+                    'invitations.manage', 'roles.manage', 'scanner.access'
+                ],
+                'department_admin': [
+                    'users.view', 'users.create', 'users.edit',
+                    'files.view', 'files.create', 'files.edit',
+                    'reports.view', 'invitations.create', 'scanner.access'
+                ],
                 'manager': [
                     'users.view', 'users.create', 'users.edit',
                     'files.view', 'files.create', 'files.edit',
                     'reports.view', 'invitations.create', 'scanner.access'
+                ],
+                'supervisor': [
+                    'users.view',
+                    'files.view', 'files.create', 'files.edit',
+                    'reports.view', 'scanner.access'
                 ],
                 'employee': [
                     'files.view', 'files.create', 'files.edit',
@@ -744,11 +798,24 @@ class UnifiedAuth {
     }
 
     hasRole(role) {
-        return this.userProfile?.role === role;
+        return this.normalizeRole(this.userProfile?.role) === this.normalizeRole(role);
     }
 
     hasAnyRole(rolesList) {
-        return rolesList.includes(this.userProfile?.role);
+        const currentRole = this.normalizeRole(this.userProfile?.role);
+        return rolesList.map(role => this.normalizeRole(role)).includes(currentRole);
+    }
+
+    normalizeRole(role) {
+        if (!role) return 'viewer';
+        const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
+        return this.roleAliases[normalized] || normalized;
+    }
+
+    normalizeDepartment(department) {
+        if (!department) return '';
+        const normalized = String(department).trim().toLowerCase().replace(/\s+/g, '_');
+        return this.departmentAliases[normalized] || normalized;
     }
 
     // Page Protection
@@ -1053,6 +1120,8 @@ class UnifiedAuth {
                 createdAt: new Date()
             };
 
+            this.userProfile.department = this.normalizeDepartment(this.userProfile.department);
+
             console.log('🔧 تم إنشاء بيانات مستخدم افتراضية:', {
                 role: this.userProfile.role,
                 department: this.userProfile.department,
@@ -1142,13 +1211,13 @@ class UnifiedAuth {
             }
 
             // Fallback logic if role-based routing is not loaded
-            const role = this.userRole;
+            const role = this.normalizeRole(this.userRole);
             const department = this.userProfile?.department;
             
             console.log('🔄 توجيه بسيط بناءً على:', { role, department });
 
             // Simple role-based routing
-            if (role === 'admin') {
+            if (role === 'super_admin') {
                 window.location.href = 'dashboard.html';
             } else if (department && department.includes('أرشيف')) {
                 window.location.href = 'archive-dashboard.html';

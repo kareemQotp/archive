@@ -68,6 +68,45 @@ const departmentNames = {
     it: 'تقنية المعلومات'
 };
 
+function normalizeRole(role) {
+    if (!role) return 'viewer';
+    const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
+    const aliases = {
+        admin: 'super_admin',
+        system_admin: 'super_admin',
+        super_admin: 'super_admin',
+        manager: 'department_admin',
+        'department-admin': 'department_admin',
+        department_admin: 'department_admin',
+        department_head: 'supervisor',
+        supervisor: 'supervisor',
+        archive_officer: 'employee',
+        'archive-officer': 'employee',
+        employee: 'employee',
+        user: 'employee',
+        viewer: 'viewer',
+        'file-manager': 'employee',
+        file_manager: 'employee'
+    };
+    return aliases[normalized] || normalized;
+}
+
+function isAdminRole(role) {
+    return normalizeRole(role) === 'super_admin';
+}
+
+function normalizeDepartment(department) {
+    if (!department) return '';
+    const normalized = String(department).trim().toLowerCase();
+    const aliases = {
+        'إدارة الملفات': 'file-management',
+        'الملفات': 'file-management',
+        'ملفات': 'file-management',
+        'file_management': 'file-management'
+    };
+    return aliases[department] || aliases[normalized] || normalized;
+}
+
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', async function() {
     // تعطيل نظام التوجيه الذكي التلقائي في هذه الصفحة
@@ -139,10 +178,10 @@ async function handleAuthStateChange(user) {
     console.log('✅ User authenticated:', user.email);
 
     // Check if user has access to File Management dashboard
-    const userDepartment = authSystem?.userProfile?.department || authSystem?.userProfile?.departmentId;
-    const userRole = authSystem?.userProfile?.role;
-    const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin';
-    const isFileManager = userRole === 'file-manager' || userRole === 'file_manager';
+    const userDepartment = normalizeDepartment(authSystem?.userProfile?.department || authSystem?.userProfile?.departmentId);
+    const userRole = normalizeRole(authSystem?.userProfile?.role);
+    const isSystemAdmin = isAdminRole(userRole);
+    const isFileManager = userRole === 'employee';
     
     console.log('🔍 فحص صلاحيات الوصول لإدارة الملفات:', {
         userDepartment,
@@ -160,12 +199,8 @@ async function handleAuthStateChange(user) {
     // 4. Users with admin role
     // 5. Admin emails
     const hasAccess = userDepartment === 'file-management' || 
-                    userDepartment === 'إدارة الملفات' ||
-                    userDepartment === 'الملفات' ||
-                    userDepartment === 'ملفات' ||
                     isFileManager ||
                     isSystemAdmin ||
-                    userRole === 'admin' ||
                     user.email?.includes('admin');
     
     if (!hasAccess) {
@@ -211,9 +246,10 @@ async function handleAuthStateChange(user) {
 }
 
 function getUserRoleBadge(role, department) {
-    if (role === 'system_admin') {
+    const normalizedRole = normalizeRole(role);
+    if (normalizedRole === 'super_admin') {
         return '<span class="badge bg-danger me-2">مدير النظام</span>';
-    } else if (role === 'admin') {
+    } else if (normalizedRole === 'department_admin') {
         return '<span class="badge bg-warning me-2">مدير إداري</span>';
     } else if (department) {
         const deptNames = {
@@ -294,7 +330,7 @@ async function loadStatistics() {
     try {
         // Check if user has access to view statistics
         const userProfile = authSystem ? authSystem.profile : null;
-        const canViewAllStats = userProfile && ['system_admin', 'admin'].includes(userProfile.role);
+        const canViewAllStats = userProfile && isAdminRole(userProfile.role);
         
         let query = window.db.collection('file_movements')
             .orderBy('timestamp', 'desc')
@@ -399,7 +435,7 @@ async function loadPendingFiles() {
     try {
         // Check user permissions
         const userProfile = authSystem ? authSystem.profile : null;
-        const canViewAll = userProfile && ['system_admin', 'admin'].includes(userProfile.role);
+        const canViewAll = userProfile && isAdminRole(userProfile.role);
         
         let query = window.db.collection('file_movements')
             .where('status', '==', 'in_transit')
@@ -521,7 +557,7 @@ async function loadRecentActivity() {
     try {
         // Check user permissions
         const userProfile = authSystem ? authSystem.profile : null;
-        const canViewAll = userProfile && ['system_admin', 'admin'].includes(userProfile.role);
+        const canViewAll = userProfile && isAdminRole(userProfile.role);
         
         let query = window.db.collection('file_movements')
             .orderBy('timestamp', 'desc')
@@ -635,8 +671,8 @@ async function processBulkTransfer() {
     try {
         const userProfile = authSystem ? authSystem.profile : null;
         const canTransfer = userProfile && (
-            ['system_admin', 'admin'].includes(userProfile.role) ||
-            userProfile.department === fromDept
+            isAdminRole(userProfile.role) ||
+            normalizeDepartment(userProfile.department) === fromDept
         );
 
     if (!canTransfer) { dashNotify('ليس لديك صلاحية لنقل الملفات من هذا القسم','error'); return; }

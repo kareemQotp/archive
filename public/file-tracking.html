@@ -86,6 +86,97 @@
             </div>
         </div>
 
+        <!-- Transfer Requests Workflow -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>طلبات التحويل</h5>
+                <button class="btn btn-outline-primary btn-sm" data-ft-action="refresh-requests">
+                    <i class="fas fa-sync-alt me-1"></i>تحديث
+                </button>
+            </div>
+            <div class="card-body">
+                <form id="transferRequestForm" class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label" for="requestClientFileId">ملف العميل</label>
+                        <select class="form-control" id="requestClientFileId" required>
+                            <option value="">اختر ملف العميل</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="requestType">نوع الطلب</label>
+                        <select class="form-control" id="requestType" required>
+                            <option value="physical">physical</option>
+                            <option value="digital">digital</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="requestToDepartment">إلى القسم</label>
+                        <select class="form-control" id="requestToDepartment" required>
+                            <option value="">اختر القسم</option>
+                            <option value="archive">الأرشيف</option>
+                            <option value="legal">الشؤون القانونية</option>
+                            <option value="governance">الحوكمة والامتثال</option>
+                            <option value="collection">إدارة التحصيل</option>
+                            <option value="securitization">إدارة التوريق</option>
+                            <option value="bank">البنك</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="requestNotes">ملاحظات</label>
+                        <input type="text" class="form-control" id="requestNotes" placeholder="سبب الطلب أو تفاصيل إضافية">
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-plus me-1"></i>إنشاء طلب
+                        </button>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-striped" id="transferRequestsTable">
+                        <thead>
+                            <tr>
+                                <th>File Number</th>
+                                <th>Type</th>
+                                <th>From</th>
+                                <th>To</th>
+                                <th>Status</th>
+                                <th>Creator</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-truck-loading me-2"></i>سجل التحويلات (Chain of Custody)</h5>
+                <button class="btn btn-outline-secondary btn-sm" data-ft-action="refresh-transfers">
+                    <i class="fas fa-sync-alt me-1"></i>تحديث
+                </button>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-striped" id="transfersTable">
+                    <thead>
+                        <tr>
+                            <th>Request</th>
+                            <th>File</th>
+                            <th>Action</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Status</th>
+                            <th>Actor</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- File Movements List -->
         <div id="movementsContainer">
             <div class="d-flex justify-content-center align-items-center loading-container">

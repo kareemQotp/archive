@@ -6,7 +6,7 @@
 const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
-const { buildResponse, checkRateLimit, verifyAppCheck } = require('../utils/helpers');
+const { buildResponse, checkRateLimit, verifyAppCheck, isAdminRole } = require('../utils/helpers');
 const { COLLECTIONS, ROLES, ACTIVITY } = require('../config/constants');
 
 const db = admin.firestore();
@@ -41,7 +41,7 @@ exports.createUserWithRole = onCall({
         }
 
     const adminUser = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
-    if (!adminUser.exists || adminUser.data().role !== ROLES.ADMIN) {
+    if (!adminUser.exists || !isAdminRole(adminUser.data().role)) {
             throw new HttpsError('permission-denied', 'Admin access required');
         }
 
@@ -104,7 +104,7 @@ exports.updateUserRole = onCall({
         }
 
     const adminUser = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
-    if (!adminUser.exists || adminUser.data().role !== ROLES.ADMIN) {
+    if (!adminUser.exists || !isAdminRole(adminUser.data().role)) {
             throw new HttpsError('permission-denied', 'Admin access required');
         }
 
@@ -154,7 +154,7 @@ exports.deleteUserAccount = onCall({
         }
 
     const adminUser = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
-    if (!adminUser.exists || adminUser.data().role !== ROLES.ADMIN) {
+    if (!adminUser.exists || !isAdminRole(adminUser.data().role)) {
             throw new HttpsError('permission-denied', 'Admin access required');
         }
 
@@ -443,14 +443,14 @@ exports.listAuthUsersSummary = onCall({
         let isAdmin = false;
         try {
             const adminUser = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
-            if (adminUser.exists && (adminUser.data().role === ROLES.ADMIN || adminUser.data().role === 'admin')) {
+            if (adminUser.exists && isAdminRole(adminUser.data().role)) {
                 isAdmin = true;
             }
         } catch (_) { /* ignore Firestore read issues and fallback to claims */ }
         if (!isAdmin) {
             const claims = (request.auth.token) || {};
             const claimRole = claims.role || claims.customRole || claims.roleName;
-            if (claimRole === ROLES.ADMIN || claimRole === 'admin') {
+            if (isAdminRole(claimRole)) {
                 isAdmin = true;
             }
         }
