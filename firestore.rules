@@ -41,6 +41,11 @@ service cloud.firestore {
       return isAuthenticated() && isAdminRole(getUserRole());
     }
 
+    // صلاحيات الإدارة الحساسة محصورة على super_admin/system_admin
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserRole() in ['super_admin', 'system_admin'];
+    }
+
     // السماح بترقية ذاتية محدودة لحسابات إدارية موثوقة (bootstrap)
     function isTrustedAdminBootstrap() {
       return isAuthenticated() &&
@@ -384,6 +389,37 @@ service cloud.firestore {
       ]);
     }
 
+    // الحقول المسموحة في سجل التدقيق الإداري
+    function auditLogAllowedKeys(keys) {
+      return keys.hasOnly([
+        'action',
+        'targetType',
+        'targetId',
+        'details',
+        'timestamp',
+        'performedBy',
+        'reason',
+        'securityReauthAt'
+      ]);
+    }
+
+    // الحقول المسموحة في سجل أحداث المصادقة
+    function authLogAllowedKeys(keys) {
+      return keys.hasOnly([
+        'eventType',
+        'uid',
+        'email',
+        'error',
+        'attempts',
+        'ip',
+        'userAgent',
+        'timestamp',
+        'registrationType',
+        'department',
+        'needsApproval'
+      ]);
+    }
+
     // الحقول المسموحة في الإشعار
     function notificationAllowedKeys(keys) {
       return keys.hasOnly(['userId', 'title', 'body', 'createdAt', 'read', 'type']);
@@ -581,7 +617,35 @@ service cloud.firestore {
         activityAllowedKeys(request.resource.data.keys()) &&
         (request.resource.data.userId == request.auth.uid || isAdmin());
       allow update: if false; // لا يسمح بتعديل السجلات
-      allow delete: if isAdmin();
+      allow delete: if false; // write-once: لا يسمح بحذف السجلات
+    }
+
+    // Audit logs collection (write-once)
+    match /audit_logs/{logId} {
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.performedBy == request.auth.uid);
+      allow create: if isAuthenticated() &&
+        auditLogAllowedKeys(request.resource.data.keys()) &&
+        (request.resource.data.performedBy == request.auth.uid || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Auth logs collection (write-once)
+    match /auth_logs/{logId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        (resource.data.uid != null && resource.data.uid == request.auth.uid) ||
+        (resource.data.email != null && request.auth.token.email != null && resource.data.email == request.auth.token.email)
+      );
+      allow create: if isAuthenticated() &&
+        authLogAllowedKeys(request.resource.data.keys()) &&
+        (
+          isAdmin() ||
+          (
+            (!('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid) &&
+            (!('email' in request.resource.data) || (request.auth.token.email != null && request.resource.data.email == request.auth.token.email))
+          )
+        );
+      allow update, delete: if false;
     }
 
     // Departments collection
@@ -594,7 +658,7 @@ service cloud.firestore {
     // System settings collection
     match /system_settings/{settingId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if isSuperAdmin() || isTrustedAdminBootstrap();
     }
 
     // Invitations collection

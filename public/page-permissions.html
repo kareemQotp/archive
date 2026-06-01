@@ -182,6 +182,10 @@
                     <p class="text-muted mb-0">تحديد الصفحات المتاحة حسب الدور أو الإدارة</p>
                 </div>
                 <div>
+                    <button class="btn btn-outline-dark me-2" onclick="rollbackPermissionsToLatest()">
+                        <i class="fas fa-history me-2"></i>
+                        استرجاع آخر إصدار
+                    </button>
                     <button class="btn btn-outline-primary me-2" onclick="resetToDefaults()">
                         <i class="fas fa-undo me-2"></i>
                         القيم الافتراضية
@@ -198,6 +202,7 @@
                         <i class="fas fa-save me-2"></i>
                         حفظ التغييرات
                     </button>
+                    <div id="permissionsVersionStatus" class="small text-muted mt-2">لا توجد نسخة محفوظة بعد</div>
                 </div>
             </div>
         </div>
@@ -228,6 +233,91 @@
                     <div class="text-muted">صفحات مستعرضين</div>
                 </div>
             </div>
+        </div>
+
+        <!-- إعدادات بوابة الإدارة (M2) -->
+        <div class="permission-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-sliders-h me-2"></i>
+                    إعدادات بوابة الإدارة
+                </h5>
+                <small class="text-muted">يتم الحفظ عبر Cloud Functions مع تدقيق إلزامي</small>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label" for="cfgSessionTimeout">مدة الجلسة (دقائق)</label>
+                    <input type="number" class="form-control" id="cfgSessionTimeout" min="15" max="1440" value="120">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="cfgMaxLoginAttempts">حد محاولات الدخول</label>
+                    <input type="number" class="form-control" id="cfgMaxLoginAttempts" min="3" max="20" value="5">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="cfgLockoutDuration">مدة القفل (دقائق)</label>
+                    <input type="number" class="form-control" id="cfgLockoutDuration" min="5" max="240" value="15">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="cfgAuditRetention">الاحتفاظ بسجلات التدقيق (يوم)</label>
+                    <input type="number" class="form-control" id="cfgAuditRetention" min="30" max="3650" value="365">
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cfgFeatureBulkImport" checked>
+                        <label class="form-check-label" for="cfgFeatureBulkImport">تفعيل الاستيراد الدفعي</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cfgFeatureRealtimeDashboard">
+                        <label class="form-check-label" for="cfgFeatureRealtimeDashboard">تفعيل لوحات فورية</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cfgMaintenanceMode">
+                        <label class="form-check-label" for="cfgMaintenanceMode">وضع الصيانة</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cfgFeatureInvitationsV2" checked>
+                        <label class="form-check-label" for="cfgFeatureInvitationsV2">تفعيل وحدة الدعوات (V2)</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cfgFeatureDepartmentManagementV2" checked>
+                        <label class="form-check-label" for="cfgFeatureDepartmentManagementV2">تفعيل وحدة الإدارات (V2)</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cfgFeatureUserManagementV2" checked>
+                        <label class="form-check-label" for="cfgFeatureUserManagementV2">تفعيل وحدة إدارة المستخدمين (V2)</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cfgFeatureAdminManagementV2" checked>
+                        <label class="form-check-label" for="cfgFeatureAdminManagementV2">تفعيل وحدة إدارة المدراء (V2)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-outline-primary" onclick="loadAdminPortalConfig()">
+                    <i class="fas fa-sync-alt me-2"></i>تحديث الإعدادات
+                </button>
+                <button class="btn btn-primary" onclick="saveAdminPortalConfig()">
+                    <i class="fas fa-save me-2"></i>حفظ إعدادات البوابة
+                </button>
+            </div>
+            <div id="adminConfigStatus" class="small text-muted mt-2">جاهز</div>
         </div>
 
         <!-- جدول الصلاحيات -->
@@ -453,6 +543,8 @@
     
     <!-- Unified Authentication System -->
     <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/admin-api.js"></script>
+    <script src="assets/js/sensitive-action-guard.js"></script>
 
     <!-- تمت إزالة السكربتات القديمة للشريط الجانبي لتفادي التعارض -->
 
@@ -468,6 +560,8 @@
     let departmentsList = [];
         let pageToDelete = null;
         let isSimpleView = false;
+        let adminPortalConfig = {};
+        let latestPermissionsVersionMeta = null;
 
         // دالة تسجيل الخروج العامة (تستخدمها أزرار الشريط العلوي الموحد)
         async function logout() {
@@ -568,6 +662,21 @@
                 // استخدام alert العادي كبديل
                 alert(message);
             }
+        }
+
+        async function getSensitiveActionApprovalPP(actionLabel) {
+            if (!window.sensitiveActionGuard || typeof window.sensitiveActionGuard.approveSensitiveAction !== 'function') {
+                throw new Error('Sensitive action guard is not available');
+            }
+            const approval = await window.sensitiveActionGuard.approveSensitiveAction({
+                actionLabel,
+                requireReason: true,
+                requireReauth: true
+            });
+            if (!approval || !approval.approved) {
+                throw new Error('تم إلغاء العملية أو فشل التحقق الأمني');
+            }
+            return approval;
         }
 
         // دالة مساعدة لتسجيل الأنشطة مع معرف المستخدم
@@ -1254,7 +1363,9 @@
                 pagePermissions = { ...defaultPages }; // التأكد من وجود بيانات افتراضية
                 await Promise.all([
                     loadPagePermissions(),
-                    loadDepartments()
+                    loadDepartments(),
+                    loadAdminPortalConfig(),
+                    loadLatestPermissionsVersionMeta()
                 ]);
                 bindDepartmentTabHandlers();
 
@@ -1315,9 +1426,9 @@
                     console.warn('⚠️ خطأ في الاتصال بقاعدة البيانات:', dbError);
                 }
 
-                // إذا كان البريد الإلكتروني للمدير، فرض الدور admin
+                // إذا كان البريد الإلكتروني للمدير الموثوق، فرض دور system_admin
                 if (isAdminEmail) {
-                    userRole = 'admin';
+                    userRole = 'system_admin';
                     console.log('✅ تم تعيين دور المدير بناءً على البريد الإلكتروني');
                     
                     // تحديث قاعدة البيانات إذا كانت متوفرة
@@ -1326,7 +1437,7 @@
                             const updateData = {
                                 uid: currentUser.uid,
                                 email: currentUser.email,
-                                role: 'admin',
+                                role: 'system_admin',
                                 lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
                                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                             };
@@ -1343,15 +1454,16 @@
                     }
                 }
 
-                // التحقق من صلاحيات المدير
-                if (userRole !== 'admin') {
+                // التحقق من صلاحيات Super Admin فقط
+                const normalizedRole = String(userRole || '').trim().toLowerCase().replace(/\s+/g, '_');
+                if (!(normalizedRole === 'super_admin' || normalizedRole === 'system_admin')) {
                     console.log('❌ المستخدم ليس مديراً:', userRole);
                     logActivity('permission_denied', {
                         user_role: userRole,
-                        required_role: 'admin',
+                        required_role: 'super_admin',
                         user_email: currentUser.email
                     });
-                    showAlert('عذراً، لا تملك صلاحية للوصول إلى هذه الصفحة. مطلوب صلاحيات مدير.', 'error');
+                    showAlert('عذراً، هذه الصفحة متاحة فقط لـ Super Admin.', 'error');
                     setTimeout(() => {
                         window.location.href = '/dashboard.html';
                     }, 3000);
@@ -1370,7 +1482,7 @@
                         uid: currentUser.uid,
                         displayName: currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'مستخدم'),
                         email: currentUser.email,
-                        role: 'admin'
+                        role: normalizedRole
                     };
                     if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
                         await window.unifiedUI.updateSidebar();
@@ -1742,6 +1854,7 @@
 
         async function savePermissions() {
             try {
+                const approval = await getSensitiveActionApprovalPP('حفظ صلاحيات الصفحات العامة');
                 const saveBtn = document.querySelector('button[onclick="savePermissions()"]');
                 const originalText = saveBtn.innerHTML;
                 saveBtn.disabled = true;
@@ -1751,7 +1864,8 @@
                     action: 'permissions_save_start'
                 });
 
-                await savePermissionsToDatabase();
+                await savePermissionsToDatabase(approval.reason, approval.reauthenticatedAt);
+                await savePermissionsVersion(approval.reason, approval.reauthenticatedAt);
 
                 // تسجيل العملية في audit logs
                 if (firebase.firestore) {
@@ -1760,6 +1874,8 @@
                             action: 'page_permissions_updated',
                             targetType: 'system',
                             targetId: 'page_permissions',
+                            reason: approval.reason,
+                            securityReauthAt: approval.reauthenticatedAt,
                             details: {
                                 totalPages: Object.keys(pagePermissions).length,
                                 updatedAt: new Date().toISOString()
@@ -1800,14 +1916,237 @@
             }
         }
 
-        async function savePermissionsToDatabase() {
+        function setPermissionsVersionStatus(message, isError = false) {
+            const el = document.getElementById('permissionsVersionStatus');
+            if (!el) return;
+            el.textContent = message;
+            el.classList.toggle('text-danger', !!isError);
+            if (!isError) el.classList.remove('text-danger');
+        }
+
+        async function loadLatestPermissionsVersionMeta() {
+            try {
+                if (!firebase.firestore) {
+                    setPermissionsVersionStatus('تعذر قراءة الإصدارات: Firestore غير متاح', true);
+                    return;
+                }
+                const snap = await firebase.firestore()
+                    .collection('system_settings')
+                    .doc('page_permissions_versions')
+                    .collection('items')
+                    .orderBy('version', 'desc')
+                    .limit(1)
+                    .get();
+                if (snap.empty) {
+                    latestPermissionsVersionMeta = null;
+                    setPermissionsVersionStatus('لا توجد نسخة محفوظة بعد');
+                    return;
+                }
+                const item = snap.docs[0].data() || {};
+                latestPermissionsVersionMeta = item;
+                setPermissionsVersionStatus(`آخر إصدار: v${item.version || '?'} ${item.reason ? `- السبب: ${item.reason}` : ''}`);
+            } catch (e) {
+                console.warn('تعذر تحميل آخر إصدار صلاحيات:', e);
+                setPermissionsVersionStatus('تعذر تحميل معلومات الإصدارات', true);
+            }
+        }
+
+        async function savePermissionsVersion(reason, securityReauthAt) {
+            if (!firebase.firestore) return;
+            try {
+                const db = firebase.firestore();
+                const latestSnap = await db
+                    .collection('system_settings')
+                    .doc('page_permissions_versions')
+                    .collection('items')
+                    .orderBy('version', 'desc')
+                    .limit(1)
+                    .get();
+                const latestVersion = latestSnap.empty ? 0 : Number(latestSnap.docs[0].data()?.version || 0);
+                const nextVersion = latestVersion + 1;
+
+                const versionDoc = {
+                    version: nextVersion,
+                    pages: pagePermissions,
+                    departments: departmentPermissions,
+                    reason: reason || null,
+                    securityReauthAt: securityReauthAt || null,
+                    createdBy: currentUser?.uid || null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db
+                    .collection('system_settings')
+                    .doc('page_permissions_versions')
+                    .collection('items')
+                    .doc(String(nextVersion))
+                    .set(versionDoc, { merge: false });
+
+                latestPermissionsVersionMeta = { version: nextVersion, reason: reason || null };
+                setPermissionsVersionStatus(`آخر إصدار: v${nextVersion} ${reason ? `- السبب: ${reason}` : ''}`);
+            } catch (e) {
+                console.warn('تعذر حفظ إصدار الصلاحيات:', e);
+                setPermissionsVersionStatus('تم حفظ الصلاحيات لكن فشل حفظ إصدار النسخة', true);
+            }
+        }
+
+        async function rollbackPermissionsToLatest() {
+            try {
+                const approval = await getSensitiveActionApprovalPP('استرجاع صلاحيات الصفحات لآخر إصدار');
+                if (!confirm('هل أنت متأكد من استرجاع الصلاحيات لآخر إصدار محفوظ؟')) return;
+
+                if (!firebase.firestore) {
+                    showAlert('Firestore غير متاح لاسترجاع الإصدارات', 'error');
+                    return;
+                }
+
+                const db = firebase.firestore();
+                const snap = await db
+                    .collection('system_settings')
+                    .doc('page_permissions_versions')
+                    .collection('items')
+                    .orderBy('version', 'desc')
+                    .limit(1)
+                    .get();
+
+                if (snap.empty) {
+                    showAlert('لا توجد إصدارات محفوظة للاسترجاع', 'warning');
+                    return;
+                }
+
+                const latest = snap.docs[0].data() || {};
+                pagePermissions = latest.pages || { ...defaultPages };
+                departmentPermissions = latest.departments || {};
+
+                renderPermissionMatrix();
+                updateStatistics();
+                renderDepartmentMatrix();
+                await savePermissionsToDatabase(`Rollback to version ${latest.version || 'unknown'} - ${approval.reason}`, approval.reauthenticatedAt);
+
+                if (firebase.firestore) {
+                    await firebase.firestore().collection('audit_logs').add({
+                        action: 'page_permissions_rollback',
+                        targetType: 'system',
+                        targetId: 'page_permissions',
+                        reason: approval.reason,
+                        rollbackVersion: latest.version || null,
+                        securityReauthAt: approval.reauthenticatedAt,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        performedBy: currentUser?.uid || null
+                    });
+                }
+
+                showAlert(`تم استرجاع الصلاحيات إلى الإصدار v${latest.version || '?'}`, 'success');
+                await loadLatestPermissionsVersionMeta();
+            } catch (e) {
+                console.error('خطأ في استرجاع الصلاحيات:', e);
+                showAlert('فشل استرجاع الصلاحيات', 'error');
+            }
+        }
+
+        async function savePermissionsToDatabase(reason, securityReauthAt) {
             if (firebase.firestore) {
                 await firebase.firestore().collection('system_settings').doc('page_permissions').set({
                     pages: pagePermissions,
                     departments: departmentPermissions,
+                    updateReason: reason || null,
+                    sensitiveReauthAt: securityReauthAt || null,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedBy: currentUser.uid
                 }, { merge: true });
+            }
+        }
+
+        function getAdminPortalConfigPayload() {
+            return {
+                sessionTimeoutMinutes: Number(document.getElementById('cfgSessionTimeout')?.value || 120),
+                maxLoginAttempts: Number(document.getElementById('cfgMaxLoginAttempts')?.value || 5),
+                lockoutDurationMinutes: Number(document.getElementById('cfgLockoutDuration')?.value || 15),
+                auditRetentionDays: Number(document.getElementById('cfgAuditRetention')?.value || 365),
+                featureFlags: {
+                    bulkImport: !!document.getElementById('cfgFeatureBulkImport')?.checked,
+                    realtimeDashboard: !!document.getElementById('cfgFeatureRealtimeDashboard')?.checked,
+                    invitationsV2: !!document.getElementById('cfgFeatureInvitationsV2')?.checked,
+                    departmentManagementV2: !!document.getElementById('cfgFeatureDepartmentManagementV2')?.checked,
+                    userManagementV2: !!document.getElementById('cfgFeatureUserManagementV2')?.checked,
+                    adminManagementV2: !!document.getElementById('cfgFeatureAdminManagementV2')?.checked
+                },
+                maintenanceMode: !!document.getElementById('cfgMaintenanceMode')?.checked
+            };
+        }
+
+        function applyAdminPortalConfigToForm(config) {
+            const cfg = config || {};
+            const featureFlags = cfg.featureFlags || {};
+            if (document.getElementById('cfgSessionTimeout')) document.getElementById('cfgSessionTimeout').value = cfg.sessionTimeoutMinutes ?? 120;
+            if (document.getElementById('cfgMaxLoginAttempts')) document.getElementById('cfgMaxLoginAttempts').value = cfg.maxLoginAttempts ?? 5;
+            if (document.getElementById('cfgLockoutDuration')) document.getElementById('cfgLockoutDuration').value = cfg.lockoutDurationMinutes ?? 15;
+            if (document.getElementById('cfgAuditRetention')) document.getElementById('cfgAuditRetention').value = cfg.auditRetentionDays ?? 365;
+            if (document.getElementById('cfgFeatureBulkImport')) document.getElementById('cfgFeatureBulkImport').checked = !!featureFlags.bulkImport;
+            if (document.getElementById('cfgFeatureRealtimeDashboard')) document.getElementById('cfgFeatureRealtimeDashboard').checked = !!featureFlags.realtimeDashboard;
+            if (document.getElementById('cfgFeatureInvitationsV2')) document.getElementById('cfgFeatureInvitationsV2').checked = (featureFlags.invitationsV2 !== false);
+            if (document.getElementById('cfgFeatureDepartmentManagementV2')) document.getElementById('cfgFeatureDepartmentManagementV2').checked = (featureFlags.departmentManagementV2 !== false);
+            if (document.getElementById('cfgFeatureUserManagementV2')) document.getElementById('cfgFeatureUserManagementV2').checked = (featureFlags.userManagementV2 !== false);
+            if (document.getElementById('cfgFeatureAdminManagementV2')) document.getElementById('cfgFeatureAdminManagementV2').checked = (featureFlags.adminManagementV2 !== false);
+            if (document.getElementById('cfgMaintenanceMode')) document.getElementById('cfgMaintenanceMode').checked = !!cfg.maintenanceMode;
+        }
+
+        function setAdminConfigStatus(message, isError = false) {
+            const statusEl = document.getElementById('adminConfigStatus');
+            if (!statusEl) return;
+            statusEl.textContent = message;
+            statusEl.classList.toggle('text-danger', !!isError);
+            if (!isError) {
+                statusEl.classList.remove('text-danger');
+            }
+        }
+
+        async function loadAdminPortalConfig() {
+            try {
+                setAdminConfigStatus('جاري تحميل إعدادات البوابة...');
+                let config = {};
+
+                if (window.adminApi && typeof window.adminApi.getAdminPortalConfig === 'function') {
+                    const res = await window.adminApi.getAdminPortalConfig();
+                    config = (res && res.config) ? res.config : {};
+                } else if (firebase.firestore) {
+                    const snap = await firebase.firestore().collection('system_settings').doc('admin_portal_config').get();
+                    config = snap.exists ? (snap.data() || {}) : {};
+                }
+
+                adminPortalConfig = config;
+                applyAdminPortalConfigToForm(config);
+                setAdminConfigStatus('تم تحميل إعدادات البوابة بنجاح.');
+            } catch (error) {
+                console.error('خطأ في تحميل إعدادات البوابة:', error);
+                setAdminConfigStatus('تعذر تحميل إعدادات البوابة.', true);
+            }
+        }
+
+        async function saveAdminPortalConfig() {
+            try {
+                const approval = await getSensitiveActionApprovalPP('تحديث إعدادات بوابة الإدارة');
+                const updates = getAdminPortalConfigPayload();
+
+                if (window.adminApi && typeof window.adminApi.updateAdminPortalConfig === 'function') {
+                    await window.adminApi.updateAdminPortalConfig({ updates, reason: approval.reason });
+                } else if (firebase.firestore) {
+                    await firebase.firestore().collection('system_settings').doc('admin_portal_config').set({
+                        ...updates,
+                        updateReason: approval.reason,
+                        sensitiveReauthAt: approval.reauthenticatedAt,
+                        updatedBy: currentUser?.uid || null,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+
+                adminPortalConfig = { ...(adminPortalConfig || {}), ...updates };
+                setAdminConfigStatus('تم حفظ إعدادات البوابة بنجاح.');
+                showAlert('تم حفظ إعدادات بوابة الإدارة بنجاح', 'success');
+            } catch (error) {
+                console.error('خطأ في حفظ إعدادات البوابة:', error);
+                setAdminConfigStatus('تعذر حفظ إعدادات البوابة.', true);
+                showAlert('فشل حفظ إعدادات بوابة الإدارة', 'error');
             }
         }
 
@@ -2211,6 +2550,7 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
             try {
+                const approval = await getSensitiveActionApprovalPP('حفظ تخصيص صلاحيات مستخدم');
                 if (!firebase.firestore) {
                     showAlert('Firestore غير متاح، تم حفظ التغييرات محلياً فقط', 'warning');
                 } else {
@@ -2223,6 +2563,8 @@
                     });
                     const payload = {
                         pages: sanitizedPages,
+                        reason: approval.reason,
+                        securityReauthAt: approval.reauthenticatedAt,
                         updatedAt: new Date().toISOString(),
                         updatedBy: currentUser?.uid || null
                     };

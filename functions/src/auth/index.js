@@ -6,11 +6,16 @@
 const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {logger} = require('firebase-functions');
 const admin = require('firebase-admin');
-const { buildResponse, checkRateLimit, verifyAppCheck, isAdminRole } = require('../utils/helpers');
+const { buildResponse, checkRateLimit, verifyAppCheck, isAdminRole, isSuperAdminRole } = require('../utils/helpers');
 const { COLLECTIONS, ROLES, ACTIVITY } = require('../config/constants');
 
 const db = admin.firestore();
 const auth = admin.auth();
+
+function getAuditReason(data) {
+    if (!data || typeof data.reason !== 'string') return '';
+    return data.reason.trim();
+}
 
 // Helper for safe server timestamp in emulator/prod
 function serverTS() {
@@ -47,9 +52,19 @@ exports.createUserWithRole = onCall({
 
     const {email, password, displayName, role, department} = request.data;
     await checkRateLimit(request.auth.uid, 'createUserWithRole', 30);
+    const reason = getAuditReason(request.data);
 
         if (!email || !password || !role) {
             throw new HttpsError('invalid-argument', 'Missing required fields');
+        }
+
+        const requestedRole = String(role || '').trim().toLowerCase().replace(/\s+/g, '_');
+        const assigningPrivilegedRole = ['admin', 'system_admin', 'super_admin'].includes(requestedRole);
+        if (assigningPrivilegedRole && !isSuperAdminRole(adminUser.data().role)) {
+            throw new HttpsError('permission-denied', 'Super admin access required for privileged role assignment');
+        }
+        if (assigningPrivilegedRole && !reason) {
+            throw new HttpsError('invalid-argument', 'Reason is required for privileged role assignment');
         }
 
         // Create user in Firebase Auth
@@ -104,15 +119,24 @@ exports.updateUserRole = onCall({
         }
 
     const adminUser = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
-    if (!adminUser.exists || !isAdminRole(adminUser.data().role)) {
-            throw new HttpsError('permission-denied', 'Admin access required');
+    if (!adminUser.exists || !isSuperAdminRole(adminUser.data().role)) {
+            throw new HttpsError('permission-denied', 'Super admin access required');
         }
 
     const {userId, role, department} = request.data;
     await checkRateLimit(request.auth.uid, 'updateUserRole', 60);
+    const reason = getAuditReason(request.data);
 
         if (!userId || !role) {
             throw new HttpsError('invalid-argument', 'Missing required fields');
+        }
+        if (!reason) {
+            throw new HttpsError('invalid-argument', 'Reason is required for sensitive role updates');
+        }
+
+        const targetUser = await db.collection(COLLECTIONS.USERS).doc(userId).get();
+        if (targetUser.exists && isSuperAdminRole(targetUser.data()?.role) && userId !== request.auth.uid) {
+            throw new HttpsError('permission-denied', 'Updating another super admin is not allowed');
         }
 
         // Update user document
@@ -120,7 +144,8 @@ exports.updateUserRole = onCall({
             role,
             department: department || '',
             updatedAt: serverTS(),
-            updatedBy: request.auth.uid
+            updatedBy: request.auth.uid,
+            roleChangeReason: reason
         });
 
         // Update custom claims
@@ -154,21 +179,28 @@ exports.deleteUserAccount = onCall({
         }
 
     const adminUser = await db.collection(COLLECTIONS.USERS).doc(request.auth.uid).get();
-    if (!adminUser.exists || !isAdminRole(adminUser.data().role)) {
-            throw new HttpsError('permission-denied', 'Admin access required');
+    if (!adminUser.exists || !isSuperAdminRole(adminUser.data().role)) {
+            throw new HttpsError('permission-denied', 'Super admin access required');
         }
 
     const {userId} = request.data;
     await checkRateLimit(request.auth.uid, 'deleteUserAccount', 20);
+    const reason = getAuditReason(request.data);
 
         if (!userId) {
             throw new HttpsError('invalid-argument', 'User ID required');
+        }
+        if (!reason) {
+            throw new HttpsError('invalid-argument', 'Reason is required for sensitive deletions');
         }
 
         // Check if user exists
     const userDoc = await db.collection(COLLECTIONS.USERS).doc(userId).get();
         if (!userDoc.exists) {
             throw new HttpsError('not-found', 'User not found');
+        }
+        if (isSuperAdminRole(userDoc.data()?.role)) {
+            throw new HttpsError('permission-denied', 'Deleting super admin accounts is not allowed');
         }
 
         // Prevent self-deletion
@@ -183,7 +215,8 @@ exports.deleteUserAccount = onCall({
     await db.collection(COLLECTIONS.USERS).doc(userId).update({
             isActive: false,
             deletedAt: serverTS(),
-            deletedBy: request.auth.uid
+            deletedBy: request.auth.uid,
+            deleteReason: reason
         });
 
         logger.info(`User deleted: ${userId}`);

@@ -516,6 +516,7 @@
     <script src="assets/js/unified-auth.js"></script>
     <!-- Cloud Services (for cleanup thumbnails callable) -->
     <script src="assets/js/cloud-services.js"></script>
+    <script src="assets/js/sensitive-action-guard.js"></script>
     
     <!-- Analytics (loaded after Firebase) -->
     <script defer src="assets/js/analytics.js"></script>
@@ -748,13 +749,32 @@
                 if (e) e.preventDefault();
                 const statusEl = document.getElementById('cleanupStatusAnalytics');
                 if (statusEl) statusEl.textContent = 'جاري التنفيذ...';
-                // Client-side permission check (server also enforces admin)
-                const isAdmin = !!(window.unifiedAuth && (window.unifiedAuth.userRole === 'admin' || window.unifiedAuth.hasPermission?.('system.admin')));
-                if (!isAdmin) {
+                // Client-side permission check (server also enforces role restrictions)
+                const rawRole = String(window.unifiedAuth?.getCurrentUserRole?.() || window.unifiedAuth?.userProfile?.role || '').trim().toLowerCase().replace(/\s+/g, '_');
+                const normalizedRole = (typeof window.unifiedAuth?.normalizeRole === 'function')
+                    ? window.unifiedAuth.normalizeRole(rawRole)
+                    : rawRole;
+                const isStrictSuperAdmin = !!(window.unifiedAuth?.isSuperAdminStrict?.() || normalizedRole === 'super_admin' || normalizedRole === 'system_admin');
+                if (!isStrictSuperAdmin) {
                     if (statusEl) statusEl.textContent = '';
-                    showInlineAlert('هذا الإجراء مخصص لمدير النظام فقط', 'danger');
+                    showInlineAlert('هذا الإجراء مخصص لـ Super Admin فقط', 'danger');
                     return;
                 }
+
+                if (!window.sensitiveActionGuard || typeof window.sensitiveActionGuard.approveSensitiveAction !== 'function') {
+                    throw new Error('Sensitive action guard is not available');
+                }
+                const approval = await window.sensitiveActionGuard.approveSensitiveAction({
+                    actionLabel: 'تنظيف الصور المصغرة',
+                    requireReason: true,
+                    requireReauth: true
+                });
+                if (!approval || !approval.approved) {
+                    if (statusEl) statusEl.textContent = '';
+                    showInlineAlert('تم إلغاء العملية أو فشل التحقق الأمني', 'warning');
+                    return;
+                }
+
                 const svc = window.cloudFunctionService || new window.CloudFunctionService();
                 const res = await svc.cleanupThumbnails();
                 if (statusEl) statusEl.textContent = '';

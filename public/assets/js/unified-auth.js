@@ -645,6 +645,28 @@ class UnifiedAuth {
         }
     }
 
+    async reauthenticate(password) {
+        if (!this.currentUser || !this.currentUser.email) {
+            throw new Error('يجب تسجيل الدخول أولاً');
+        }
+
+        const credential = firebase.auth.EmailAuthProvider.credential(
+            this.currentUser.email,
+            password
+        );
+
+        await this.currentUser.reauthenticateWithCredential(credential);
+        return {
+            success: true,
+            at: new Date().toISOString()
+        };
+    }
+
+    isSuperAdminStrict() {
+        const rawRole = String(this.userProfile?.role || '').trim().toLowerCase().replace(/\s+/g, '_');
+        return rawRole === 'super_admin' || rawRole === 'system_admin';
+    }
+
     async registerUser(registrationData) {
         try {
             console.log('🚀 بدء عملية إنشاء المستخدم:', registrationData.email);
@@ -949,30 +971,40 @@ class UnifiedAuth {
         if (!this.authStateListeners) {
             this.authStateListeners = [];
         }
-        this.authStateListeners.push({
+        const listenerRef = {
             mode: 'user',
             callback
-        });
+        };
+        this.authStateListeners.push(listenerRef);
         
         // Call immediately if already initialized
         if (this.isInitialized) {
             callback(this.currentUser);
         }
+
+        return () => {
+            this.authStateListeners = (this.authStateListeners || []).filter((item) => item !== listenerRef);
+        };
     }
 
     onAuthStateChange(callback) {
         if (!this.authStateListeners) {
             this.authStateListeners = [];
         }
-        this.authStateListeners.push({
+        const listenerRef = {
             mode: 'state',
             callback
-        });
+        };
+        this.authStateListeners.push(listenerRef);
         
         // Call immediately if already initialized
         if (this.isInitialized) {
             callback(this.currentUser ? 'login' : 'logout', this.currentUser);
         }
+
+        return () => {
+            this.authStateListeners = (this.authStateListeners || []).filter((item) => item !== listenerRef);
+        };
     }
 
     onPermissionChange(callback) {

@@ -1266,6 +1266,7 @@
     <script src="assets/js/activity-logger.js"></script>
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/sensitive-action-guard.js"></script>
     <script src="assets/js/notifications.js"></script>
     <script src="assets/js/advanced-alerts.js"></script>
     <script src="assets/js/smart-notifications.js"></script>
@@ -1282,6 +1283,42 @@
         let currentSettings = {};
         let notificationHistory = [];
         let stats = {};
+
+        function getNormalizedCurrentRoleNS() {
+            try {
+                if (window.unifiedAuth) {
+                    const role = window.unifiedAuth.getCurrentUserRole?.() || window.unifiedAuth.userProfile?.role || '';
+                    if (typeof window.unifiedAuth.normalizeRole === 'function') {
+                        return window.unifiedAuth.normalizeRole(role);
+                    }
+                    return String(role || '').trim().toLowerCase().replace(/\s+/g, '_');
+                }
+            } catch (_) {}
+            return String(currentUser?.role || '').trim().toLowerCase().replace(/\s+/g, '_');
+        }
+
+        function isPrivilegedNotificationSettingsUser() {
+            try {
+                if (window.unifiedAuth?.isSuperAdminStrict?.()) return true;
+            } catch (_) {}
+            const role = getNormalizedCurrentRoleNS();
+            return role === 'super_admin' || role === 'system_admin' || role === 'admin';
+        }
+
+        async function getSensitiveActionApprovalNS(actionLabel) {
+            if (!window.sensitiveActionGuard || typeof window.sensitiveActionGuard.approveSensitiveAction !== 'function') {
+                throw new Error('Sensitive action guard is not available');
+            }
+            const approval = await window.sensitiveActionGuard.approveSensitiveAction({
+                actionLabel,
+                requireReason: true,
+                requireReauth: true
+            });
+            if (!approval || !approval.approved) {
+                throw new Error('تم إلغاء العملية أو فشل التحقق الأمني');
+            }
+            return approval;
+        }
 
         // Enhanced Firebase initialization with waitForFirebaseAndAuth pattern
         async function waitForFirebaseAndAuth() {
@@ -2212,8 +2249,15 @@
         // Enhanced settings save with multiple storage options
         window.saveSettings = async function(event) {
             try {
-                const btn = event ? event.target : document.querySelector('.save-settings-btn');
+                const btn = (event && event.currentTarget)
+                    ? event.currentTarget
+                    : ((event && event.target && event.target.closest) ? event.target.closest('button') : document.querySelector('.save-settings-btn'));
                 const originalText = btn.innerHTML;
+                let sensitiveApproval = null;
+
+                if (isPrivilegedNotificationSettingsUser()) {
+                    sensitiveApproval = await getSensitiveActionApprovalNS('حفظ إعدادات الإشعارات');
+                }
                 
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...';
                 btn.disabled = true;
@@ -2309,6 +2353,8 @@
                     if (localActivityLogger) {
                         localActivityLogger.logActivity('settings_saved', {
                             settings_count: Object.keys(settings).length,
+                            sensitiveReason: sensitiveApproval?.reason || null,
+                            sensitiveReauthAt: sensitiveApproval?.reauthenticatedAt || null,
                             timestamp: new Date().toISOString()
                         });
                     }

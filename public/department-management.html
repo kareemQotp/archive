@@ -185,6 +185,8 @@
 
   <script src="/assets/js/firebase-init.js"></script>
   <script src="/assets/js/unified-auth.js"></script>
+  <script src="/assets/js/sensitive-action-guard.js"></script>
+  <script src="/assets/js/admin-feature-switches.js"></script>
   <script src="/assets/js/unified-ui-template.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
@@ -210,6 +212,21 @@
           <button class="btn btn-sm btn-outline-danger er_delete"><i class="fas fa-trash"></i></button>
         </td>
       </tr>`;
+    }
+
+    async function getSensitiveActionApprovalDM(actionLabel) {
+      if (!window.sensitiveActionGuard || typeof window.sensitiveActionGuard.approveSensitiveAction !== 'function') {
+        throw new Error('Sensitive action guard is not available');
+      }
+      const approval = await window.sensitiveActionGuard.approveSensitiveAction({
+        actionLabel,
+        requireReason: true,
+        requireReauth: true
+      });
+      if (!approval || !approval.approved) {
+        throw new Error('تم إلغاء العملية أو فشل التحقق الأمني');
+      }
+      return approval;
     }
 
     function departmentCardTemplate(doc) {
@@ -293,6 +310,7 @@
 
   async function seedDefaults() {
       try {
+        const approval = await getSensitiveActionApprovalDM('تطبيق هيكل الإدارات الافتراضي');
         toggleLoading(true);
         const batch = fsDb.batch();
         const defaults = getDefaultDepartments();
@@ -301,6 +319,8 @@
             name: d.name,
             active: d.active,
             roles: d.roles,
+            seedReason: approval.reason,
+            sensitiveReauthAt: approval.reauthenticatedAt,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
@@ -375,8 +395,14 @@
       document.querySelector('#btnSaveRoles .save-text').classList.add('d-none');
       document.querySelector('#btnSaveRoles .save-spinner').classList.remove('d-none');
       try {
+        const approval = await getSensitiveActionApprovalDM('تحديث أدوار الإدارة');
         await fsDb.collection('departments').doc(currentDeptId).set({
-          name, active, roles, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          name,
+          active,
+          roles,
+          updateReason: approval.reason,
+          sensitiveReauthAt: approval.reauthenticatedAt,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
         showAlert('alertHost', 'تم حفظ التعديلات بنجاح', 'success');
         if (editRolesModal) editRolesModal.hide();
@@ -407,10 +433,23 @@
         if (!userData) {
           userData = { role: (window.unifiedAuth && window.unifiedAuth.userRole) || 'viewer' };
         }
-        if (!userData || (userData.role !== 'admin' && !String(userData.role).includes('admin'))) {
-          window.location.href = 'index.html';
+        const pageAccess = await (window.adminFeatureSwitches
+          ? window.adminFeatureSwitches.gatePageAccess(userData.role, 'departmentManagementV2', {
+              allowedRoles: ['admin', 'super_admin', 'system_admin'],
+              moduleLabel: 'صفحة إدارة الإدارات',
+              roleLabel: userData.role || 'viewer',
+              message: 'هذه الصفحة متاحة للمدراء فقط',
+              redirectTo: 'index.html',
+              redirectDelayMs: 1500,
+              onError: (flagError) => {
+                console.warn('Failed to read feature switch config, continuing with defaults', flagError);
+              }
+            })
+          : Promise.resolve(true));
+        if (!pageAccess) {
           return;
         }
+
         fsDb = firebase.firestore();
         await loadDepartments();
       } catch (e) {
@@ -448,10 +487,16 @@
       if (action === 'toggle' && id) {
         e.preventDefault();
         try {
+          const approval = await getSensitiveActionApprovalDM('تبديل حالة إدارة');
           const ref = fsDb.collection('departments').doc(id);
           const snap = await ref.get();
           const active = snap.exists ? (snap.data().active !== false) : true;
-          await ref.set({ active: !active, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+          await ref.set({
+            active: !active,
+            toggleReason: approval.reason,
+            sensitiveReauthAt: approval.reauthenticatedAt,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
           await loadDepartments();
         } catch (err) {
           console.error(err);
@@ -517,10 +562,19 @@
       document.querySelector('#btnCreateDept .create-text').classList.add('d-none');
       document.querySelector('#btnCreateDept .create-spinner').classList.remove('d-none');
       try {
+        const approval = await getSensitiveActionApprovalDM('إنشاء إدارة جديدة');
         const ref = fsDb.collection('departments').doc(id);
         const snap = await ref.get();
         if (snap.exists) { showAlert('addDeptAlert', 'هذا المعرف مستخدم بالفعل', 'danger'); return; }
-        await ref.set({ name, active, roles, createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await ref.set({
+          name,
+          active,
+          roles,
+          createReason: approval.reason,
+          sensitiveReauthAt: approval.reauthenticatedAt,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
         if (addDeptModal) addDeptModal.hide();
         showAlert('alertHost', 'تم إنشاء الإدارة بنجاح', 'success');
         await loadDepartments();
@@ -537,6 +591,7 @@
       document.querySelector('#btnConfirmDelete .del-text').classList.add('d-none');
       document.querySelector('#btnConfirmDelete .del-spinner').classList.remove('d-none');
       try {
+        await getSensitiveActionApprovalDM('حذف إدارة');
         const usersSnap = await fsDb.collection('users').where('department', '==', pendingDeleteDeptId).limit(1).get();
         if (!usersSnap.empty) {
           showAlert('deleteDeptAlert', 'لا يمكن حذف الإدارة لوجود مستخدمين مرتبطين بها. يرجى نقل المستخدمين أولاً.', 'warning');

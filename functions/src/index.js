@@ -20,6 +20,7 @@ const authFunctions = require('./auth');
 const firestoreFunctions = require('./firestore');
 const storageFunctions = require('./storage');
 const utilsFunctions = require('./utils');
+const adminPortalFunctions = require('./admin');
 
 // Authentication Functions
 exports.createUserWithRole = authFunctions.createUserWithRole;
@@ -85,6 +86,10 @@ exports.generateSystemReport = utilsFunctions.generateSystemReport;
 exports.backupDatabase = utilsFunctions.backupDatabase;
 exports.updateFcmToken = utilsFunctions.updateFcmToken;
 exports.healthCheck = utilsFunctions.healthCheck;
+
+// Admin Portal Functions
+exports.getAdminPortalConfig = adminPortalFunctions.getAdminPortalConfig;
+exports.updateAdminPortalConfig = adminPortalFunctions.updateAdminPortalConfig;
 
 // Scheduled Functions
 exports.cleanupOldData = utilsFunctions.cleanupOldData;

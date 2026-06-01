@@ -34,7 +34,7 @@
             }
         }
 
-        async loadUserInfo() {
+        async loadUserInfo(forceRefresh = false) {
             try {
                 let uid = null, email = null, displayName = null, role = null, department = null;
                 // استخدم unifiedAuth إن توفر
@@ -43,13 +43,75 @@
                     if (ua.currentUser || ua.user) {
                         const u = ua.currentUser || ua.user;
                         uid = u.uid; email = u.email; displayName = u.displayName || u.email;
+
+                        // Force refresh profile/token in sensitive guards to avoid stale role reads.
+                        if (forceRefresh) {
+                            try {
+                                if (typeof u.getIdToken === 'function') {
+                                    await u.getIdToken(true);
+                                }
+                            } catch (_) {}
+                            try {
+                                if (typeof ua.loadUserProfile === 'function' && uid) {
+                                    await ua.loadUserProfile(uid);
+                                }
+                            } catch (_) {}
+                        }
                     }
-                    role = ua.userRole || role;
-                    department = ua.userDepartment || department;
+                    // Do not trust early defaults (viewer/عام) before profile is hydrated.
+                    const hasHydratedProfile = !!(ua.userProfile || ua.profile);
+                    if (hasHydratedProfile) {
+                        role = ua.userRole || role;
+                        department = ua.userDepartment || department;
+                    }
                 }
+
+                // Fallback: read role/department from unifiedAuth current user token claims.
+                if ((!role || role === 'viewer' || !department || department === 'عام') && window.unifiedAuth && (window.unifiedAuth.currentUser || window.unifiedAuth.user)) {
+                    try {
+                        const u = window.unifiedAuth.currentUser || window.unifiedAuth.user;
+                        if (u && typeof u.getIdTokenResult === 'function') {
+                            const token = await u.getIdTokenResult(forceRefresh === true);
+                            uid = uid || u.uid;
+                            email = email || u.email;
+                            displayName = displayName || u.displayName || u.email;
+                            role = role || (token && token.claims ? token.claims.role : null);
+                            department = department || (token && token.claims ? token.claims.department : null);
+                        }
+                    } catch (_) {}
+                }
+
+                // Fallback: read role/department from auth token claims when profile is not ready yet.
+                if ((!role || role === 'viewer' || !department || department === 'عام') && window.firebase && firebase.auth && typeof firebase.auth === 'function') {
+                    try {
+                        const authUser = firebase.auth().currentUser;
+                        if (authUser) {
+                            uid = uid || authUser.uid;
+                            email = email || authUser.email;
+                            displayName = displayName || authUser.displayName || authUser.email;
+                            const token = await authUser.getIdTokenResult();
+                            role = role || (token && token.claims ? token.claims.role : null);
+                            department = department || (token && token.claims ? token.claims.department : null);
+                        }
+                    } catch (_) {}
+                }
+
+                // Last fallback: read role/department from Firestore users/{uid} directly.
+                if ((uid && !role) && window.firebase && firebase.firestore && firebase.apps && firebase.apps.length) {
+                    try {
+                        const app = firebase.apps[0];
+                        const snap = await app.firestore().collection('users').doc(uid).get();
+                        if (snap.exists) {
+                            const data = snap.data() || {};
+                            role = role || data.role || null;
+                            department = department || data.department || data.departmentId || null;
+                        }
+                    } catch (_) {}
+                }
+
                 // لا تعتمد على firebase.auth هنا لتجنب استدعاء مبكر قبل تهيئة التطبيق.
                 if (uid) {
-                    this.userInfo = { uid, email, displayName, role: role || 'user', department: department || '' };
+                    this.userInfo = { uid, email, displayName, role: role || '', department: department || '' };
                     await this.loadUserOverrides();
                 } else {
                     this.userInfo = null;
@@ -207,8 +269,15 @@
                 { icon: 'fas fa-envelope-open-text', title: 'الدعوات', href: 'invitations.html', page: 'invitations' },
                 { icon: 'fas fa-bell', title: 'إعدادات الإشعارات', href: 'notification-settings.html', page: 'notification-settings' },
                 { icon: 'fas fa-cog', title: 'إدارة النظام', href: 'admin-management.html', page: 'admin-management', requiresAdmin: true },
-                { icon: 'fas fa-chart-bar', title: 'إحصائيات النظام', href: 'system-analytics.html', page: 'system-analytics', requiresAdmin: true }
+                { icon: 'fas fa-chart-bar', title: 'إحصائيات النظام', href: 'system-analytics.html', page: 'system-analytics', requiresAdmin: true },
+                { icon: 'fas fa-vial', title: 'Smoke Matrix', href: 'admin-access-smoke.html', page: 'admin-access-smoke', requiresSuperAdmin: true }
             ];
+        }
+
+        isStrictSuperAdminRole(rawRole) {
+            if (!rawRole) return false;
+            const normalized = String(rawRole).trim().toLowerCase().replace(/\s+/g, '_');
+            return normalized === 'super_admin' || normalized === 'system_admin';
         }
 
         isAdminRole(role) {
@@ -222,8 +291,11 @@
                 if (!this.userInfo) return items;
                 const uid = this.userInfo.uid;
                 const role = this.normalizeRole(this.userInfo.role || '');
+                const strictSuperAdmin = this.isStrictSuperAdminRole(this.userInfo.role || '');
                 const department = this.normalizeDepartment(this.userInfo.department || '');
-                if (this.isAdminRole(role)) return items;
+                if (this.isAdminRole(role)) {
+                    return items.filter(item => !(item && item.requiresSuperAdmin) || strictSuperAdmin);
+                }
                 const externalConfig = window.__DEPT_SIDEBAR_CONFIG__ || null;
                 const userOverrides = (window.__userPagePermissionsCache && window.__userPagePermissionsCache[uid]) || { pages: {} };
                 const userPages = userOverrides.pages || {};
@@ -232,6 +304,7 @@
                 return items.filter(item => {
                     if (item.separator) return true;
                     if (item.requiresAdmin && !this.isAdminRole(role)) return false;
+                    if (item.requiresSuperAdmin && !strictSuperAdmin) return false;
                     const pageKey = item.page ? this.mapPageAlias(item.page) : null;
                     const eqKeys = pageKey ? this.getEquivalentPageKeys(pageKey) : [];
                     if (hasUserWhitelist) {
@@ -273,10 +346,12 @@
                 if (this.isPublicPage(pageKey)) return true;
                 if (!this.userInfo) return false;
                 const role = this.normalizeRole(this.userInfo.role || '');
+                const strictSuperAdmin = this.isStrictSuperAdminRole(this.userInfo.role || '');
                 const department = this.normalizeDepartment(this.userInfo.department || '');
-                if (this.isAdminRole(role)) return true;
                 const items = this.getSidebarItems();
                 const item = items.find(i => i.page === pageKey);
+                if (item && item.requiresSuperAdmin && !strictSuperAdmin) return false;
+                if (this.isAdminRole(role)) return true;
                 if (item && item.requiresAdmin && !this.isAdminRole(role)) return false;
                 const uid = this.userInfo.uid;
                 const userOverrides = (window.__userPagePermissionsCache && window.__userPagePermissionsCache[uid]) || { pages: {} };
@@ -315,6 +390,14 @@
                 window.__PAGE_ACCESS_ENFORCED__ = true;
                 const pageKey = this.mapPageAlias(this.currentPage);
                 if (this.isPublicPage(pageKey)) return;
+                const ADMIN_GUARD_PAGES = new Set([
+                    'user-management',
+                    'admin-management',
+                    'page-permissions',
+                    'admin-access-smoke',
+                    'invitations',
+                    'department-management'
+                ]);
                 // Deep wait pages: pages known to load auth/profile slower due to additional modules
                 const DEEP_WAIT_PAGES = new Set(['storage-management','classification','archive-reports']);
                 const isDeepWait = DEEP_WAIT_PAGES.has(pageKey);
@@ -382,13 +465,50 @@
                         }
                     }
                 } catch (_) {}
+                // Avoid premature deny while role/profile is still loading.
+                const unresolvedRole = this.userInfo && this.userInfo.uid && (!this.userInfo.role || this.userInfo.role === 'user' || this.userInfo.role === 'viewer');
+                if (unresolvedRole) {
+                    const enrichAttempts = [450, 700, 1000];
+                    for (const waitMs of enrichAttempts) {
+                        await new Promise(r => setTimeout(r, waitMs));
+                        await this.loadUserInfo();
+                        if (this.userInfo && this.userInfo.role && this.userInfo.role !== 'user' && this.userInfo.role !== 'viewer') {
+                            break;
+                        }
+                    }
+
+                    if (!this.userInfo || !this.userInfo.role || this.userInfo.role === 'user' || this.userInfo.role === 'viewer') {
+                        window.__PAGE_ACCESS_ENFORCED__ = false;
+                        setTimeout(() => this.enforcePageAccessGuard(), 1200);
+                        return;
+                    }
+                }
+
                 let allowed = this.canAccessPage(pageKey);
                 if (!allowed && this.userInfo && (!this.userInfo.role || !this.userInfo.department)) {
                     // Additional staged waits for deep pages to allow profile enrichment
                     const adjustAttempts = isDeepWait ? [700, 900, 1200] : [700];
                     for (const waitMs of adjustAttempts) {
                         await new Promise(r => setTimeout(r, waitMs));
-                        await this.loadUserInfo();
+                        await this.loadUserInfo(true);
+                        allowed = this.canAccessPage(pageKey);
+                        if (allowed) break;
+                    }
+                }
+
+                // Admin pages are sensitive to stale profile races; force-refresh before final deny.
+                if (!allowed && ADMIN_GUARD_PAGES.has(pageKey)) {
+                    const retries = [350, 650, 1000];
+                    for (const waitMs of retries) {
+                        await new Promise(r => setTimeout(r, waitMs));
+                        await this.loadUserInfo(true);
+                        try {
+                            if (this.userInfo && this.userInfo.uid) {
+                                window.__userPagePermissionsCache = window.__userPagePermissionsCache || {};
+                                delete window.__userPagePermissionsCache[this.userInfo.uid];
+                                await this.loadUserOverrides();
+                            }
+                        } catch (_) {}
                         allowed = this.canAccessPage(pageKey);
                         if (allowed) break;
                     }

@@ -230,21 +230,86 @@
   showError(msg){ const div=document.createElement('div'); div.className='error-toast'; div.innerHTML=`<strong>خطأ:</strong> ${msg}<button data-al-action="dismiss-error" class="dismiss-btn" aria-label="إغلاق">&times;</button>`; document.body.appendChild(div); setTimeout(()=> div.remove(),5000); div.addEventListener('click', e=>{ if(e.target.getAttribute('data-al-action')==='dismiss-error') div.remove(); }); }
     clearFilters(){ ['category-filter','priority-filter','user-filter','start-date-filter','end-date-filter','search-filter'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); this.applyFilters(); }
     async refreshData(){ await this.loadData(); }
+    buildComplianceReport(activities){
+      const list = Array.isArray(activities) ? activities : [];
+      const roleChangeActions = new Set(['role_change', 'update_user_role', 'user_role_updated']);
+      const failedLoginActions = new Set(['login_failed', 'auth_failed', 'authentication_failed']);
+      const sensitiveActions = new Set([
+        'delete_user', 'admin_deleted', 'user_deleted',
+        'permission_change', 'page_permissions_updated', 'page_permissions_rollback',
+        'admin_created', 'admin_updated', 'admin_activated', 'admin_deactivated',
+        'invitation_deleted', 'invitation_extended', 'invitation_resent'
+      ]);
+
+      const byAction = {};
+      const bySeverity = {};
+      const byUser = {};
+      let roleChanges = 0;
+      let failedLogins = 0;
+      let sensitiveOps = 0;
+
+      list.forEach(a => {
+        const action = String(a.action || '').trim();
+        const severity = String(a.severity || a.priority || 'normal').trim().toLowerCase();
+        const user = a.userEmail || a.userDisplayName || a.userId || 'unknown';
+
+        byAction[action] = (byAction[action] || 0) + 1;
+        bySeverity[severity] = (bySeverity[severity] || 0) + 1;
+        byUser[user] = (byUser[user] || 0) + 1;
+
+        if (roleChangeActions.has(action)) roleChanges++;
+        if (failedLoginActions.has(action) || (action === 'login' && a.success === false)) failedLogins++;
+        if (sensitiveActions.has(action) || (a.details && (a.details.reason || a.details.securityReauthAt))) sensitiveOps++;
+      });
+
+      const topUsers = Object.entries(byUser)
+        .sort(([,a],[,b]) => b - a)
+        .slice(0, 10)
+        .map(([user, count]) => ({ user, count }));
+
+      return {
+        generatedAt: new Date().toISOString(),
+        totals: {
+          totalActivities: list.length,
+          roleChanges,
+          failedLogins,
+          sensitiveOps
+        },
+        byAction,
+        bySeverity,
+        topUsers
+      };
+    }
+
     async exportReport(){
       try {
         const filters=this.getFilterValues();
         const report = await window.activityLogger?.getActivityReport?.({ startDate:filters.startDate, endDate:filters.endDate, category:filters.category, userId:filters.userId });
-        const data={ generatedAt:new Date().toISOString(), filters, statistics:report, activities:this.filteredActivities };
+        const compliance = this.buildComplianceReport(this.filteredActivities);
+        const data={ generatedAt:new Date().toISOString(), filters, statistics:report, compliance, activities:this.filteredActivities };
+
+        const activityRows = this.filteredActivities.map(a=>({
+          timestamp: window.FormatUtils? FormatUtils.formatArabicDateTime(a.timestamp): new Date(a.timestamp).toLocaleString('ar-SA'),
+          user: a.userEmail || a.userDisplayName || 'غير معروف',
+          category: this.getCategoryLabel(a.category),
+          action: this.getActionLabel(a.action),
+          priority: this.getPriorityLabel(a.priority),
+          severity: a.severity || a.priority || 'normal',
+          hasReason: a.details && a.details.reason ? 'yes' : 'no'
+        }));
+
+        const complianceRows = [
+          { metric: 'totalActivities', value: compliance.totals.totalActivities },
+          { metric: 'roleChanges', value: compliance.totals.roleChanges },
+          { metric: 'failedLogins', value: compliance.totals.failedLogins },
+          { metric: 'sensitiveOps', value: compliance.totals.sensitiveOps }
+        ];
+
         if(window.ExportUtils){
           ExportUtils.toJSON(data,'activity-report');
-          const rows = this.filteredActivities.map(a=>({
-            timestamp: window.FormatUtils? FormatUtils.formatArabicDateTime(a.timestamp): new Date(a.timestamp).toLocaleString('ar-SA'),
-            user: a.userEmail || a.userDisplayName || 'غير معروف',
-            category: this.getCategoryLabel(a.category),
-            action: this.getActionLabel(a.action),
-            priority: this.getPriorityLabel(a.priority)
-          }));
-          if(rows.length) ExportUtils.toCSV(rows, ['timestamp','user','category','action','priority'], 'activity-report-summary');
+          ExportUtils.toJSON(compliance,'activity-compliance-report');
+          if(activityRows.length) ExportUtils.toCSV(activityRows, ['timestamp','user','category','action','priority','severity','hasReason'], 'activity-report-summary');
+          ExportUtils.toCSV(complianceRows, ['metric','value'], 'activity-compliance-summary');
         } else {
           this.downloadReportFallback(data);
         }

@@ -220,8 +220,10 @@
     
     <!-- Enhanced System Components -->
     <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/sensitive-action-guard.js"></script>
     <script src="assets/js/activity-logger.js"></script>
     <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/admin-feature-switches.js"></script>
 
     <script>
         // Modern Invitations Management System
@@ -261,6 +263,21 @@
                     '/': '&#47;'
                 })[s];
             });
+        }
+
+        async function getSensitiveActionApprovalINV(actionLabel) {
+            if (!window.sensitiveActionGuard || typeof window.sensitiveActionGuard.approveSensitiveAction !== 'function') {
+                throw new Error('Sensitive action guard is not available');
+            }
+            const approval = await window.sensitiveActionGuard.approveSensitiveAction({
+                actionLabel,
+                requireReason: true,
+                requireReauth: true
+            });
+            if (!approval || !approval.approved) {
+                throw new Error('تم إلغاء العملية أو فشل التحقق الأمني');
+            }
+            return approval;
         }
 
         // Enhanced Firebase initialization with error handling
@@ -348,22 +365,22 @@
 
                 console.log('👤 المستخدم الحالي:', currentUser.email, 'الدور:', userRole);
 
-                // فحص صلاحيات المدير مع مرونة أكبر
-                // صلاحيات المدير: فقط وفق الدور الموثوق من ملف المستخدم/المطالبات
-                const isAdmin = userRole === 'admin' || userRole === 'dept_admin';
-
-                if (!isAdmin) {
-                    console.log('❌ المستخدم ليس لديه صلاحيات إدارية');
-                    
-                    // سجل محاولة الوصول
-                    if (window.activityLogger && window.activityLogger.logAccessDenied) {
-                        window.activityLogger.logAccessDenied(currentUser.email, 'invitations_page', 'insufficient_permissions');
-                    }
-                    
-                    showAlert('ليس لديك صلاحية للوصول لهذه الصفحة', 'warning');
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 2000);
+                const pageAccess = await (window.adminFeatureSwitches
+                    ? window.adminFeatureSwitches.gatePageAccess(userRole, 'invitationsV2', {
+                        allowedRoles: ['admin', 'dept_admin'],
+                        moduleLabel: 'صفحة إدارة الدعوات',
+                        roleLabel: userRole || 'viewer',
+                        message: 'ليس لديك صلاحية للوصول لهذه الصفحة',
+                        redirectTo: 'index.html',
+                        redirectDelayMs: 1500,
+                        onDenied: () => {
+                            if (window.activityLogger && window.activityLogger.logAccessDenied) {
+                                window.activityLogger.logAccessDenied(currentUser.email, 'invitations_page', 'insufficient_permissions');
+                            }
+                        }
+                    })
+                    : Promise.resolve(true));
+                if (!pageAccess) {
                     return;
                 }
 
@@ -801,6 +818,7 @@
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>جاري الإرسال...';
 
             try {
+                const approval = await getSensitiveActionApprovalINV('إنشاء دعوة مستخدم');
                 // التأكد من وجود قاعدة البيانات
                 if (!window.db) {
                     throw new Error('قاعدة البيانات غير متوفرة');
@@ -841,6 +859,8 @@
                     invitedBy: authSystem.currentUser.email,
                     invitedByUid: authSystem.currentUser.uid,
                     invitedByName: authSystem.currentUser.displayName || (authSystem.currentUser.email ? authSystem.currentUser.email.split('@')[0] : 'مستخدم'),
+                    invitationReason: approval.reason,
+                    sensitiveReauthAt: approval.reauthenticatedAt,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     expiresAt: firebase.firestore.Timestamp.fromDate(expiryDate),
                     usedBy: null,
@@ -996,6 +1016,7 @@
             if (!confirm('هل تريد تمديد صلاحية هذه الدعوة لـ 14 يوم إضافي؟')) return;
 
             try {
+                const approval = await getSensitiveActionApprovalINV('تمديد صلاحية دعوة');
                 if (!window.db) {
                     throw new Error('قاعدة البيانات غير متوفرة');
                 }
@@ -1006,7 +1027,9 @@
                 await window.db.collection('invitations').doc(inviteId).update({
                     expiresAt: firebase.firestore.Timestamp.fromDate(newExpiryDate),
                     extendedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    extendedBy: authSystem.currentUser.email
+                    extendedBy: authSystem.currentUser.email,
+                    extendReason: approval.reason,
+                    sensitiveReauthAt: approval.reauthenticatedAt
                 });
 
                 // سجل النشاط
@@ -1032,6 +1055,7 @@
             if (!confirm('هل تريد إعادة إرسال هذه الدعوة؟')) return;
 
             try {
+                const approval = await getSensitiveActionApprovalINV('إعادة إرسال دعوة');
                 if (!window.db) {
                     throw new Error('قاعدة البيانات غير متوفرة');
                 }
@@ -1039,7 +1063,9 @@
                 await window.db.collection('invitations').doc(inviteId).update({
                     resendCount: firebase.firestore.FieldValue.increment(1),
                     lastResent: firebase.firestore.FieldValue.serverTimestamp(),
-                    resentBy: authSystem.currentUser.email
+                    resentBy: authSystem.currentUser.email,
+                    resendReason: approval.reason,
+                    sensitiveReauthAt: approval.reauthenticatedAt
                 });
 
                 // سجل النشاط
@@ -1060,6 +1086,7 @@
             if (!confirm(`هل أنت متأكد من حذف دعوة ${email}؟\n\nهذا الإجراء لا يمكن التراجع عنه.`)) return;
 
             try {
+                await getSensitiveActionApprovalINV('حذف دعوة');
                 if (!window.db) {
                     throw new Error('قاعدة البيانات غير متوفرة');
                 }

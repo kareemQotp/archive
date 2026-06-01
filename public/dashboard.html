@@ -340,6 +340,8 @@
     
     <!-- Unified Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/session-constants.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <!-- Role-Based Routing System -->
@@ -361,6 +363,7 @@
         let authSystem;
         let permissionController;
         let demoModeActivated = false; // منع وميض وضع العرض عند تسجيل الدخول الحقيقي
+        let authUnsubscribe = null;
 
         // Helper: انتظار جاهزية Firebase و Firestore
         function waitForFirebaseReady(timeoutMs = 5000) {
@@ -416,6 +419,16 @@
                 };
                 checkAuth();
             });
+
+            if (window.authGuard && typeof window.authGuard.requireAuth === 'function') {
+                const gate = await window.authGuard.requireAuth({
+                    redirectTo: 'login.html?message=session-expired',
+                    redirectDelayMs: window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500
+                });
+                if (!gate.ok) {
+                    return;
+                }
+            }
 
             // Check if user should be redirected to their specific dashboard
             try {
@@ -486,7 +499,10 @@
             }
 
             // Set up auth state listener with unified auth
-            authSystem.onAuthStateChanged(async (user) => {
+            if (typeof authUnsubscribe === 'function') {
+                try { authUnsubscribe(); } catch (_) {}
+            }
+            authUnsubscribe = authSystem.onAuthStateChanged(async (user) => {
                 handleAuthStateChange(user);
             });
             
@@ -504,6 +520,12 @@
                     }
                 } catch (e) { /* ignore */ }
                 ensureSidebar();
+            });
+
+            window.addEventListener('beforeunload', () => {
+                if (typeof authUnsubscribe === 'function') {
+                    try { authUnsubscribe(); } catch (_) {}
+                }
             });
         });
 
@@ -624,7 +646,7 @@
                         console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
                         window.location.href = 'login.html?message=session-expired';
                     }
-                }, 2000); // انتظار 2 ثانية للتأكد
+                }, window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500);
                 return;
             }
 
@@ -635,7 +657,7 @@
 
             // السماح فقط لمسؤولي النظام بعرض هذه الصفحة
             const userRole = authSystem.userProfile?.role;
-            if (!['system_admin', 'admin'].includes(userRole)) {
+            if (!['system_admin', 'admin', 'super_admin'].includes(userRole)) {
                 // توجيه المستخدم إلى لوحة إدارته
                 try {
                     if (window.departmentRouter && typeof window.departmentRouter.redirectToDepartmentDashboard === 'function') {

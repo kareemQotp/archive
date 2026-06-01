@@ -1,0 +1,407 @@
+{
+  "generatedAt": "2026-06-01T19:01:57.821Z",
+  "firestore": {
+    "usersCount": 15,
+    "distinctRoles": [
+      "admin",
+      "archive-admin",
+      "archive-officer",
+      "collection-admin",
+      "collection-officer",
+      "legal-admin",
+      "legal-officer",
+      "manager",
+      "super_admin",
+      "viewer"
+    ],
+    "distinctDepartments": [
+      "admin",
+      "archive",
+      "collection",
+      "legal",
+      "securitization",
+      "تقنية المعلومات",
+      "عام"
+    ],
+    "distinctDepartmentIds": [
+      "admin",
+      "archive",
+      "collection",
+      "عام"
+    ],
+    "distinctStatuses": []
+  },
+  "auth": {
+    "authUsersCount": 13,
+    "distinctClaimRoles": [
+      "admin",
+      "archive-officer",
+      "manager",
+      "super_admin",
+      "viewer"
+    ],
+    "distinctClaimDepartments": [
+      "admin",
+      "archive",
+      "securitization",
+      "تقنية المعلومات",
+      "عام"
+    ]
+  },
+  "pagePermissions": {
+    "systemSettingsPagePermissionsExists": true,
+    "systemSettingsPagePermissionsKeys": [
+      "departments",
+      "lastUpdated",
+      "pages",
+      "updatedBy"
+    ],
+    "userPagePermissionsCount": 2,
+    "userPagePermissionsUsers": [
+      "Q4GM3ILZOMXoBw03Hr4XnPzjXgT2",
+      "dDxwa99JPThWSmGBZKQ3F5USttj1"
+    ]
+  },
+  "samples": {
+    "users": [
+      {
+        "id": "00FvLK1sJLjVoJK6YUVx",
+        "email": "collection.officer@aman.eg",
+        "department": "collection",
+        "role": "collection-officer",
+        "displayName": "موظف تحصيل",
+        "firstName": "موظف",
+        "lastName": "تحصيل",
+        "isActive": true,
+        "permissions": [
+          "manage_debts",
+          "payment_tracking",
+          "contact_debtors"
+        ],
+        "profileComplete": false,
+        "loginCount": 0,
+        "createdAt": {
+          "_seconds": 1752497460,
+          "_nanoseconds": 536000000
+        }
+      },
+      {
+        "id": "A8e8WwQBfgYZm4qQ4WzYUfXklne2",
+        "email": "user@archive-tech.com",
+        "displayName": "مستخدم عادي",
+        "isActive": true,
+        "loginCount": 0,
+        "createdAt": {
+          "_seconds": 1757173613,
+          "_nanoseconds": 419000000
+        },
+        "emailVerified": true,
+        "uid": "A8e8WwQBfgYZm4qQ4WzYUfXklne2",
+        "phoneNumber": "+966501234569",
+        "role": "viewer",
+        "profileComplete": true,
+        "arabicName": "مستخدم عادي",
+        "lastLogin": {
+          "_seconds": 1757256289,
+          "_nanoseconds": 447000000
+        },
+        "phone": "+966500000004",
+        "departmentId": "عام",
+        "department": "عام",
+        "updatedAt": {
+          "_seconds": 1757256289,
+          "_nanoseconds": 447000000
+        }
+      },
+      {
+        "id": "P6Cevla39KOc8bAgAq7xq2CVJ782",
+        "email": "kareemqotp@gmail.com",
+        "displayName": "kareem",
+        "isActive": true,
+        "createdBy": "ag1uOw4NbThJquPhjjqjKcKTsnP2",
+        "createdAt": {
+          "_seconds": 1757338404,
+          "_nanoseconds": 364000000
+        },
+        "updatedBy": "ag1uOw4NbThJquPhjjqjKcKTsnP2",
+        "syncedFromAuth": true,
+        "syncedBy": "script:set-user-role",
+        "uid": "P6Cevla39KOc8bAgAq7xq2CVJ782",
+        "roleAssignedBy": "script:set-user-role",
+        "role": "super_admin",
+        "department": "",
+        "syncedAt": {
+          "_seconds": 1780337271,
+          "_nanoseconds": 636000000
+        },
+        "roleAssignedAt": {
+          "_seconds": 1780337271,
+          "_nanoseconds": 636000000
+        },
+        "updatedAt": {
+          "_seconds": 1780337271,
+          "_nanoseconds": 636000000
+        },
+        "lastLogin": {
+          "_seconds": 1780338477,
+          "_nanoseconds": 631000000
+        },
+        "loginCount": 31
+      },
+      {
+        "id": "Q4GM3ILZOMXoBw03Hr4XnPzjXgT2",
+        "uid": "Q4GM3ILZOMXoBw03Hr4XnPzjXgT2",
+        "email": "admin@archive-tech.com",
+        "displayName": "مدير النظام",
+        "role": "admin",
+        "department": "تقنية المعلومات",
+        "phone": "+966501234567",
+        "emailVerified": true,
+        "isActive": true,
+        "createdBy": "system",
+        "lastLogin": {
+          "_seconds": 1757173609,
+          "_nanoseconds": 161000000
+        },
+        "createdAt": {
+          "_seconds": 1757173609,
+          "_nanoseconds": 161000000
+        },
+        "updatedAt": {
+          "_seconds": 1757173609,
+          "_nanoseconds": 161000000
+        }
+      },
+      {
+        "id": "Q6gusreWozadDLu54pyR",
+        "email": "archive.officer@aman.eg",
+        "department": "archive",
+        "role": "archive-officer",
+        "displayName": "موظف أرشيف",
+        "firstName": "موظف",
+        "lastName": "أرشيف",
+        "isActive": true,
+        "permissions": [
+          "upload_documents",
+          "edit_documents",
+          "view_documents",
+          "search_archive"
+        ],
+        "profileComplete": false,
+        "loginCount": 0,
+        "createdAt": {
+          "_seconds": 1752497458,
+          "_nanoseconds": 753000000
+        }
+      },
+      {
+        "id": "UkmY9aWqIQtzQE2JGB6U",
+        "email": "collection.admin@aman.eg",
+        "department": "collection",
+        "role": "collection-admin",
+        "displayName": "مدير التحصيل",
+        "firstName": "مدير",
+        "lastName": "التحصيل",
+        "isActive": true,
+        "permissions": [
+          "manage_department_users",
+          "approve_users",
+          "assign_roles",
+          "view_department_reports",
+          "manage_debts",
+          "collection_reports",
+          "payment_tracking",
+          "contact_debtors"
+        ],
+        "profileComplete": false,
+        "loginCount": 0,
+        "createdAt": {
+          "_seconds": 1752497457,
+          "_nanoseconds": 644000000
+        }
+      },
+      {
+        "id": "UpJttIEkd2ZjiuWkbaKlhymzdCa2",
+        "uid": "UpJttIEkd2ZjiuWkbaKlhymzdCa2",
+        "email": "gov.aman@aman.eg",
+        "displayName": "Gov teat",
+        "role": "archive-officer",
+        "emailVerified": false,
+        "autoCreated": true,
+        "createdAt": {
+          "_seconds": 1751377041,
+          "_nanoseconds": 640000000
+        },
+        "lastLogin": {
+          "_seconds": 1751377041,
+          "_nanoseconds": 640000000
+        },
+        "isActive": false,
+        "departmentAssignedAt": {
+          "_seconds": 1752497454,
+          "_nanoseconds": 789000000
+        },
+        "department": "عام",
+        "updatedAt": {
+          "_seconds": 1752497454,
+          "_nanoseconds": 789000000
+        }
+      },
+      {
+        "id": "ag1uOw4NbThJquPhjjqjKcKTsnP2",
+        "uid": "ag1uOw4NbThJquPhjjqjKcKTsnP2",
+        "email": "admin123@aman.eg",
+        "displayName": "Admin",
+        "isActive": true,
+        "createdBy": "system",
+        "permissions": {
+          "isAdmin": true,
+          "canManageUsers": true,
+          "canManageSystem": true,
+          "canViewAllDocuments": true,
+          "canManageDocuments": true
+        },
+        "createdAt": {
+          "_seconds": 1751285308,
+          "_nanoseconds": 581000000
+        },
+        "updatedBy": "ag1uOw4NbThJquPhjjqjKcKTsnP2",
+        "roleAssignedAt": {
+          "_seconds": 1752094833,
+          "_nanoseconds": 163000000
+        },
+        "loginCount": 224,
+        "profileComplete": true,
+        "arabicName": "مدير النظام",
+        "emailVerified": false,
+        "lastLogin": {
+          "_seconds": 1757256283,
+          "_nanoseconds": 489000000
+        },
+        "phone": "+966500000000",
+        "departmentId": "admin",
+        "department": "admin",
+        "updatedAt": {
+          "_seconds": 1757256283,
+          "_nanoseconds": 489000000
+        },
+        "position": "Super Admin",
+        "role": "super_admin"
+      },
+      {
+        "id": "bGRYxNQXAEfXyzv610iWqxGetER2",
+        "email": "kareemqotp2@gmail.com",
+        "displayName": "توريق تست",
+        "role": "viewer",
+        "department": "securitization",
+        "isActive": true,
+        "createdBy": "ag1uOw4NbThJquPhjjqjKcKTsnP2",
+        "lastLogin": null,
+        "loginCount": 0,
+        "createdAt": {
+          "_seconds": 1757344174,
+          "_nanoseconds": 613000000
+        }
+      },
+      {
+        "id": "dDxwa99JPThWSmGBZKQ3F5USttj1",
+        "email": "khaled.mokhtar@aman.eg",
+        "isActive": true,
+        "createdAt": {
+          "_seconds": 1756751064,
+          "_nanoseconds": 150000000
+        },
+        "updatedBy": "ag1uOw4NbThJquPhjjqjKcKTsnP2",
+        "displayName": "Khaled Mokhtar",
+        "phoneNumber": null,
+        "department": "archive",
+        "loginCount": 86,
+        "profileComplete": true,
+        "arabicName": "خالد مختار",
+        "emailVerified": false,
+        "uid": "dDxwa99JPThWSmGBZKQ3F5USttj1",
+        "lastLogin": {
+          "_seconds": 1757256285,
+          "_nanoseconds": 283000000
+        },
+        "phone": "+966500000001",
+        "departmentId": "archive",
+        "role": "manager",
+        "updatedAt": {
+          "_seconds": 1757344083,
+          "_nanoseconds": 229000000
+        }
+      }
+    ],
+    "authUsers": [
+      {
+        "uid": "A8e8WwQBfgYZm4qQ4WzYUfXklne2",
+        "email": "user@archive-tech.com",
+        "customClaims": {
+          "role": "viewer",
+          "department": "عام"
+        }
+      },
+      {
+        "uid": "EW8XTGaHUFUxBDLXlHZ4hBrM3oF2",
+        "email": "admin@archive.com",
+        "customClaims": {}
+      },
+      {
+        "uid": "F93b5ZzAWWQBQQ05kDfZPXSuhP43",
+        "email": "kareem.kotb@aman.eg",
+        "customClaims": {}
+      },
+      {
+        "uid": "P6Cevla39KOc8bAgAq7xq2CVJ782",
+        "email": "kareemqotp@gmail.com",
+        "customClaims": {
+          "role": "super_admin",
+          "department": "archive"
+        }
+      },
+      {
+        "uid": "PRZfwjerUhOi2nkN2aNT0oYHEXH2",
+        "email": "gov.aman@aman.eg",
+        "customClaims": {}
+      },
+      {
+        "uid": "Q4GM3ILZOMXoBw03Hr4XnPzjXgT2",
+        "email": "admin@archive-tech.com",
+        "customClaims": {
+          "role": "admin",
+          "department": "تقنية المعلومات"
+        }
+      },
+      {
+        "uid": "Vc4gTLng23S0zLMzvAz4JDEKOtj2",
+        "email": "aman.call@archive-tech.com",
+        "customClaims": {}
+      },
+      {
+        "uid": "ag1uOw4NbThJquPhjjqjKcKTsnP2",
+        "email": "admin123@aman.eg",
+        "customClaims": {
+          "role": "admin",
+          "department": "admin"
+        }
+      },
+      {
+        "uid": "bGRYxNQXAEfXyzv610iWqxGetER2",
+        "email": "kareemqotp2@gmail.com",
+        "customClaims": {
+          "role": "viewer",
+          "department": "securitization"
+        }
+      },
+      {
+        "uid": "dDxwa99JPThWSmGBZKQ3F5USttj1",
+        "email": "khaled.mokhtar@aman.eg",
+        "customClaims": {
+          "role": "manager",
+          "department": "archive"
+        }
+      }
+    ]
+  }
+}

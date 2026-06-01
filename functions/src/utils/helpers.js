@@ -89,6 +89,12 @@ function isAdminRole(role) {
 	return normalizeRole(role) === 'admin';
 }
 
+function isSuperAdminRole(role) {
+	if (!role) return false;
+	const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
+	return normalized === 'super_admin' || normalized === 'system_admin';
+}
+
 /**
  * Check if role is one of allowed
  */
@@ -143,6 +149,7 @@ module.exports = {
 	normalizeRole,
 	normalizeDepartment,
 	isAdminRole,
+	isSuperAdminRole,
 	assertRole,
 	checkRateLimit,
 	verifyAppCheck

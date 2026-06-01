@@ -1,0 +1,242 @@
+{
+  "generatedAt": "2026-06-01T17:23:43.847Z",
+  "sourceFlags": {
+    "invitationsV2": true,
+    "departmentManagementV2": true,
+    "userManagementV2": true,
+    "adminManagementV2": true
+  },
+  "summary": {
+    "total": 28,
+    "allow": 9,
+    "deny": 19,
+    "failures": 0
+  },
+  "failures": [],
+  "rows": [
+    {
+      "role": "super_admin",
+      "page": "invitations",
+      "flag": "invitationsV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "super_admin",
+      "page": "department_management",
+      "flag": "departmentManagementV2",
+      "roleAllowed": true,
+      "moduleAllowed": true,
+      "finalAccess": true
+    },
+    {
+      "role": "super_admin",
+      "page": "user_management",
+      "flag": "userManagementV2",
+      "roleAllowed": true,
+      "moduleAllowed": true,
+      "finalAccess": true
+    },
+    {
+      "role": "super_admin",
+      "page": "admin_management",
+      "flag": "adminManagementV2",
+      "roleAllowed": true,
+      "moduleAllowed": true,
+      "finalAccess": true
+    },
+    {
+      "role": "system_admin",
+      "page": "invitations",
+      "flag": "invitationsV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "system_admin",
+      "page": "department_management",
+      "flag": "departmentManagementV2",
+      "roleAllowed": true,
+      "moduleAllowed": true,
+      "finalAccess": true
+    },
+    {
+      "role": "system_admin",
+      "page": "user_management",
+      "flag": "userManagementV2",
+      "roleAllowed": true,
+      "moduleAllowed": true,
+      "finalAccess": true
+    },
+    {
+      "role": "system_admin",
+      "page": "admin_management",
+      "flag": "adminManagementV2",
+      "roleAllowed": true,
+      "moduleAllowed": true,
+      "finalAccess": true
+    },
+    {
+      "role": "admin",
+      "page": "invitations",
+      "flag": "invitationsV2",
+      "roleAllowed": true,
+      "moduleAllowed": true,
+      "finalAccess": true
+    },
+    {
+      "role": "admin",
+      "page": "department_management",
+      "flag": "departmentManagementV2",
+      "roleAllowed": true,
+      "moduleAllowed": true,
+      "finalAccess": true
+    },
+    {
+      "role": "admin",
+      "page": "user_management",
+      "flag": "userManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "admin",
+      "page": "admin_management",
+      "flag": "adminManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "dept_admin",
+      "page": "invitations",
+      "flag": "invitationsV2",
+      "roleAllowed": true,
+      "moduleAllowed": true,
+      "finalAccess": true
+    },
+    {
+      "role": "dept_admin",
+      "page": "department_management",
+      "flag": "departmentManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "dept_admin",
+      "page": "user_management",
+      "flag": "userManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "dept_admin",
+      "page": "admin_management",
+      "flag": "adminManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "manager",
+      "page": "invitations",
+      "flag": "invitationsV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "manager",
+      "page": "department_management",
+      "flag": "departmentManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "manager",
+      "page": "user_management",
+      "flag": "userManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "manager",
+      "page": "admin_management",
+      "flag": "adminManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "employee",
+      "page": "invitations",
+      "flag": "invitationsV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "employee",
+      "page": "department_management",
+      "flag": "departmentManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "employee",
+      "page": "user_management",
+      "flag": "userManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "employee",
+      "page": "admin_management",
+      "flag": "adminManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "viewer",
+      "page": "invitations",
+      "flag": "invitationsV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "viewer",
+      "page": "department_management",
+      "flag": "departmentManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "viewer",
+      "page": "user_management",
+      "flag": "userManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    },
+    {
+      "role": "viewer",
+      "page": "admin_management",
+      "flag": "adminManagementV2",
+      "roleAllowed": false,
+      "moduleAllowed": true,
+      "finalAccess": false
+    }
+  ]
+}

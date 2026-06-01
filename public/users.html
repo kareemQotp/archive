@@ -1764,7 +1764,12 @@
                     try {
                         if (window.functions?.httpsCallable) {
                             const callable = window.functions.httpsCallable('updateUserRole');
-                            await callable({ userId: user.uid, role, department });
+                            await callable({
+                                userId: user.uid,
+                                role,
+                                department,
+                                reason: 'initial_role_assignment_from_users_page'
+                            });
                         }
                     } catch (e) {
                         console.warn('تعذر ضبط صلاحيات المستخدم الجديد عبر الدالة السحابية:', e);
@@ -1813,7 +1818,9 @@
                             if (window.functions?.httpsCallable) {
                                 const callable = window.functions.httpsCallable('updateUserRole');
                                 const userId = existing.uid || editUserId;
-                                await callable({ userId, role, department });
+                                const reasonPrompt = prompt('اكتب سبب تغيير الدور/الإدارة (مطلوب للتدقيق):', 'user_profile_role_or_department_update') || '';
+                                const reason = reasonPrompt.trim() || 'user_profile_role_or_department_update';
+                                await callable({ userId, role, department, reason });
                             }
                         } catch (e) {
                             console.warn('تعذر تحديث دور المستخدم عبر الدالة السحابية:', e);

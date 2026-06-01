@@ -302,10 +302,13 @@
     <script src="assets/js/notifications.js"></script>
     <script src="assets/js/notification-service.js"></script>
     <script src="assets/js/notification-badge.js"></script>
+    <script src="assets/js/session-constants.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     
     <script>
         let authSystem;
         let permissionController;
+        let authUnsubscribe = null;
 
         document.addEventListener('DOMContentLoaded', async function() {
             // تعطيل نظام التوجيه الذكي التلقائي في هذه الصفحة
@@ -329,13 +332,29 @@
                 checkAuth();
             });
 
+            if (window.authGuard && typeof window.authGuard.requireAuth === 'function') {
+                const gate = await window.authGuard.requireAuth({
+                    redirectTo: 'login.html?message=session-expired',
+                    redirectDelayMs: window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500
+                });
+                if (!gate.ok) {
+                    return;
+                }
+            }
+
             // Set up auth state listener
-            authSystem.onAuthStateChanged(async (user) => {
+            if (typeof authUnsubscribe === 'function') {
+                try { authUnsubscribe(); } catch (_) {}
+            }
+            authUnsubscribe = authSystem.onAuthStateChanged(async (user) => {
                 await handleAuthStateChange(user);
             });
             
             // منع التوجيه التلقائي من نظم أخرى
             window.addEventListener('beforeunload', () => {
+                if (typeof authUnsubscribe === 'function') {
+                    try { authUnsubscribe(); } catch (_) {}
+                }
                 sessionStorage.removeItem('userChooseDashboard');
             });
         });
@@ -347,7 +366,7 @@
                         console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
                         window.location.href = 'login.html?message=session-expired';
                     }
-                }, 2000);
+                }, window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500);
                 return;
             }
 
@@ -364,7 +383,7 @@
                 }
             } catch (_) { /* ignore */ }
             const userRole = authSystem.userProfile?.role;
-            const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin';
+            const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin' || userRole === 'super_admin';
             const isArchiveOfficer = userRole === 'archive-officer' || userRole === 'archive_officer';
             
             console.log('🔍 فحص صلاحيات الوصول للأرشيف:', {
@@ -422,7 +441,7 @@
                             // إعادة التحقق بعد تحديث الملف الشخصي
                             const refreshedDept = authSystem.userProfile?.department || authSystem.userProfile?.departmentId;
                             const refreshedRole = authSystem.userProfile?.role;
-                            const refreshedIsAdmin = refreshedRole === 'system_admin' || refreshedRole === 'admin';
+                            const refreshedIsAdmin = refreshedRole === 'system_admin' || refreshedRole === 'admin' || refreshedRole === 'super_admin';
                             const refreshedIsArchiveOfficer = refreshedRole === 'archive-officer' || refreshedRole === 'archive_officer';
                             // احتساب عبر الراوتر أولاً
                             let routerAffirms = false;

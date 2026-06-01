@@ -389,6 +389,8 @@
     
     <!-- Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/session-constants.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <!-- Role-Based Routing System -->
@@ -402,6 +404,7 @@
     <script>
         let authSystem;
         let permissionController;
+        let authUnsubscribe = null;
 
         document.addEventListener('DOMContentLoaded', async function() {
             // تعطيل نظام التوجيه الذكي التلقائي في هذه الصفحة
@@ -428,9 +431,28 @@
                 checkAuth();
             });
 
+            if (window.authGuard && typeof window.authGuard.requireAuth === 'function') {
+                const gate = await window.authGuard.requireAuth({
+                    redirectTo: 'login.html?message=session-expired',
+                    redirectDelayMs: window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500
+                });
+                if (!gate.ok) {
+                    return;
+                }
+            }
+
             // Set up auth state listener
-            authSystem.onAuthStateChanged(async (user) => {
+            if (typeof authUnsubscribe === 'function') {
+                try { authUnsubscribe(); } catch (_) {}
+            }
+            authUnsubscribe = authSystem.onAuthStateChanged(async (user) => {
                 await handleAuthStateChange(user);
+            });
+
+            window.addEventListener('beforeunload', () => {
+                if (typeof authUnsubscribe === 'function') {
+                    try { authUnsubscribe(); } catch (_) {}
+                }
             });
         });
 
@@ -441,14 +463,14 @@
                         console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
                         window.location.href = 'login.html?message=session-expired';
                     }
-                }, 2000);
+                }, window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500);
                 return;
             }
 
             // Check if user belongs to Collection department or has admin privileges
             const userDepartment = authSystem.userProfile?.department || authSystem.userProfile?.departmentId;
             const userRole = authSystem.userProfile?.role;
-            const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin';
+            const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin' || userRole === 'super_admin';
             const isCollectionOfficer = userRole === 'collection-officer' || userRole === 'collection_officer';
             
             console.log('🔍 فحص صلاحيات الوصول للتحصيل:', {

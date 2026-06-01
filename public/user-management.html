@@ -138,10 +138,28 @@
                 </h5>
             </div>
             <div class="card-body">
+                <div class="d-flex gap-2 mb-3" id="bulkActionsBar">
+                    <button class="btn btn-sm btn-outline-secondary" id="selectAllVisibleBtn" disabled>
+                        <i class="fas fa-check-square me-1"></i>تحديد الكل (الظاهر)
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" id="bulkDeactivateBtn" disabled>
+                        <i class="fas fa-user-slash me-1"></i>تعطيل المحدد
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" id="bulkActivateBtn" disabled>
+                        <i class="fas fa-user-check me-1"></i>تفعيل المحدد
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" id="bulkDeleteBtn" disabled>
+                        <i class="fas fa-trash-alt me-1"></i>حذف المحدد
+                    </button>
+                    <small class="text-muted ms-2 align-self-center" id="bulkSelectionCount">0 محدد</small>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th width="5%" class="text-center">
+                                    <input type="checkbox" id="selectAllVisibleCheckbox" aria-label="تحديد كل المستخدمين الظاهرين">
+                                </th>
                                 <th>الاسم</th>
                                 <th>البريد الإلكتروني</th>
                                 <th>الدور</th>
@@ -358,6 +376,9 @@
     <script src="assets/js/firebase-init.js"></script>
     <!-- الأنظمة الموحدة -->
     <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/admin-api.js"></script>
+    <script src="assets/js/sensitive-action-guard.js"></script>
+    <script src="assets/js/admin-feature-switches.js"></script>
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-ui-template.js"></script>
     <!-- Bootstrap Bundle (استبدال التحميل الديناميكي) -->
@@ -371,6 +392,8 @@
         let functions_ready = false;
         let region = 'us-central1';
         let functionsRef = null;
+        let canManageUsersStrict = false;
+        let selectedUserIds = new Set();
         // Departments (UM page)
         let departmentsCacheUM = [];
         let departmentsMapUM = new Map();
@@ -394,7 +417,213 @@
             const statusDiv = document.getElementById('systemStatus');
             statusDiv.innerHTML = `<div class="${isError ? 'status-error' : 'status-ready'}">${message}</div>`;
         }
-        
+
+        function normalizeRoleValueUM(role) {
+            if (!role) return 'viewer';
+            return String(role).trim().toLowerCase().replace(/\s+/g, '_');
+        }
+
+        function isStrictSuperAdminRoleUM(role) {
+            const normalized = normalizeRoleValueUM(role);
+            return normalized === 'super_admin' || normalized === 'system_admin';
+        }
+
+        function isPrivilegedRoleAssignmentUM(role) {
+            const normalized = normalizeRoleValueUM(role);
+            return normalized === 'admin' || normalized === 'system_admin' || normalized === 'super_admin';
+        }
+
+        function applyUserManagementAccessMode() {
+            const addBtn = document.getElementById('addUserBtn');
+            if (addBtn) {
+                addBtn.disabled = !canManageUsersStrict;
+                addBtn.title = canManageUsersStrict ? '' : 'وضع القراءة فقط: متاح فقط لـ Super Admin';
+            }
+            updateBulkActionsState();
+        }
+
+        function getVisibleUsers() {
+            const query = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+            return !query ? users : users.filter(u => {
+                return (u.displayName || u.name || '').toLowerCase().includes(query) || (u.email || '').toLowerCase().includes(query);
+            });
+        }
+
+        function updateBulkSelectionCount() {
+            const el = document.getElementById('bulkSelectionCount');
+            if (el) {
+                el.textContent = `${selectedUserIds.size} محدد`;
+            }
+        }
+
+        function updateBulkActionsState() {
+            const hasAccess = !!canManageUsersStrict;
+            const hasSelection = selectedUserIds.size > 0;
+            const visibleUsers = getVisibleUsers();
+            const hasVisible = visibleUsers.length > 0;
+
+            const selectBtn = document.getElementById('selectAllVisibleBtn');
+            const activateBtn = document.getElementById('bulkActivateBtn');
+            const deactivateBtn = document.getElementById('bulkDeactivateBtn');
+            const deleteBtn = document.getElementById('bulkDeleteBtn');
+            const selectAllCheckbox = document.getElementById('selectAllVisibleCheckbox');
+
+            if (selectBtn) selectBtn.disabled = !(hasAccess && hasVisible);
+            if (activateBtn) activateBtn.disabled = !(hasAccess && hasSelection);
+            if (deactivateBtn) deactivateBtn.disabled = !(hasAccess && hasSelection);
+            if (deleteBtn) deleteBtn.disabled = !(hasAccess && hasSelection);
+            if (selectAllCheckbox) {
+                selectAllCheckbox.disabled = !(hasAccess && hasVisible);
+                selectAllCheckbox.checked = hasVisible && visibleUsers.every(u => selectedUserIds.has(u.id));
+            }
+
+            updateBulkSelectionCount();
+        }
+
+        function toggleUserSelection(userId, checked) {
+            if (!canManageUsersStrict) return;
+            if (checked) selectedUserIds.add(userId);
+            else selectedUserIds.delete(userId);
+            updateBulkActionsState();
+        }
+
+        function toggleSelectAllVisible(checked) {
+            if (!canManageUsersStrict) return;
+            const visibleUsers = getVisibleUsers();
+            visibleUsers.forEach(u => {
+                if (checked) selectedUserIds.add(u.id);
+                else selectedUserIds.delete(u.id);
+            });
+            displayUsers();
+            updateBulkActionsState();
+        }
+
+        async function bulkSetUsersActive(targetActive) {
+            if (!assertStrictUserManagementAccess(targetActive ? 'تفعيل مجموعة مستخدمين' : 'تعطيل مجموعة مستخدمين')) return;
+            const ids = Array.from(selectedUserIds);
+            if (!ids.length) {
+                updateSystemStatus('⚠️ اختر مستخدمًا واحدًا على الأقل', true);
+                return;
+            }
+            const label = targetActive ? 'تفعيل' : 'تعطيل';
+            if (!confirm(`هل تريد ${label} ${ids.length} مستخدم؟`)) return;
+
+            try {
+                const approval = await getSensitiveActionApprovalUM(`${label} مجموعة مستخدمين`);
+                const db = firebase.firestore();
+                const result = { success: 0, failed: 0 };
+
+                for (const userId of ids) {
+                    try {
+                        await db.collection('users').doc(userId).set({
+                            isActive: !!targetActive,
+                            bulkStatusReason: approval.reason,
+                            bulkStatusReauthAt: approval.reauthenticatedAt,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedBy: (window.unifiedAuth?.currentUser?.uid || null)
+                        }, { merge: true });
+                        result.success++;
+                    } catch (_) {
+                        result.failed++;
+                    }
+                }
+
+                await refreshUsers();
+                selectedUserIds.clear();
+                updateBulkActionsState();
+                updateSystemStatus(`✅ ${label} جماعي مكتمل: نجاح ${result.success} / فشل ${result.failed}`);
+            } catch (e) {
+                updateSystemStatus(`❌ فشل ${label} الجماعي: ${e.message || e}`, true);
+            }
+        }
+
+        async function bulkDeleteUsers() {
+            if (!assertStrictUserManagementAccess('حذف مجموعة مستخدمين')) return;
+            if (!functions_ready) { updateSystemStatus('خدمة الوظائف غير جاهزة', true); return; }
+            const ids = Array.from(selectedUserIds);
+            if (!ids.length) {
+                updateSystemStatus('⚠️ اختر مستخدمًا واحدًا على الأقل', true);
+                return;
+            }
+            if (!confirm(`هل أنت متأكد من حذف ${ids.length} مستخدم؟ هذا الإجراء لا يمكن التراجع عنه.`)) return;
+
+            try {
+                const approval = await getSensitiveActionApprovalUM('حذف مجموعة مستخدمين');
+                const result = { success: 0, failed: 0 };
+
+                for (const userId of ids) {
+                    try {
+                        if (window.adminApi) {
+                            await window.adminApi.deleteUserAccount({ userId, reason: approval.reason });
+                        } else {
+                            const callable = functionsRef.httpsCallable('deleteUserAccount');
+                            await callable({ userId, reason: approval.reason });
+                        }
+                        result.success++;
+                    } catch (_) {
+                        result.failed++;
+                    }
+                }
+
+                await refreshUsers();
+                selectedUserIds.clear();
+                updateBulkActionsState();
+                updateSystemStatus(`✅ حذف جماعي مكتمل: نجاح ${result.success} / فشل ${result.failed}`);
+            } catch (e) {
+                updateSystemStatus(`❌ فشل الحذف الجماعي: ${e.message || e}`, true);
+            }
+        }
+
+        async function resolveUserManagementAccess(authUser, db) {
+            let role = normalizeRoleValueUM(window.unifiedAuth?.userProfile?.role || window.unifiedAuth?.profile?.role || '');
+
+            if (!role && db && authUser?.uid) {
+                try {
+                    const snap = await db.collection('users').doc(authUser.uid).get();
+                    if (snap.exists) {
+                        role = normalizeRoleValueUM(snap.data()?.role || '');
+                    }
+                } catch (_) {}
+            }
+
+            const hasPageAccess = await (window.adminFeatureSwitches
+                ? window.adminFeatureSwitches.enforceRoleAccess(role, {
+                    allowedRoles: ['super_admin', 'system_admin'],
+                    moduleLabel: 'صفحة إدارة المستخدمين',
+                    roleLabel: role || 'viewer',
+                    message: 'هذه الصفحة متاحة لـ Super Admin فقط',
+                    redirectTo: 'index.html',
+                    redirectDelayMs: 1500
+                })
+                : Promise.resolve(true));
+
+            canManageUsersStrict = hasPageAccess && isStrictSuperAdminRoleUM(role);
+            applyUserManagementAccessMode();
+        }
+
+        function assertStrictUserManagementAccess(actionLabel) {
+            if (!canManageUsersStrict) {
+                updateSystemStatus(`🚫 ${actionLabel} متاح فقط لـ Super Admin`, true);
+                return false;
+            }
+            return true;
+        }
+
+        async function getSensitiveActionApprovalUM(actionLabel) {
+            if (!window.sensitiveActionGuard || typeof window.sensitiveActionGuard.approveSensitiveAction !== 'function') {
+                throw new Error('Sensitive action guard is not available');
+            }
+            const approval = await window.sensitiveActionGuard.approveSensitiveAction({
+                actionLabel,
+                requireReason: true,
+                requireReauth: true
+            });
+            if (!approval || !approval.approved) {
+                throw new Error('تم إلغاء العملية أو فشل التحقق الأمني');
+            }
+            return approval;
+        }
+
         function updateDebugInfo(info) {
             document.getElementById('debugInfo').innerHTML = info;
         }
@@ -429,6 +658,25 @@
                     const tick=()=>{attempts++; if (window.unifiedAuth && (unifiedAuth.isInitialized || unifiedAuth.currentUser)) return resolve(); (attempts<max)?setTimeout(tick,100):resolve();};
                     tick();
                 });
+
+                const moduleEnabled = await (window.adminFeatureSwitches
+                    ? window.adminFeatureSwitches.guardModuleStartup('userManagementV2', {
+                        moduleLabel: 'وحدة إدارة المستخدمين',
+                        redirectTo: 'index.html',
+                        redirectDelayMs: 1500,
+                        onDisabled: () => {
+                            updateSystemStatus('⚠️ تم إيقاف الوصول لهذه الوحدة من إعدادات بوابة المدير', true);
+                        },
+                        onError: (flagError) => {
+                            console.warn('تعذر قراءة إعدادات feature switches في user-management:', flagError);
+                        }
+                    })
+                    : Promise.resolve(true));
+                if (!moduleEnabled) {
+                    hideLoading();
+                    return;
+                }
+
                 try { window.unifiedUI?.updateSidebar?.(); } catch(_) {}
                 await loadDepartmentsListUM();
                 checkAuthentication(auth, db);
@@ -445,7 +693,9 @@
             auth.onAuthStateChanged(function(user) {
                 if (user) {
                     addStep(`مستخدم مسجل: ${user.email}`);
-                    loadUsers(db, user);
+                    resolveUserManagementAccess(user, db)
+                        .catch(() => { canManageUsersStrict = false; applyUserManagementAccessMode(); })
+                        .finally(() => loadUsers(db, user));
                 } else {
                     addStep('لا يوجد مستخدم مسجل', false);
                     showLoginRequired();
@@ -490,6 +740,9 @@
                 const row = document.createElement('tr');
                 const info = roleInfo[user.role] || { name: (user.role || 'غير محدد'), badge: 'bg-secondary' };
                 row.innerHTML = `
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input user-select-checkbox" data-user-id="${user.id}" ${selectedUserIds.has(user.id) ? 'checked' : ''} ${canManageUsersStrict ? '' : 'disabled'}>
+                    </td>
                     <td>${user.displayName || user.name || 'غير محدد'}</td>
                     <td>${user.email || 'غير محدد'}</td>
                     <td>
@@ -502,18 +755,21 @@
                         </span>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser('${user.id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        ${canManageUsersStrict ? `
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser('${user.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : `<small class="text-muted">قراءة فقط</small>`}
                     </td>
                 `;
                 tbody.appendChild(row);
             });
             
             document.getElementById('usersCard').style.display = 'block';
+            updateBulkActionsState();
         }
 
         // Load departments and populate select controls
@@ -563,7 +819,7 @@
         
         function showSuccess() {
             updateSystemStatus('✅ النظام يعمل بشكل طبيعي - جميع المكونات محملة');
-            document.getElementById('addUserBtn').disabled = false;
+            applyUserManagementAccessMode();
             updateDebugInfo(`
                 <strong>حالة النظام:</strong> ✅ جاهز<br>
                 <strong>Firebase:</strong> ${firebase_ready ? '✅' : '❌'} ${firebase_ready ? 'متصل' : 'غير متصل'}<br>
@@ -652,6 +908,7 @@
         });
 
         document.getElementById('addUserBtn').addEventListener('click', function() {
+            if (!assertStrictUserManagementAccess('إضافة مستخدم')) return;
             document.getElementById('createUserForm').reset();
             document.getElementById('cu_password').value = randomPassword(12);
             showAlert('createUserAlert', '');
@@ -690,6 +947,7 @@
         }
 
         document.getElementById('confirmCreateUserBtn').addEventListener('click', async () => {
+            if (!assertStrictUserManagementAccess('إنشاء مستخدم')) return;
             if (!functions_ready) { showAlert('createUserAlert', 'خدمة الوظائف غير جاهزة', 'danger'); return; }
             const email = document.getElementById('cu_email').value.trim();
             const displayName = document.getElementById('cu_displayName').value.trim();
@@ -717,9 +975,18 @@
             document.querySelector('#confirmCreateUserBtn .create-spinner').classList.remove('d-none');
             document.getElementById('confirmCreateUserBtn').disabled = true;
             try {
+                let approval = null;
+                if (isPrivilegedRoleAssignmentUM(role)) {
+                    approval = await getSensitiveActionApprovalUM('إنشاء مستخدم بدور إداري');
+                }
                 const callable = functionsRef.httpsCallable('createUserWithRole');
-                const res = await callable({ email, password, displayName, role, department });
-                const { uid } = (res && res.data && res.data.data) || res.data || {};
+                const res = window.adminApi
+                    ? await window.adminApi.createUserWithRole({ email, password, displayName, role, department, reason: approval?.reason || undefined })
+                    : await callable({ email, password, displayName, role, department, reason: approval?.reason || undefined });
+                const normalizedRes = (res && res.uid)
+                    ? res
+                    : ((res && res.data && res.data.data) || res.data || {});
+                const { uid } = normalizedRes || {};
                 // Save extra profile fields in Firestore
                 try {
                     const db = firebase.firestore();
@@ -764,6 +1031,7 @@
 
         // Edit user
         window.editUser = async function(userId) {
+            if (!assertStrictUserManagementAccess('تعديل مستخدم')) return;
             const u = users.find(x => x.id === userId);
             if (!u) return;
             document.getElementById('eu_userId').value = u.id;
@@ -782,6 +1050,7 @@
         }
 
         document.getElementById('confirmEditUserBtn').addEventListener('click', async () => {
+            if (!assertStrictUserManagementAccess('حفظ تعديل المستخدم')) return;
             if (!functions_ready) { showAlert('editUserAlert', 'خدمة الوظائف غير جاهزة', 'danger'); return; }
             const userId = document.getElementById('eu_userId').value;
             const role = document.getElementById('eu_role').value;
@@ -791,8 +1060,13 @@
             document.querySelector('#confirmEditUserBtn .edit-spinner').classList.remove('d-none');
             document.getElementById('confirmEditUserBtn').disabled = true;
             try {
-                const callable = functionsRef.httpsCallable('updateUserRole');
-                await callable({ userId, role, department });
+                const approval = await getSensitiveActionApprovalUM('تحديث دور/صلاحيات مستخدم');
+                if (window.adminApi) {
+                    await window.adminApi.updateUserRole({ userId, role, department, reason: approval.reason });
+                } else {
+                    const callable = functionsRef.httpsCallable('updateUserRole');
+                    await callable({ userId, role, department, reason: approval.reason });
+                }
                 if (editUserModal && editUserModal.hide) editUserModal.hide();
                 await refreshUsers();
                 updateSystemStatus('✅ تم حفظ التغييرات بنجاح');
@@ -808,14 +1082,20 @@
 
         // Delete user
         window.deleteUser = async function(userId) {
+            if (!assertStrictUserManagementAccess('حذف مستخدم')) return;
             if (!functions_ready) { updateSystemStatus('خدمة الوظائف غير جاهزة', true); return; }
             const u = users.find(x => x.id === userId);
             const label = u ? (u.email || u.displayName || userId) : userId;
             if (!confirm('هل أنت متأكد من حذف المستخدم: ' + label + ' ؟')) return;
             updateSystemStatus('⏳ جاري حذف المستخدم...');
             try {
-                const callable = functionsRef.httpsCallable('deleteUserAccount');
-                await callable({ userId });
+                const approval = await getSensitiveActionApprovalUM('حذف مستخدم');
+                if (window.adminApi) {
+                    await window.adminApi.deleteUserAccount({ userId, reason: approval.reason });
+                } else {
+                    const callable = functionsRef.httpsCallable('deleteUserAccount');
+                    await callable({ userId, reason: approval.reason });
+                }
                 await refreshUsers();
                 updateSystemStatus('✅ تم حذف المستخدم');
             } catch (e) {
@@ -828,6 +1108,22 @@
         document.getElementById('clearSearchBtn').addEventListener('click', () => {
             document.getElementById('searchInput').value = '';
             displayUsers();
+        });
+
+        document.getElementById('selectAllVisibleBtn').addEventListener('click', () => {
+            toggleSelectAllVisible(true);
+        });
+        document.getElementById('selectAllVisibleCheckbox').addEventListener('change', (e) => {
+            toggleSelectAllVisible(!!e.target.checked);
+        });
+        document.getElementById('bulkActivateBtn').addEventListener('click', () => bulkSetUsersActive(true));
+        document.getElementById('bulkDeactivateBtn').addEventListener('click', () => bulkSetUsersActive(false));
+        document.getElementById('bulkDeleteBtn').addEventListener('click', () => bulkDeleteUsers());
+
+        document.addEventListener('change', (e) => {
+            const cb = e.target?.closest?.('.user-select-checkbox');
+            if (!cb) return;
+            toggleUserSelection(cb.getAttribute('data-user-id'), !!cb.checked);
         });
         
         // Track loading time

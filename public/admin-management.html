@@ -590,6 +590,8 @@
     <!-- Unified Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/unified-auth.js"></script>
+    <script src="assets/js/sensitive-action-guard.js"></script>
+    <script src="assets/js/admin-feature-switches.js"></script>
     <!-- Central Role-Based Routing (added for unified redirection) -->
     <script src="assets/js/role-based-routing.js"></script>
     <!-- Unified UI Template System -->
@@ -647,6 +649,18 @@
                     await window.unifiedUI.updateSidebar();
                 }
             } catch {}
+
+            const moduleEnabled = await (window.adminFeatureSwitches
+                ? window.adminFeatureSwitches.guardModuleStartup('adminManagementV2', {
+                    moduleLabel: 'وحدة إدارة المدراء',
+                    redirectTo: 'index.html',
+                    redirectDelayMs: 1500,
+                    onError: (flagError) => {
+                        console.warn('تعذر قراءة إعدادات feature switches في admin-management:', flagError);
+                    }
+                })
+                : Promise.resolve(true));
+            if (!moduleEnabled) return;
             
             // Set up auth state listener
             authSystem.onAuthStateChanged(function(user) {
@@ -696,6 +710,26 @@
                 return false;
             }
             return true;
+        }
+
+        async function getSensitiveActionApproval(actionLabel) {
+            if (!window.sensitiveActionGuard || typeof window.sensitiveActionGuard.approveSensitiveAction !== 'function') {
+                alert('تعذر تحميل نظام الحماية الإضافي للعمليات الحساسة.');
+                return null;
+            }
+
+            try {
+                const approval = await window.sensitiveActionGuard.approveSensitiveAction({
+                    actionLabel,
+                    requireReason: true,
+                    requireReauth: true
+                });
+                return approval && approval.approved ? approval : null;
+            } catch (error) {
+                console.error('فشل التحقق الأمني للعملية الحساسة:', error);
+                alert('فشل التحقق الأمني. تأكد من كلمة المرور وأعد المحاولة.');
+                return null;
+            }
         }
 
         // دالة مساعدة للتحقق من وجود عنصر النموذج
@@ -1271,6 +1305,9 @@
         }
 
         async function createAdmin() {
+            if (!assertSuperAdminAccess('إنشاء مدير')) {
+                return;
+            }
             // التحقق من وجود عناصر النموذج أولاً
             const fullNameElement = validateFormElement('adminFullName', 'الاسم الكامل');
             const emailElement = validateFormElement('adminEmail', 'البريد الإلكتروني');
@@ -1316,11 +1353,17 @@
                 return;
             }
 
+            const approval = await getSensitiveActionApproval('إنشاء مدير');
+            if (!approval) {
+                return;
+            }
+
             console.log('🔧 بدء إنشاء مدير جديد...', {
                 fullName,
                 email,
                 department,
                 position,
+                reason: approval.reason,
                 currentUserId: currentUser.uid
             });
 
@@ -1349,6 +1392,8 @@
                     role: 'admin',
                     isActive: true,
                     permissions: permissions,
+                    createReason: approval.reason,
+                    sensitiveReauthAt: approval.reauthenticatedAt,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     createdBy: currentUser.uid // التأكد من وجود القيمة
                 };
@@ -1365,13 +1410,17 @@
                     action: 'admin_created',
                     targetType: 'user',
                     targetId: user.uid,
+                    reason: approval.reason,
+                    securityReauthAt: approval.reauthenticatedAt,
                     details: {
                         email: email,
                         displayName: fullName,
                         department: department,
                         position: position || 'مدير',
                         role: 'admin',
-                        permissions: permissions
+                        permissions: permissions,
+                        reason: approval.reason,
+                        securityReauthAt: approval.reauthenticatedAt
                     },
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     performedBy: currentUser.uid
@@ -1407,6 +1456,9 @@
         }
 
         async function toggleAdminStatus(adminId, currentStatus) {
+            if (!assertSuperAdminAccess('تغيير حالة مدير')) {
+                return;
+            }
             if (!confirm(`هل أنت متأكد من ${currentStatus ? 'تعطيل' : 'تفعيل'} هذا المدير؟`)) {
                 return;
             }
@@ -1416,11 +1468,18 @@
                 return;
             }
 
+            const approval = await getSensitiveActionApproval(currentStatus ? 'تعطيل مدير' : 'تفعيل مدير');
+            if (!approval) {
+                return;
+            }
+
             try {
                 await window.db.collection('users').doc(adminId).update({
                     isActive: !currentStatus,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedBy: currentUser.uid
+                    updatedBy: currentUser.uid,
+                    statusChangeReason: approval.reason,
+                    sensitiveReauthAt: approval.reauthenticatedAt
                 });
 
                 // تسجيل العملية
@@ -1428,6 +1487,8 @@
                     action: currentStatus ? 'admin_deactivated' : 'admin_activated',
                     targetType: 'user',
                     targetId: adminId,
+                    reason: approval.reason,
+                    securityReauthAt: approval.reauthenticatedAt,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     performedBy: currentUser.uid
                 });
@@ -1442,6 +1503,9 @@
         }
 
         async function deleteAdmin(adminId) {
+            if (!assertSuperAdminAccess('حذف مدير')) {
+                return;
+            }
             // التحقق من وجود المستخدم الحالي
             if (!validateCurrentUser()) {
                 return;
@@ -1456,6 +1520,11 @@
                 return;
             }
 
+            const approval = await getSensitiveActionApproval('حذف مدير');
+            if (!approval) {
+                return;
+            }
+
             try {
                 await window.db.collection('users').doc(adminId).delete();
 
@@ -1464,6 +1533,8 @@
                     action: 'admin_deleted',
                     targetType: 'user',
                     targetId: adminId,
+                    reason: approval.reason,
+                    securityReauthAt: approval.reauthenticatedAt,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     performedBy: currentUser.uid
                 });
@@ -1520,6 +1591,9 @@
         }
 
         async function updateAdmin() {
+            if (!assertSuperAdminAccess('تحديث مدير')) {
+                return;
+            }
             const adminId = document.getElementById('editAdminId').value;
             const fullName = document.getElementById('editAdminFullName').value.trim();
             const phone = document.getElementById('editAdminPhone').value.trim();
@@ -1552,6 +1626,11 @@
                 return;
             }
 
+            const approval = await getSensitiveActionApproval('تحديث بيانات مدير');
+            if (!approval) {
+                return;
+            }
+
             // تأكيد التحديث
             if (!confirm('هل أنت متأكد من تحديث بيانات هذا المدير؟')) {
                 return;
@@ -1572,6 +1651,8 @@
                     position: position || 'مدير',
                     isActive: isActive,
                     permissions: permissions,
+                    updateReason: approval.reason,
+                    sensitiveReauthAt: approval.reauthenticatedAt,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedBy: currentUser.uid
                 };
@@ -1607,7 +1688,9 @@
                         position: position || 'مدير',
                         isActive: isActive,
                         permissions: permissions,
-                        passwordReset: resetPassword
+                        passwordReset: resetPassword,
+                        reason: approval.reason,
+                        securityReauthAt: approval.reauthenticatedAt
                     },
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     performedBy: currentUser.uid
@@ -1657,20 +1740,21 @@
 
         function hasAdminPanelAccess(profile) {
             if (!profile) return false;
-            const role = profile.role || profile.userRole;
-            if (role === 'system_admin') return true;
-            // أولوية: مدير النظام أو من يملك صلاحية إدارة المستخدمين
-            if (role === 'admin') return true;
-            if (profile.permissions && (profile.permissions.canManageUsers || profile.permissions.isAdmin)) return true;
-            return false;
+            const role = String(profile.role || profile.userRole || '').trim().toLowerCase().replace(/\s+/g, '_');
+            return role === 'super_admin' || role === 'system_admin';
         }
 
         function canCreateOrManageUsers(profile) {
             if (!profile) return false;
-            const role = profile.role || profile.userRole;
-            if (role === 'system_admin') return true;
-            if (profile.permissions && profile.permissions.canManageUsers) return true;
-            return false;
+            return hasAdminPanelAccess(profile);
+        }
+
+        function assertSuperAdminAccess(actionLabel) {
+            if (!currentUserProfile || !hasAdminPanelAccess(currentUserProfile)) {
+                alert(`🚫 ${actionLabel} متاح فقط لـ Super Admin`);
+                return false;
+            }
+            return true;
         }
 
         function disableAdminCreationUI(reason) {
@@ -1723,18 +1807,30 @@
         function performAdminAccessGate(profile) {
             if (!profile) return; // ننتظر التحديث
             currentUserProfile = profile;
-            if (!hasAdminPanelAccess(profile)) {
+            const access = window.adminFeatureSwitches
+                ? window.adminFeatureSwitches.enforceRoleAccess(profile, {
+                    allowedRoles: ['super_admin', 'system_admin'],
+                    moduleLabel: 'صفحة إدارة المدراء',
+                    roleLabel: profile.role || profile.userRole || 'viewer',
+                    message: 'هذه الصفحة متاحة لـ Super Admin فقط',
+                    redirectTo: 'dashboard.html',
+                    redirectDelayMs: 1500
+                })
+                : Promise.resolve(hasAdminPanelAccess(profile));
+            access.then((allowed) => {
+                if (!allowed) return;
+                adminAccessVerified = true;
+                console.log('✅ تم التحقق من صلاحيات المستخدم لصفحة إدارة المدراء');
+                if (!canCreateOrManageUsers(profile)) {
+                    disableAdminCreationUI('المستخدم لا يملك صلاحية إدارة المستخدمين');
+                } else {
+                    enableAdminCreationUI();
+                }
+                safelyLoadAdminData();
+            }).catch((error) => {
+                console.warn('تعذر التحقق من صلاحيات صفحة المدراء، سيتم التحويل:', error);
                 markAccessDeniedAndRedirect(profile);
-                return;
-            }
-            adminAccessVerified = true;
-            console.log('✅ تم التحقق من صلاحيات المستخدم لصفحة إدارة المدراء');
-            if (!canCreateOrManageUsers(profile)) {
-                disableAdminCreationUI('المستخدم لا يملك صلاحية إدارة المستخدمين');
-            } else {
-                enableAdminCreationUI();
-            }
-            safelyLoadAdminData();
+            });
         }
 
         // الاستماع لحدث جاهزية المصادقة (Firebase Auth ready)

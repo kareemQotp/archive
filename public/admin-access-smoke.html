@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Access Smoke Matrix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #f8fafc; }
+        .container-box { max-width: 1200px; margin: 2rem auto; }
+        .card { border-radius: 14px; }
+        .badge-cell { font-size: 0.8rem; }
+        .mono { font-family: Consolas, Monaco, monospace; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+<div class="container-box px-3">
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <h4 class="mb-2"><i class="fas fa-vial me-2 text-primary"></i>Admin Portal Smoke Matrix</h4>
+            <p class="text-muted mb-0">فحص سريع لصلاحيات الوصول (Role x Page) بناءً على Feature Flags الحالية.</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Feature Flags الحالية</h6>
+                <div class="d-flex gap-2">
+                    <button id="refreshBtn" class="btn btn-sm btn-outline-primary"><i class="fas fa-sync-alt me-1"></i>تحديث</button>
+                    <button id="exportCsvBtn" class="btn btn-sm btn-outline-success"><i class="fas fa-file-csv me-1"></i>تصدير CSV</button>
+                    <button id="exportJsonBtn" class="btn btn-sm btn-outline-dark"><i class="fas fa-file-code me-1"></i>تصدير JSON</button>
+                </div>
+            </div>
+            <pre id="flagsView" class="mono bg-light p-2 rounded mb-0">جاري التحميل...</pre>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h6 class="mb-3">نتيجة المصفوفة</h6>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle" id="matrixTable">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Role</th>
+                        <th>Invitations</th>
+                        <th>Department Management</th>
+                        <th>User Management</th>
+                        <th>Admin Management</th>
+                    </tr>
+                    </thead>
+                    <tbody id="matrixBody"></tbody>
+                </table>
+            </div>
+            <div id="matrixStatus" class="small text-muted mt-2"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="assets/js/firebase-config.js"></script>
+<script src="assets/js/firebase-init.js"></script>
+<script src="assets/js/unified-auth.js"></script>
+<script src="assets/js/admin-api.js"></script>
+<script src="assets/js/admin-feature-switches.js"></script>
+<script>
+    const ROLES = ['super_admin', 'system_admin', 'admin', 'dept_admin', 'manager', 'employee', 'viewer'];
+    let matrixRows = [];
+    let currentExecutionMeta = null;
+    const PAGES = [
+        {
+            key: 'invitations',
+            flag: 'invitationsV2',
+            allowedRoles: ['admin', 'dept_admin'],
+            label: 'Invitations'
+        },
+        {
+            key: 'department',
+            flag: 'departmentManagementV2',
+            allowedRoles: ['admin', 'super_admin', 'system_admin'],
+            label: 'Department Management'
+        },
+        {
+            key: 'users',
+            flag: 'userManagementV2',
+            allowedRoles: ['super_admin', 'system_admin'],
+            label: 'User Management'
+        },
+        {
+            key: 'admins',
+            flag: 'adminManagementV2',
+            allowedRoles: ['super_admin', 'system_admin'],
+            label: 'Admin Management'
+        }
+    ];
+
+    function cellBadge(result) {
+        const cls = result.isAllowed ? 'success' : 'secondary';
+        const text = result.isAllowed ? 'ALLOW' : 'DENY';
+        return `<span class="badge text-bg-${cls} badge-cell">${text}</span>`;
+    }
+
+    function renderMatrix() {
+        const tbody = document.getElementById('matrixBody');
+        tbody.innerHTML = '';
+        matrixRows = [];
+
+        ROLES.forEach((role) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="mono">${role}</td>`;
+
+            PAGES.forEach((page) => {
+                const result = window.adminFeatureSwitches.evaluatePageAccess(role, page.flag, {
+                    allowedRoles: page.allowedRoles
+                });
+                matrixRows.push({
+                    role,
+                    page: page.key,
+                    pageLabel: page.label,
+                    flag: page.flag,
+                    roleAllowed: result.roleAllowed,
+                    moduleAllowed: result.moduleAllowed,
+                    finalAccess: result.isAllowed
+                });
+                const td = document.createElement('td');
+                td.innerHTML = `${cellBadge(result)} <small class="text-muted d-block">role=${result.roleAllowed ? 'ok' : 'no'} / flag=${result.moduleAllowed ? 'on' : 'off'}</small>`;
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        });
+
+        const allowedCount = matrixRows.filter(r => r.finalAccess).length;
+        document.getElementById('matrixStatus').textContent = `إجمالي النتائج: ${matrixRows.length} - السماح: ${allowedCount} - المنع: ${matrixRows.length - allowedCount}`;
+    }
+
+    function exportCsv() {
+        if (!matrixRows.length) return;
+        const header = ['role', 'page', 'pageLabel', 'flag', 'roleAllowed', 'moduleAllowed', 'finalAccess'];
+        const lines = [header.join(',')];
+        matrixRows.forEach((row) => {
+            lines.push([
+                row.role,
+                row.page,
+                row.pageLabel,
+                row.flag,
+                row.roleAllowed,
+                row.moduleAllowed,
+                row.finalAccess
+            ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','));
+        });
+
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `admin-access-smoke-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function exportJson() {
+        if (!matrixRows.length || !currentExecutionMeta) return;
+        const payload = {
+            meta: currentExecutionMeta,
+            flags: window.adminFeatureSwitches.flags || {},
+            summary: {
+                total: matrixRows.length,
+                allow: matrixRows.filter(r => r.finalAccess).length,
+                deny: matrixRows.filter(r => !r.finalAccess).length
+            },
+            rows: matrixRows
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `admin-access-smoke-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    async function guardSuperAdminAccess() {
+        let role = '';
+        try {
+            if (window.unifiedAuth && window.unifiedAuth.getCurrentUserData) {
+                const profile = await window.unifiedAuth.getCurrentUserData();
+                role = (profile && profile.role) || '';
+            }
+        } catch (_) {}
+
+        if (!role && window.unifiedAuth) {
+            role = window.unifiedAuth.userRole || window.unifiedAuth.userProfile?.role || window.unifiedAuth.profile?.role || '';
+        }
+
+        const allowed = await (window.adminFeatureSwitches
+            ? window.adminFeatureSwitches.enforceRoleAccess(role, {
+                allowedRoles: ['super_admin', 'system_admin'],
+                moduleLabel: 'صفحة Smoke Matrix',
+                message: 'هذه الصفحة متاحة فقط لـ Super Admin',
+                redirectTo: 'index.html',
+                redirectDelayMs: 1500
+            })
+            : Promise.resolve(false));
+
+        return allowed;
+    }
+
+    async function refresh() {
+        await window.adminFeatureSwitches.load(true);
+        let user = null;
+        try {
+            if (window.unifiedAuth && typeof window.unifiedAuth.getCurrentUserData === 'function') {
+                user = await window.unifiedAuth.getCurrentUserData();
+            }
+        } catch (_) {}
+        currentExecutionMeta = {
+            generatedAt: new Date().toISOString(),
+            generatedByUid: (user && user.uid) || (window.unifiedAuth && window.unifiedAuth.currentUser && window.unifiedAuth.currentUser.uid) || null,
+            generatedByEmail: (user && user.email) || (window.unifiedAuth && window.unifiedAuth.currentUser && window.unifiedAuth.currentUser.email) || null,
+            toolVersion: 'admin-smoke-matrix-v1'
+        };
+        document.getElementById('flagsView').textContent = JSON.stringify(window.adminFeatureSwitches.flags || {}, null, 2);
+        renderMatrix();
+    }
+
+    document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
+    document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+    document.getElementById('refreshBtn').addEventListener('click', refresh);
+    document.addEventListener('DOMContentLoaded', async () => {
+        const allowed = await guardSuperAdminAccess();
+        if (!allowed) return;
+        refresh();
+    });
+</script>
+</body>
+</html>
