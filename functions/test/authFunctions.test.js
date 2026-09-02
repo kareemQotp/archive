@@ -52,7 +52,7 @@ const authModule = require('../src/auth');
 describe('Auth callable functions', () => {
   beforeEach(() => {
       const store = global.__mockStore;
-      store.users['admin_1'] = { role: 'admin', isActive: true };
+      store.users['admin_1'] = { role: 'super_admin', isActive: true };
     });
 
   test('createUserWithRole succeeds for admin caller', async () => {
@@ -74,7 +74,15 @@ describe('Auth callable functions', () => {
 
   test('updateUserRole updates role when admin', async () => {
     global.__mockStore.users['target_1'] = { role: 'viewer', department: 'd1' };
-    const request = { auth: { uid: 'admin_1' }, data: { userId: 'target_1', role: 'archive_officer', department: 'd2' } };
+    const request = {
+      auth: { uid: 'admin_1' },
+      data: {
+        userId: 'target_1',
+        role: 'archive_officer',
+        department: 'd2',
+        reason: 'authorized role update for test'
+      }
+    };
     const res = await authModule.updateUserRole(request);
     expect(res.success).toBe(true);
   expect(global.__mockStore.users['target_1'].role).toBe('archive_officer');

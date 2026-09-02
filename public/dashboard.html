@@ -118,47 +118,10 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
-    
-
-    <!-- Sidebar -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <div class="sidebar" id="sidebar" aria-hidden="true">
-        <div class="sidebar-header">
-            <div class="d-flex align-items-center">
-                <div class="logo">
-                    <i class="fas fa-archive"></i>
-                </div>
-                <div>
-                    <h5 class="mb-0">نظام الأرشيف</h5>
-                    <small>القائمة الرئيسية</small>
-                </div>
-            </div>
-            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة" aria-label="إغلاق القائمة">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="user-info">
-            <div class="d-flex align-items-center">
-                <div class="user-avatar" id="userAvatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div>
-                    <div class="user-name" id="userName">مستخدم</div>
-                    <div class="user-role" id="userRole">عام</div>
-                </div>
-            </div>
-        </div>
-        <nav class="sidebar-nav" id="sidebarNav" role="navigation" aria-label="القائمة الرئيسية">
-            <!-- Will be populated by UnifiedUITemplate -->
-        </nav>
-        <div class="sidebar-footer">
-            <small>نظام الأرشيف الإلكتروني v2.1</small>
-        </div>
-    </div>
-
     <div class="container">
         <div class="dashboard-card d-none" id="adminOnly">
             <h1 class="mb-4 text-center">لوحة التحكم</h1>
@@ -342,6 +305,7 @@
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/session-constants.js"></script>
     <script src="assets/js/auth-guard.js"></script>
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <!-- Role-Based Routing System -->
@@ -422,7 +386,7 @@
 
             if (window.authGuard && typeof window.authGuard.requireAuth === 'function') {
                 const gate = await window.authGuard.requireAuth({
-                    redirectTo: 'login.html?message=session-expired',
+                    redirectTo: 'login.html?message=unauthorized',
                     redirectDelayMs: window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500
                 });
                 if (!gate.ok) {
@@ -581,9 +545,9 @@
                         alertMessage = 'تم رفض الوصول للصفحة المطلوبة';
                         alertType = 'danger';
                         break;
-                    case 'session-expired':
-                        alertMessage = 'انتهت جلسة العمل، يرجى تسجيل الدخول مرة أخرى';
-                        alertType = 'warning';
+                    case 'unauthorized':
+                        alertMessage = 'يجب تسجيل الدخول للوصول إلى هذه الصفحة';
+                        alertType = 'info';
                         break;
                 }
                 
@@ -644,7 +608,7 @@
                 setTimeout(() => {
                     if (!authSystem?.currentUser && !window.auth?.currentUser && !demoModeActivated) {
                         console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
-                        window.location.href = 'login.html?message=session-expired';
+                        window.location.href = 'login.html?message=unauthorized';
                     }
                 }, window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500);
                 return;

@@ -1,4 +1,6 @@
 // Sidebar Navigation JavaScript - Always Visible with Toggle
+if (!window.__UNIFIED_SIDEBAR_ACTIVE__) {
+
 class SidebarManager {
     constructor() {
         this.sidebar = null;
@@ -29,31 +31,37 @@ class SidebarManager {
     }
 
     normalizeRole(role) {
+        if (window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function') {
+            return window.AuthConstants.normalizeRole(role);
+        }
         if (!role) return 'viewer';
         const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
         const aliases = {
-            admin: 'super_admin',
+            admin: 'admin',
             system_admin: 'super_admin',
             super_admin: 'super_admin',
+            dept_admin: 'department_admin',
             manager: 'department_admin',
             'department-admin': 'department_admin',
             department_admin: 'department_admin',
-            archive_officer: 'employee',
-            'archive-officer': 'employee',
+            archive_officer: 'archive_officer',
+            'archive-officer': 'archive_officer',
             employee: 'employee',
-            user: 'employee',
+            user: 'viewer',
             viewer: 'viewer'
         };
         return aliases[normalized] || normalized;
     }
 
     isAdminRole(role) {
-        return this.normalizeRole(role) === 'super_admin';
+        const normalized = this.normalizeRole(role);
+        return normalized === 'super_admin' || normalized === 'admin';
     }
 
     isArchiveRole(role) {
         const normalized = this.normalizeRole(role);
-        return normalized === 'employee' || normalized === 'department_admin' || normalized === 'super_admin';
+        return normalized === 'employee' || normalized === 'archive_officer' || normalized === 'department_admin' ||
+            normalized === 'super_admin' || normalized === 'admin';
     }
 
     createSidebarHTML() {
@@ -927,4 +935,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = SidebarManager;
+}
+
 }

@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 
 /**
  * Unified safe server timestamp helper.
@@ -7,14 +7,14 @@ const admin = require('firebase-admin');
 function serverTS() {
   try {
     const fv = admin.firestore && admin.firestore.FieldValue;
-    if (fv && typeof fv.serverTimestamp === 'function') {
+    if (fv && typeof fv.serverTimestamp === "function") {
       return fv.serverTimestamp();
     }
     if (admin.firestore && admin.firestore.Timestamp) {
       return admin.firestore.Timestamp.now();
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {/* ignore */}
   return new Date();
 }
 
-module.exports = { serverTS };
+module.exports = {serverTS};

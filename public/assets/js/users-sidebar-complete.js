@@ -3,6 +3,8 @@
  * نظام القائمة الجانبية المحسن خصيصاً لصفحة المستخدمين
  */
 
+if (!window.__UNIFIED_SIDEBAR_ACTIVE__) {
+
 class UsersPageSidebar {
     constructor() {
         this.sidebar = null;
@@ -379,3 +381,5 @@ window.addEventListener('error', (e) => {
 });
 
 console.log('✅ تم تحميل نظام القائمة الجانبية لصفحة المستخدمين');
+
+}

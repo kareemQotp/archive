@@ -3,6 +3,7 @@
   "generated": "2025-08-21T00:00:00Z",
   "stages": ["auth", "permissions", "ui", "notifications", "feature", "deferred"],
   "modules": [
+    {"name": "auth-constants", "path": "assets/js/auth-constants.js", "stage": "auth"},
     {"name": "ui-permission-controller", "path": "assets/js/ui-permission-controller.js", "stage": "permissions"},
     {"name": "activity-logger", "path": "assets/js/activity-logger.js", "stage": "ui"},
   {"name": "roles", "path": "assets/js/roles.js", "stage": "ui"},

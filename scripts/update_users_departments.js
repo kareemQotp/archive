@@ -8,6 +8,7 @@
 const firebase = require('firebase-admin');
 const serviceAccount = require('../archive-tech-firebase-adminsdk.json');
 const { serverTS } = require('./utils/serverTimestamp');
+const AuthConstants = require('../public/assets/js/auth-constants');
 
 // تهيئة Firebase Admin
 if (!firebase.apps.length) {
@@ -46,39 +47,40 @@ async function updateUsersWithDepartments() {
             }
 
             // تحديد الإدارة بناءً على البريد الإلكتروني أو الدور
-            let assignedDepartment = 'عام';
-            let assignedRole = userData.role || 'employee';
+            let assignedDepartment = AuthConstants.normalizeDepartment(userData.departmentId || userData.department || 'admin');
+            let assignedRole = AuthConstants.normalizeRole(userData.role || 'employee');
 
             const email = userData.email || '';
             
             // تحديد الإدارة بناءً على البريد الإلكتروني
             if (email.includes('archive.') || email.includes('أرشيف')) {
                 assignedDepartment = 'archive';
-                assignedRole = userData.role || 'archive-officer';
+                assignedRole = AuthConstants.normalizeRole(userData.role || 'archive_officer');
             } else if (email.includes('legal.') || email.includes('قانونية')) {
                 assignedDepartment = 'legal';
-                assignedRole = userData.role || 'legal-officer';
+                assignedRole = AuthConstants.normalizeRole(userData.role || 'employee');
             } else if (email.includes('collection.') || email.includes('تحصيل')) {
                 assignedDepartment = 'collection';
-                assignedRole = userData.role || 'collection-officer';
+                assignedRole = AuthConstants.normalizeRole(userData.role || 'employee');
             } else if (email.includes('governance.') || email.includes('حوكمة')) {
                 assignedDepartment = 'governance';
-                assignedRole = userData.role || 'compliance-officer';
+                assignedRole = AuthConstants.normalizeRole(userData.role || 'employee');
             } else if (email.includes('hr.') || email.includes('موارد')) {
                 assignedDepartment = 'hr';
-                assignedRole = userData.role || 'hr-officer';
+                assignedRole = AuthConstants.normalizeRole(userData.role || 'employee');
             } else if (email.includes('it.') || email.includes('تقنية')) {
                 assignedDepartment = 'it';
-                assignedRole = userData.role || 'it-officer';
-            } else if (userData.role === 'admin' || userData.role === 'system-admin') {
+                assignedRole = AuthConstants.normalizeRole(userData.role || 'employee');
+            } else if (['admin', 'super_admin'].includes(AuthConstants.normalizeRole(userData.role))) {
                 // مديري النظام يمكنهم الوصول لجميع الإدارات
-                assignedDepartment = 'archive'; // إدارة افتراضية
+                assignedDepartment = 'admin';
                 assignedRole = 'admin';
             }
 
             // تحديث بيانات المستخدم
             const updateData = {
                 department: assignedDepartment,
+                departmentId: assignedDepartment,
                 role: assignedRole,
                 updatedAt: serverTS(firebase),
                 departmentAssignedAt: serverTS(firebase)
@@ -115,7 +117,8 @@ async function createTestUsers() {
             {
                 email: 'archive.admin@aman.eg',
                 department: 'archive',
-                role: 'archive-admin',
+                departmentId: 'archive',
+                role: 'department_admin',
                 displayName: 'مدير الأرشيف',
                 firstName: 'مدير',
                 lastName: 'الأرشيف'
@@ -123,7 +126,8 @@ async function createTestUsers() {
             {
                 email: 'legal.admin@aman.eg',
                 department: 'legal',
-                role: 'legal-admin',
+                departmentId: 'legal',
+                role: 'department_admin',
                 displayName: 'مدير الشؤون القانونية',
                 firstName: 'مدير',
                 lastName: 'القانونية'
@@ -131,7 +135,8 @@ async function createTestUsers() {
             {
                 email: 'collection.admin@aman.eg',
                 department: 'collection',
-                role: 'collection-admin',
+                departmentId: 'collection',
+                role: 'department_admin',
                 displayName: 'مدير التحصيل',
                 firstName: 'مدير',
                 lastName: 'التحصيل'
@@ -139,7 +144,8 @@ async function createTestUsers() {
             {
                 email: 'archive.officer@aman.eg',
                 department: 'archive',
-                role: 'archive-officer',
+                departmentId: 'archive',
+                role: 'archive_officer',
                 displayName: 'موظف أرشيف',
                 firstName: 'موظف',
                 lastName: 'أرشيف'
@@ -147,7 +153,8 @@ async function createTestUsers() {
             {
                 email: 'legal.officer@aman.eg',
                 department: 'legal',
-                role: 'legal-officer',
+                departmentId: 'legal',
+                role: 'employee',
                 displayName: 'موظف قانوني',
                 firstName: 'موظف',
                 lastName: 'قانوني'
@@ -155,7 +162,8 @@ async function createTestUsers() {
             {
                 email: 'collection.officer@aman.eg',
                 department: 'collection',
-                role: 'collection-officer',
+                departmentId: 'collection',
+                role: 'employee',
                 displayName: 'موظف تحصيل',
                 firstName: 'موظف',
                 lastName: 'تحصيل'
@@ -193,29 +201,19 @@ async function createTestUsers() {
 
 function getDefaultPermissions(role) {
     const permissions = {
-        'archive-admin': [
+        'department_admin': [
             'manage_department_users', 'approve_users', 'assign_roles', 
             'view_department_reports', 'upload_documents', 'edit_documents', 
             'view_documents', 'search_archive', 'classify_documents', 'approve_documents'
         ],
-        'archive-officer': [
+        'archive_officer': [
             'upload_documents', 'edit_documents', 'view_documents', 'search_archive'
         ],
-        'legal-admin': [
-            'manage_department_users', 'approve_users', 'assign_roles',
-            'view_department_reports', 'view_legal_documents', 'create_contracts',
-            'review_cases', 'legal_consultation', 'approve_contracts'
+        'employee': [
+            'view_department_documents', 'upload_department_documents'
         ],
-        'legal-officer': [
-            'view_legal_documents', 'create_contracts', 'review_cases'
-        ],
-        'collection-admin': [
-            'manage_department_users', 'approve_users', 'assign_roles',
-            'view_department_reports', 'manage_debts', 'collection_reports',
-            'payment_tracking', 'contact_debtors'
-        ],
-        'collection-officer': [
-            'manage_debts', 'payment_tracking', 'contact_debtors'
+        'viewer': [
+            'view_department_documents'
         ]
     };
 

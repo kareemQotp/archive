@@ -85,17 +85,22 @@
         }
 
         normalizeRole(role) {
+    if (window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function') {
+        return window.AuthConstants.normalizeRole(role);
+    }
             const cleaned = String(role || '').trim().toLowerCase().replace(/\s+/g, '_');
             const map = {
                 super_admin: 'super_admin',
-                system_admin: 'system_admin',
+                system_admin: 'super_admin',
                 admin: 'admin',
                 department_admin: 'department_admin',
                 'department-admin': 'department_admin',
-                manager: 'manager',
+                manager: 'department_admin',
                 supervisor: 'supervisor',
                 employee: 'employee',
-                user: 'user',
+                archive_officer: 'archive_officer',
+                'archive-officer': 'archive_officer',
+                user: 'viewer',
                 viewer: 'viewer'
             };
             return map[cleaned] || cleaned;
@@ -123,7 +128,7 @@
                 return { ok: true, user };
             }
 
-            const redirectTo = options.redirectTo || 'login.html?message=session-expired';
+            const redirectTo = options.redirectTo || 'login.html?message=unauthorized';
             this.scheduleRedirect(redirectTo, options.redirectDelayMs);
             return { ok: false, reason: 'unauthenticated' };
         }

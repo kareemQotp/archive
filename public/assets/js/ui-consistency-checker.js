@@ -33,6 +33,12 @@ class UIConsistencyChecker {
         
         // فحص التصميم المتجاوب
         this.checkResponsiveDesign();
+
+        // فحص نظام التصميم الجديد ومعايير القبول
+        this.checkArchiveDesignSystem();
+        this.checkNoHorizontalOverflow();
+        this.checkTouchTargets();
+        this.checkTableResponsiveness();
         
         // فحص الأيقونات والألوان
         this.checkIconsAndColors();
@@ -204,6 +210,87 @@ class UIConsistencyChecker {
     }
 
     /**
+     * فحص تحميل نظام التصميم الجديد واتجاه RTL
+     */
+    checkArchiveDesignSystem() {
+        const designSystem = document.querySelector('link[href*="archive-design-system.css"]');
+        const rootStyles = getComputedStyle(document.documentElement);
+        const primary = rootStyles.getPropertyValue('--archive-primary').trim();
+        const dir = document.documentElement.getAttribute('dir');
+        const lang = document.documentElement.getAttribute('lang');
+
+        if (designSystem || primary) {
+            this.results.passed.push('✅ نظام التصميم الجديد محمّل');
+        } else {
+            this.results.failed.push('❌ نظام التصميم الجديد غير محمّل');
+        }
+
+        if (dir === 'rtl') {
+            this.results.passed.push('✅ اتجاه الصفحة RTL');
+        } else {
+            this.results.failed.push('❌ اتجاه الصفحة ليس RTL');
+        }
+
+        if ((lang || '').toLowerCase().startsWith('ar')) {
+            this.results.passed.push('✅ لغة الصفحة عربية');
+        } else {
+            this.results.warnings.push('⚠️ lang لا يشير إلى العربية');
+        }
+    }
+
+    /**
+     * فحص عدم وجود تمرير أفقي غير مقصود
+     */
+    checkNoHorizontalOverflow() {
+        const overflow = document.documentElement.scrollWidth - document.documentElement.clientWidth;
+        if (overflow <= 2) {
+            this.results.passed.push('✅ لا يوجد overflow أفقي ظاهر');
+        } else {
+            this.results.failed.push(`❌ يوجد overflow أفقي بمقدار ${overflow}px`);
+        }
+    }
+
+    /**
+     * فحص قابلية اللمس للأزرار والروابط المهمة
+     */
+    checkTouchTargets() {
+        const controls = Array.from(document.querySelectorAll('button, .btn, input, select, textarea, .sidebar-item, .sidebar-nav-link'));
+        const visibleControls = controls.filter(el => {
+            const rect = el.getBoundingClientRect();
+            const style = getComputedStyle(el);
+            return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+        });
+        const tooSmall = visibleControls.filter(el => {
+            const rect = el.getBoundingClientRect();
+            return rect.height < 36 || rect.width < 32;
+        });
+
+        if (tooSmall.length === 0) {
+            this.results.passed.push(`✅ أهداف اللمس مناسبة (${visibleControls.length} عنصر)`);
+        } else {
+            this.results.warnings.push(`⚠️ ${tooSmall.length} عنصر تفاعلي أصغر من الحجم الموصى به`);
+        }
+    }
+
+    /**
+     * فحص الجداول على الشاشات الصغيرة
+     */
+    checkTableResponsiveness() {
+        const tables = Array.from(document.querySelectorAll('table'));
+        if (tables.length === 0) {
+            this.results.passed.push('✅ لا توجد جداول تحتاج فحصاً في هذه الصفحة');
+            return;
+        }
+
+        const unwrapped = tables.filter(table => !table.closest('.table-responsive'));
+        if (unwrapped.length === 0) {
+            this.results.passed.push(`✅ كل الجداول داخل table-responsive (${tables.length})`);
+        } else {
+            this.results.warnings.push(`⚠️ ${unwrapped.length} جدول بدون حاوية table-responsive`);
+        }
+    }
+
+    /**
      * فحص الأيقونات والألوان
      */
     checkIconsAndColors() {
@@ -287,6 +374,12 @@ class UIConsistencyChecker {
             if (this.results.failed.some(item => item.includes('القائمة الجانبية'))) {
                 console.log('  - اطبق هيكل القائمة الجانبية الموحد');
             }
+            if (this.results.failed.some(item => item.includes('overflow أفقي'))) {
+                console.log('  - راجع عرض الجداول والفلاتر والبطاقات عند مقاسات الهاتف');
+            }
+            if (this.results.failed.some(item => item.includes('نظام التصميم الجديد'))) {
+                console.log('  - أضف archive-design-system.css بعد الأنماط الخاصة بالصفحة');
+            }
         }
 
         if (this.results.warnings.length > 0) {
@@ -300,6 +393,9 @@ class UIConsistencyChecker {
             if (this.results.warnings.some(item => item.includes('skip link'))) {
                 console.log('  - أضف رابط تخطي المحتوى للمساعدة في الوصول');
             }
+            if (this.results.warnings.some(item => item.includes('table-responsive'))) {
+                console.log('  - لف الجداول بحاوية .table-responsive أو وفر تخطيط موبايل بديل');
+            }
         }
     }
 
@@ -311,9 +407,10 @@ class UIConsistencyChecker {
         
         const checks = [
             { test: () => document.querySelector('.sidebar'), name: 'القائمة الجانبية' },
-            { test: () => document.querySelector('link[href*="unified-sidebar.css"]'), name: 'CSS الموحد' },
+            { test: () => document.querySelector('link[href*="unified-sidebar.css"], link[href*="archive-design-system.css"]'), name: 'CSS الموحد' },
             { test: () => window.UnifiedUITemplate, name: 'JavaScript الموحد' },
-            { test: () => document.querySelector('.menu-toggle'), name: 'زر القائمة' }
+            { test: () => document.querySelector('.menu-toggle'), name: 'زر القائمة' },
+            { test: () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2, name: 'عدم وجود overflow أفقي' }
         ];
 
         checks.forEach(check => {

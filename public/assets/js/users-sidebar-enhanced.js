@@ -6,6 +6,10 @@
 (function() {
     'use strict';
 
+    if (window.__UNIFIED_SIDEBAR_ACTIVE__) {
+        return;
+    }
+
     console.log('🔧 بدء إصلاح القائمة الجانبية المحسن لصفحة المستخدمين...');
 
     // إنشاء قائمة جانبية أساسية في حالة فشل التحميل

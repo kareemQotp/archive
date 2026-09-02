@@ -23,6 +23,7 @@
     .w-40 { width: 40%; }
     .w-20 { width: 20%; }
   </style>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
   <div class="container py-4">
@@ -184,6 +185,7 @@
   </div>
 
   <script src="/assets/js/firebase-init.js"></script>
+  <script src="/assets/js/auth-constants.js"></script>
   <script src="/assets/js/unified-auth.js"></script>
   <script src="/assets/js/sensitive-action-guard.js"></script>
   <script src="/assets/js/admin-feature-switches.js"></script>
@@ -256,54 +258,49 @@
     }
 
     function getDefaultDepartments() {
+      const standardRoles = [
+        { key: 'department_admin', name: 'مدير إدارة' },
+        { key: 'supervisor', name: 'مشرف' },
+        { key: 'employee', name: 'موظف' },
+        { key: 'viewer', name: 'مستعرض' }
+      ];
+      const archiveRoles = [
+        { key: 'department_admin', name: 'مدير إدارة' },
+        { key: 'supervisor', name: 'مشرف' },
+        { key: 'archive_officer', name: 'موظف أرشيف' },
+        { key: 'employee', name: 'موظف' },
+        { key: 'viewer', name: 'مستعرض' }
+      ];
       return [
         {
           id: 'archive',
           name: 'الأرشيف',
           active: true,
-          roles: [
-            { key: 'archive-admin', name: 'مدير الأرشيف' },
-            { key: 'archive-officer', name: 'موظف أرشيف' },
-            { key: 'archive-viewer', name: 'قارئ أرشيف' }
-          ]
+          roles: archiveRoles
         },
         {
           id: 'collection',
           name: 'التحصيل',
           active: true,
-          roles: [
-            { key: 'collection-admin', name: 'مدير التحصيل' },
-            { key: 'collection-officer', name: 'موظف تحصيل' },
-            { key: 'collection-viewer', name: 'قارئ' }
-          ]
+          roles: standardRoles
         },
         {
           id: 'legal',
           name: 'الشؤون القانونية',
           active: true,
-          roles: [
-            { key: 'legal-admin', name: 'مدير الشؤون القانونية' },
-            { key: 'lawyer', name: 'محام' },
-            { key: 'legal-viewer', name: 'قارئ' }
-          ]
+          roles: standardRoles
         },
         {
           id: 'internal_audit',
           name: 'المراجعة الداخلية',
           active: true,
-          roles: [
-            { key: 'audit-admin', name: 'مدير المراجعة الداخلية' },
-            { key: 'audit-officer', name: 'موظف مراجعة' },
-            { key: 'audit-viewer', name: 'قارئ' }
-          ]
+          roles: standardRoles
         },
         {
           id: 'securitization',
           name: 'التوريق',
           active: true,
-          roles: [
-            { key: 'securitization-viewer', name: 'قارئ' }
-          ]
+          roles: standardRoles
         }
       ];
     }

@@ -36,7 +36,7 @@ async function upsertDepartmentAdmin(auth, db, departmentDoc, defaultPassword) {
     user = await auth.createUser({ email, password, displayName, disabled: false, emailVerified: true });
   }
 
-  await auth.setCustomUserClaims(user.uid, { role: 'department_admin', department: departmentId });
+  await auth.setCustomUserClaims(user.uid, { role: 'department_admin', department: departmentId, departmentId });
 
   const now = admin.firestore.FieldValue.serverTimestamp();
   await db.collection('users').doc(user.uid).set({
@@ -45,6 +45,7 @@ async function upsertDepartmentAdmin(auth, db, departmentDoc, defaultPassword) {
     displayName,
     role: 'department_admin',
     department: departmentId,
+    departmentId,
     isActive: true,
     createdAt: now,
     updatedAt: now,

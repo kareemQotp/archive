@@ -61,18 +61,22 @@
   }
 
   function normalizeRole(role){
+    if (window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function') {
+        return window.AuthConstants.normalizeRole(role);
+    }
     const r = (role || '').toString().trim().toLowerCase();
     const map = {
       admin: 'admin',
-      system_admin: 'admin',
-      'system-admin': 'admin',
-      super_admin: 'admin',
-      'super-admin': 'admin',
+      system_admin: 'super_admin',
+      'system-admin': 'super_admin',
+      super_admin: 'super_admin',
+      'super-admin': 'super_admin',
       archive_officer: 'archive_officer',
       'archive-officer': 'archive_officer',
       department_admin: 'department_admin',
       'department-admin': 'department_admin',
-      manager: 'supervisor'
+      manager: 'department_admin',
+      user: 'viewer'
     };
     return map[r] || r;
   }
@@ -261,8 +265,9 @@
       if (window.UIPermissionController){
         state.permissionController = new UIPermissionController(window.unifiedAuth);
       }
-      if (window.SidebarManager){
-        state.sidebarManager = new SidebarManager();
+      state.sidebarManager = window.sidebarManager || null;
+      if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+        window.unifiedUI.updateSidebar();
       }
       state.authSystem.onAuthStateChanged(handleAuthStateChange);
     } else if (window.firebase && firebase.auth){
@@ -277,10 +282,10 @@
         const u = state.authSystem ? state.authSystem.getCurrentUser() : (window.firebase && firebase.auth ? firebase.auth().currentUser : null);
         if(!u){
           if (window.__ALLOW_GUEST_ACCESS__) {
-            log('Smoke mode active - skip session-expired redirect');
+            log('Smoke mode active - skip auth redirect');
             return;
           }
-          window.location.href = 'login.html?message=session-expired';
+          window.location.href = 'login.html?message=unauthorized';
         }
       },10000);
       return;
@@ -860,7 +865,9 @@
       if (profile && profile.role){
         // allowed roles currently all
       }
-      if (state.sidebarManager){
+      if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+        await window.unifiedUI.updateSidebar();
+      } else if (state.sidebarManager){
         const role = state.authSystem.getCurrentUserRole() || 'viewer';
         state.sidebarManager.updateSidebarNav(true, role);
       }

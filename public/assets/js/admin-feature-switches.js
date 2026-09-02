@@ -134,8 +134,21 @@
         }
 
         normalizeRole(role) {
-            if (!role) return '';
-            return String(role).trim().toLowerCase().replace(/\s+/g, '_');
+            if (window.AuthConstants) {
+                return window.AuthConstants.normalizeRole(role);
+            }
+            if (!role) return 'viewer';
+            const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
+            const aliases = {
+                'admin': 'admin',
+                'super_admin': 'super_admin',
+                'system_admin': 'super_admin',
+                'dept_admin': 'department_admin',
+                'department-admin': 'department_admin',
+                'manager': 'department_admin',
+                'department_head': 'supervisor'
+            };
+            return aliases[normalized] || normalized;
         }
 
         extractRole(source) {

@@ -88,6 +88,7 @@
         .log-error { color: #dc3545; }
         .log-info { color: #17a2b8; }
     </style>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <div class="test-container">
@@ -248,6 +249,7 @@
     <!-- Core Systems -->
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <script>
@@ -397,7 +399,7 @@
 
             try {
                 // Generate test URL
-                const testUrl = `login.html?message=session-expired&redirect=${encodeURIComponent(window.location.href)}`;
+                const testUrl = `login.html?message=unauthorized&redirect=${encodeURIComponent(window.location.href)}`;
                 log(`📍 رابط الاختبار: ${testUrl}`, 'info');
                 
                 // Show URL instead of actually redirecting for testing

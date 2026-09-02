@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const AuthConstants = require('../public/assets/js/auth-constants');
 
 const ROLES = ['super_admin', 'system_admin', 'admin', 'dept_admin', 'manager', 'employee', 'viewer'];
 const PAGES = [
@@ -12,7 +13,7 @@ const PAGES = [
 ];
 
 function normalizeRole(role) {
-  return String(role || '').trim().toLowerCase().replace(/\s+/g, '_');
+  return AuthConstants.normalizeRole(role);
 }
 
 function parseArgs(argv) {
@@ -57,10 +58,12 @@ function loadFlags(flagsPath) {
 
 function evaluateRow(role, page, flags) {
   const normalizedRole = normalizeRole(role);
-  const roleAllowed = page.allowedRoles.includes(normalizedRole);
+  const allowedRoles = page.allowedRoles.map(normalizeRole);
+  const roleAllowed = allowedRoles.includes(normalizedRole);
   const moduleAllowed = !!flags[page.flag];
   return {
-    role: normalizedRole,
+    role,
+    normalizedRole,
     page: page.key,
     flag: page.flag,
     roleAllowed,
@@ -118,11 +121,12 @@ function runPrivilegeEscalationChecks(rows) {
 }
 
 function toCsv(rows) {
-  const header = ['role', 'page', 'flag', 'roleAllowed', 'moduleAllowed', 'finalAccess'];
+  const header = ['role', 'normalizedRole', 'page', 'flag', 'roleAllowed', 'moduleAllowed', 'finalAccess'];
   const lines = [header.join(',')];
   for (const row of rows) {
     const values = [
       row.role,
+      row.normalizedRole,
       row.page,
       row.flag,
       row.roleAllowed,

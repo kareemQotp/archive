@@ -169,6 +169,7 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
@@ -542,6 +543,7 @@
     <script src="assets/js/firebase-init.js"></script>
     
     <!-- Unified Authentication System -->
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     <script src="assets/js/admin-api.js"></script>
     <script src="assets/js/sensitive-action-guard.js"></script>
@@ -582,58 +584,10 @@
 
         // ضمان وجود الشريط الجانبي وإنشائه عند الحاجة (نسخة خفيفة متوافقة مع النظام الموحد)
         function ensureSidebar() {
-            try {
-                let sidebar = document.getElementById('sidebar');
-                if (!sidebar) {
-                    sidebar = document.createElement('aside');
-                    sidebar.id = 'sidebar';
-                    sidebar.className = 'sidebar';
-                    try { sidebar.setAttribute('aria-hidden', 'true'); } catch(_) {}
-                    document.body.appendChild(sidebar);
-                }
-                if (window.unifiedUI && typeof window.unifiedUI.renderSidebar === 'function' && (!sidebar.innerHTML || sidebar.innerHTML.trim() === '')) {
-                    try { window.unifiedUI.renderSidebar(); } catch(_) {}
-                }
-                if (!document.querySelector('.sidebar-overlay')) {
-                    const overlay = document.createElement('div');
-                    overlay.className = 'sidebar-overlay';
-                    overlay.id = 'sidebarOverlay';
-                    document.body.appendChild(overlay);
-                }
-                const menuBtn = document.getElementById('menuToggle');
-                if (menuBtn && !menuBtn.dataset.bound) {
-                    menuBtn.dataset.bound = '1';
-                    menuBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        if (window.unifiedUI && typeof window.unifiedUI.toggleSidebar === 'function') {
-                            window.unifiedUI.toggleSidebar();
-                        } else {
-                            const wasOpen = sidebar.classList.contains('active');
-                            sidebar.classList.toggle('active');
-                            const overlayEl = document.querySelector('.sidebar-overlay');
-                            if (overlayEl) overlayEl.classList.toggle('active');
-                            document.body.classList.toggle('sidebar-open');
-                            try { sidebar.setAttribute('aria-hidden', wasOpen ? 'true' : 'false'); } catch(_) {}
-                        }
-                    });
-                }
-                const overlayEl = document.querySelector('.sidebar-overlay');
-                if (overlayEl && !overlayEl.dataset.bound) {
-                    overlayEl.dataset.bound = '1';
-                    overlayEl.addEventListener('click', () => {
-                        if (window.unifiedUI && typeof window.unifiedUI.closeSidebar === 'function') {
-                            window.unifiedUI.closeSidebar();
-                        } else if (sidebar) {
-                            sidebar.classList.remove('active');
-                            try { sidebar.setAttribute('aria-hidden', 'true'); } catch(_) {}
-                            overlayEl.classList.remove('active');
-                            document.body.classList.remove('sidebar-open');
-                        }
-                    });
-                }
-            } catch (e) {
-                console.warn('ensureSidebar() failed:', e);
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                return window.unifiedUI.updateSidebar();
             }
+            return Promise.resolve(false);
         }
 
         // إعادة الربط بعد إعادة رسم الشريط العلوي/الجانبي من قبل النظام الموحد
@@ -1399,14 +1353,6 @@
 
                 console.log('🔍 فحص صلاحيات المستخدم:', currentUser.email);
 
-                // فحص البريد الإلكتروني أولاً للمدراء المعروفين
-                const isAdminEmail = currentUser.email && (
-                    currentUser.email.includes('admin') || 
-                    currentUser.email === 'admin123@aman.eg' ||
-                    currentUser.email === 'admin@aman.eg' ||
-                    currentUser.email === 'kareemqotp@gmail.com'
-                );
-
                 let userData = {};
                 let userRole = 'viewer';
 
@@ -1426,36 +1372,10 @@
                     console.warn('⚠️ خطأ في الاتصال بقاعدة البيانات:', dbError);
                 }
 
-                // إذا كان البريد الإلكتروني للمدير الموثوق، فرض دور system_admin
-                if (isAdminEmail) {
-                    userRole = 'system_admin';
-                    console.log('✅ تم تعيين دور المدير بناءً على البريد الإلكتروني');
-                    
-                    // تحديث قاعدة البيانات إذا كانت متوفرة
-                    try {
-                        if (firebase.firestore) {
-                            const updateData = {
-                                uid: currentUser.uid,
-                                email: currentUser.email,
-                                role: 'system_admin',
-                                lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                            };
-
-                            if (!userData.displayName && currentUser.displayName) {
-                                updateData.displayName = currentUser.displayName;
-                            }
-
-                            await firebase.firestore().collection('users').doc(currentUser.uid).set(updateData, { merge: true });
-                            console.log('✅ تم تحديث بيانات المدير في قاعدة البيانات');
-                        }
-                    } catch (updateError) {
-                        console.warn('⚠️ فشل في تحديث قاعدة البيانات:', updateError);
-                    }
-                }
-
                 // التحقق من صلاحيات Super Admin فقط
-                const normalizedRole = String(userRole || '').trim().toLowerCase().replace(/\s+/g, '_');
+                const normalizedRole = window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function'
+                    ? window.AuthConstants.normalizeRole(userRole)
+                    : String(userRole || '').trim().toLowerCase().replace(/\s+/g, '_');
                 if (!(normalizedRole === 'super_admin' || normalizedRole === 'system_admin')) {
                     console.log('❌ المستخدم ليس مديراً:', userRole);
                     logActivity('permission_denied', {

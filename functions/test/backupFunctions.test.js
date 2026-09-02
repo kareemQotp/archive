@@ -65,7 +65,7 @@ const utils = require('../src/utils');
 describe('Backup functions', () => {
   beforeEach(() => {
     const s = global.__mockBackupStore;
-    s.users['admin_1'] = { role: 'admin' };
+    s.users['admin_1'] = { role: 'super_admin' };
     s.users['viewer_1'] = { role: 'viewer' };
     // Seed some documents for count stats
     for(let i=0;i<3;i++) s.documents['d'+i] = { createdAt: new Date() };

@@ -21,7 +21,7 @@
 ```javascript
 setTimeout(() => {
     if (!firebase?.auth()?.currentUser) {
-        window.location.href = 'login.html?message=session-expired';
+        window.location.href = 'login.html?message=unauthorized';
     }
 }, 1500);
 ```

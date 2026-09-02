@@ -69,21 +69,25 @@ const departmentNames = {
 };
 
 function normalizeRole(role) {
+    if (window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function') {
+        return window.AuthConstants.normalizeRole(role);
+    }
     if (!role) return 'viewer';
     const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
     const aliases = {
-        admin: 'super_admin',
+        admin: 'admin',
         system_admin: 'super_admin',
         super_admin: 'super_admin',
+        dept_admin: 'department_admin',
         manager: 'department_admin',
         'department-admin': 'department_admin',
         department_admin: 'department_admin',
         department_head: 'supervisor',
         supervisor: 'supervisor',
-        archive_officer: 'employee',
-        'archive-officer': 'employee',
+        archive_officer: 'archive_officer',
+        'archive-officer': 'archive_officer',
         employee: 'employee',
-        user: 'employee',
+        user: 'viewer',
         viewer: 'viewer',
         'file-manager': 'employee',
         file_manager: 'employee'
@@ -92,7 +96,8 @@ function normalizeRole(role) {
 }
 
 function isAdminRole(role) {
-    return normalizeRole(role) === 'super_admin';
+    const normalized = normalizeRole(role);
+    return normalized === 'super_admin' || normalized === 'admin';
 }
 
 function normalizeDepartment(department) {
@@ -134,9 +139,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('✅ Permission controller ready');
         }
         
-        if (window.SidebarManager) {
-            sidebarManager = new window.SidebarManager();
-            console.log('✅ Sidebar manager ready');
+        sidebarManager = window.sidebarManager || null;
+        if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+            await window.unifiedUI.updateSidebar();
+            sidebarManager = window.sidebarManager || sidebarManager;
+            console.log('✅ Unified sidebar ready');
         }
         
         // Set up auth listener
@@ -161,11 +168,11 @@ async function handleAuthStateChange(user) {
             
             if (!checkUser) {
                 if (window.__ALLOW_GUEST_ACCESS__) {
-                    console.log('🧪 Smoke mode active - skipping session-expired redirect');
+                    console.log('🧪 Smoke mode active - skipping auth redirect');
                     return;
                 }
                 console.log('❌ Still no user - redirecting');
-                window.location.href = 'login.html?message=session-expired';
+                window.location.href = 'login.html?message=unauthorized';
             } else {
                 console.log('✅ User found after check');
                 handleAuthStateChange(checkUser);
@@ -181,7 +188,7 @@ async function handleAuthStateChange(user) {
     const userDepartment = normalizeDepartment(authSystem?.userProfile?.department || authSystem?.userProfile?.departmentId);
     const userRole = normalizeRole(authSystem?.userProfile?.role);
     const isSystemAdmin = isAdminRole(userRole);
-    const isFileManager = userRole === 'employee';
+    const isFileManager = ['file-management', 'archive'].includes(userDepartment) && ['department_admin', 'supervisor', 'archive_officer', 'employee'].includes(userRole);
     
     console.log('🔍 فحص صلاحيات الوصول لإدارة الملفات:', {
         userDepartment,
@@ -196,12 +203,11 @@ async function handleAuthStateChange(user) {
     // 1. File management department users
     // 2. File managers (by role)
     // 3. System admins
-    // 4. Users with admin role
-    // 5. Admin emails
-    const hasAccess = userDepartment === 'file-management' || 
+    // 4. System operators
+    const hasAccess = userDepartment === 'file-management' ||
+                    userDepartment === 'archive' ||
                     isFileManager ||
-                    isSystemAdmin ||
-                    user.email?.includes('admin');
+                    isSystemAdmin;
     
     if (!hasAccess) {
         console.log('❌ المستخدم لا يملك صلاحية الوصول لإدارة الملفات، التوجيه للوحة العامة');
@@ -236,7 +242,9 @@ async function handleAuthStateChange(user) {
         permissionController.updateUI();
     }
     
-    if (sidebarManager) {
+    if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+        await window.unifiedUI.updateSidebar();
+    } else if (sidebarManager) {
         const userRole = unifiedAuth ? unifiedAuth.getCurrentUserRole() : 'user';
         sidebarManager.updateSidebarNav(true, userRole);
     }

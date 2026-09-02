@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-01T17:23:43.847Z",
+  "generatedAt": "2026-08-30T20:24:32.157Z",
   "sourceFlags": {
     "invitationsV2": true,
     "departmentManagementV2": true,
@@ -8,14 +8,15 @@
   },
   "summary": {
     "total": 28,
-    "allow": 9,
-    "deny": 19,
+    "allow": 10,
+    "deny": 18,
     "failures": 0
   },
   "failures": [],
   "rows": [
     {
       "role": "super_admin",
+      "normalizedRole": "super_admin",
       "page": "invitations",
       "flag": "invitationsV2",
       "roleAllowed": false,
@@ -24,6 +25,7 @@
     },
     {
       "role": "super_admin",
+      "normalizedRole": "super_admin",
       "page": "department_management",
       "flag": "departmentManagementV2",
       "roleAllowed": true,
@@ -32,6 +34,7 @@
     },
     {
       "role": "super_admin",
+      "normalizedRole": "super_admin",
       "page": "user_management",
       "flag": "userManagementV2",
       "roleAllowed": true,
@@ -40,6 +43,7 @@
     },
     {
       "role": "super_admin",
+      "normalizedRole": "super_admin",
       "page": "admin_management",
       "flag": "adminManagementV2",
       "roleAllowed": true,
@@ -48,6 +52,7 @@
     },
     {
       "role": "system_admin",
+      "normalizedRole": "super_admin",
       "page": "invitations",
       "flag": "invitationsV2",
       "roleAllowed": false,
@@ -56,6 +61,7 @@
     },
     {
       "role": "system_admin",
+      "normalizedRole": "super_admin",
       "page": "department_management",
       "flag": "departmentManagementV2",
       "roleAllowed": true,
@@ -64,6 +70,7 @@
     },
     {
       "role": "system_admin",
+      "normalizedRole": "super_admin",
       "page": "user_management",
       "flag": "userManagementV2",
       "roleAllowed": true,
@@ -72,6 +79,7 @@
     },
     {
       "role": "system_admin",
+      "normalizedRole": "super_admin",
       "page": "admin_management",
       "flag": "adminManagementV2",
       "roleAllowed": true,
@@ -80,6 +88,7 @@
     },
     {
       "role": "admin",
+      "normalizedRole": "admin",
       "page": "invitations",
       "flag": "invitationsV2",
       "roleAllowed": true,
@@ -88,6 +97,7 @@
     },
     {
       "role": "admin",
+      "normalizedRole": "admin",
       "page": "department_management",
       "flag": "departmentManagementV2",
       "roleAllowed": true,
@@ -96,6 +106,7 @@
     },
     {
       "role": "admin",
+      "normalizedRole": "admin",
       "page": "user_management",
       "flag": "userManagementV2",
       "roleAllowed": false,
@@ -104,6 +115,7 @@
     },
     {
       "role": "admin",
+      "normalizedRole": "admin",
       "page": "admin_management",
       "flag": "adminManagementV2",
       "roleAllowed": false,
@@ -112,6 +124,7 @@
     },
     {
       "role": "dept_admin",
+      "normalizedRole": "department_admin",
       "page": "invitations",
       "flag": "invitationsV2",
       "roleAllowed": true,
@@ -120,6 +133,7 @@
     },
     {
       "role": "dept_admin",
+      "normalizedRole": "department_admin",
       "page": "department_management",
       "flag": "departmentManagementV2",
       "roleAllowed": false,
@@ -128,6 +142,7 @@
     },
     {
       "role": "dept_admin",
+      "normalizedRole": "department_admin",
       "page": "user_management",
       "flag": "userManagementV2",
       "roleAllowed": false,
@@ -136,6 +151,7 @@
     },
     {
       "role": "dept_admin",
+      "normalizedRole": "department_admin",
       "page": "admin_management",
       "flag": "adminManagementV2",
       "roleAllowed": false,
@@ -144,14 +160,16 @@
     },
     {
       "role": "manager",
+      "normalizedRole": "department_admin",
       "page": "invitations",
       "flag": "invitationsV2",
-      "roleAllowed": false,
+      "roleAllowed": true,
       "moduleAllowed": true,
-      "finalAccess": false
+      "finalAccess": true
     },
     {
       "role": "manager",
+      "normalizedRole": "department_admin",
       "page": "department_management",
       "flag": "departmentManagementV2",
       "roleAllowed": false,
@@ -160,6 +178,7 @@
     },
     {
       "role": "manager",
+      "normalizedRole": "department_admin",
       "page": "user_management",
       "flag": "userManagementV2",
       "roleAllowed": false,
@@ -168,6 +187,7 @@
     },
     {
       "role": "manager",
+      "normalizedRole": "department_admin",
       "page": "admin_management",
       "flag": "adminManagementV2",
       "roleAllowed": false,
@@ -176,6 +196,7 @@
     },
     {
       "role": "employee",
+      "normalizedRole": "employee",
       "page": "invitations",
       "flag": "invitationsV2",
       "roleAllowed": false,
@@ -184,6 +205,7 @@
     },
     {
       "role": "employee",
+      "normalizedRole": "employee",
       "page": "department_management",
       "flag": "departmentManagementV2",
       "roleAllowed": false,
@@ -192,6 +214,7 @@
     },
     {
       "role": "employee",
+      "normalizedRole": "employee",
       "page": "user_management",
       "flag": "userManagementV2",
       "roleAllowed": false,
@@ -200,6 +223,7 @@
     },
     {
       "role": "employee",
+      "normalizedRole": "employee",
       "page": "admin_management",
       "flag": "adminManagementV2",
       "roleAllowed": false,
@@ -208,6 +232,7 @@
     },
     {
       "role": "viewer",
+      "normalizedRole": "viewer",
       "page": "invitations",
       "flag": "invitationsV2",
       "roleAllowed": false,
@@ -216,6 +241,7 @@
     },
     {
       "role": "viewer",
+      "normalizedRole": "viewer",
       "page": "department_management",
       "flag": "departmentManagementV2",
       "roleAllowed": false,
@@ -224,6 +250,7 @@
     },
     {
       "role": "viewer",
+      "normalizedRole": "viewer",
       "page": "user_management",
       "flag": "userManagementV2",
       "roleAllowed": false,
@@ -232,6 +259,7 @@
     },
     {
       "role": "viewer",
+      "normalizedRole": "viewer",
       "page": "admin_management",
       "flag": "adminManagementV2",
       "roleAllowed": false,

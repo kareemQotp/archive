@@ -5,9 +5,12 @@
   "main": "index.js",
   "scripts": {
     "start": "firebase serve --only hosting",
-    "build": "echo 'Build completed'",
+    "build": "npm --prefix functions run build",
     "deploy": "firebase deploy",
-    "test": "echo 'Running tests...'",
+    "lint": "npm --prefix functions run lint",
+    "test": "npm --prefix functions run test:full",
+    "test:fast": "npm --prefix functions run test:fast",
+    "test:full": "npm --prefix functions run test:full",
     "test:notifications": "echo 'Testing notification systems...'",
     "functions:serve": "firebase emulators:start --only functions",
     "functions:deploy": "firebase deploy --only functions",
@@ -16,7 +19,8 @@
     "fix:notifications": "node scripts/fix_notifications.js",
     "update:html": "node scripts/update-html-pages.js",
     "test:admin:smoke": "node scripts/admin-access-smoke-runner.js",
-    "test:admin:security": "node scripts/admin-access-smoke-runner.js"
+    "test:admin:security": "node scripts/admin-access-smoke-runner.js",
+    "migrate:rbac:v1": "node scripts/migrate-rbac-v1.js"
   },
   "keywords": [
     "archive",

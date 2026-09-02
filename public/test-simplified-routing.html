@@ -65,6 +65,7 @@
             width: 300px;
         }
     </style>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <div class="container">
@@ -95,31 +96,22 @@
     <script>
         // محاكاة منطق تحديد الإدارة والدور
         function getDepartmentAndRole(email) {
-            if (!email) return { department: 'عام', role: 'viewer' };
+            if (!email) return { department: 'admin', role: 'viewer' };
             
             const emailLower = email.toLowerCase();
             
-            // فحص المدير
-            const isAdminEmail = emailLower.includes('admin') || 
-                               emailLower === 'admin123@aman.eg' ||
-                               emailLower === 'admin@aman.eg';
-            
-            if (isAdminEmail) {
-                return { department: 'admin', role: 'admin' };
-            }
-            
             // فحص الأقسام
             if (emailLower.includes('archive') || emailLower.includes('ارشيف')) {
-                return { department: 'archive', role: 'archive-officer' };
+                return { department: 'archive', role: 'archive_officer' };
             } else if (emailLower.includes('legal') || emailLower.includes('قانون') || emailLower.includes('محامي')) {
-                return { department: 'legal', role: 'legal-officer' };
+                return { department: 'legal', role: 'employee' };
             } else if (emailLower.includes('collection') || emailLower.includes('تحصيل')) {
-                return { department: 'collection', role: 'collection-officer' };
+                return { department: 'collection', role: 'employee' };
             } else if (emailLower.includes('file') || emailLower.includes('ملف')) {
-                return { department: 'file-management', role: 'file-manager' };
+                return { department: 'archive', role: 'employee' };
             }
             
-            return { department: 'عام', role: 'viewer' };
+            return { department: 'admin', role: 'viewer' };
         }
 
         // محاكاة منطق التوجيه

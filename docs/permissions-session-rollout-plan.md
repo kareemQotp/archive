@@ -71,7 +71,7 @@ Goal: Remove inconsistent access behavior and enforce guard logic consistently.
 Tasks:
 - Remove/disable legacy page guard where unified guard is already used.
 - Ensure access guard re-evaluates on auth state changes (login/logout/token expiry).
-- Fix login flow ordering so session-expired state is handled deterministically.
+- Fix login flow ordering so auth-required state is handled deterministically.
 - Keep remember-me behavior aligned with actual persistence strategy.
 
 Deliverables:

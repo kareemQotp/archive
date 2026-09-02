@@ -121,6 +121,7 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
@@ -293,6 +294,7 @@
     
     <!-- Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <!-- Role-Based Routing System -->
@@ -334,7 +336,7 @@
 
             if (window.authGuard && typeof window.authGuard.requireAuth === 'function') {
                 const gate = await window.authGuard.requireAuth({
-                    redirectTo: 'login.html?message=session-expired',
+                    redirectTo: 'login.html?message=unauthorized',
                     redirectDelayMs: window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500
                 });
                 if (!gate.ok) {
@@ -364,27 +366,32 @@
                 setTimeout(() => {
                     if (!authSystem.currentUser && !window.auth?.currentUser) {
                         console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
-                        window.location.href = 'login.html?message=session-expired';
+                        window.location.href = 'login.html?message=unauthorized';
                     }
                 }, window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500);
                 return;
             }
 
             // Check if user belongs to Archive department or has admin privileges
-            const userDepartment = authSystem.userProfile?.department || authSystem.userProfile?.departmentId;
+            const normalizeRole = window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function'
+                ? window.AuthConstants.normalizeRole.bind(window.AuthConstants)
+                : role => (role || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
+            const normalizeDepartment = window.AuthConstants && typeof window.AuthConstants.normalizeDepartment === 'function'
+                ? window.AuthConstants.normalizeDepartment.bind(window.AuthConstants)
+                : dept => (dept || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
+            const userDepartment = authSystem.userProfile?.departmentId || authSystem.userProfile?.department;
             // تطبيع اسم الإدارة للاعتماد على مفتاح واحد
-            let normalizedDept = (userDepartment || '').toString();
+            let normalizedDept = normalizeDepartment(userDepartment);
             try {
                 if (window.roleBasedRouter && typeof window.roleBasedRouter.normalizeDepartmentName === 'function') {
                     normalizedDept = window.roleBasedRouter.normalizeDepartmentName(normalizedDept);
                 } else {
-                    normalizedDept = normalizedDept.toLowerCase().trim();
                     if (normalizedDept === 'الارشيف' || normalizedDept === 'ارشيف' || normalizedDept === 'ادارة الارشيف') normalizedDept = 'archive';
                 }
             } catch (_) { /* ignore */ }
-            const userRole = authSystem.userProfile?.role;
-            const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin' || userRole === 'super_admin';
-            const isArchiveOfficer = userRole === 'archive-officer' || userRole === 'archive_officer';
+            const userRole = normalizeRole(authSystem.userProfile?.role);
+            const isSystemAdmin = userRole === 'super_admin' || userRole === 'admin';
+            const isArchiveOfficer = userRole === 'archive_officer';
             
             console.log('🔍 فحص صلاحيات الوصول للأرشيف:', {
                 userDepartment,
@@ -399,17 +406,14 @@
             // 1. Archive department users (by department name or ID)
             // 2. Archive officers (by role)
             // 3. System admins
-            // 4. Users with admin role
-            // 5. Admin emails
+            // 4. System operators
             const hasAccess = normalizedDept === 'archive' ||
                             userDepartment === 'إدارة الأرشيف' ||
                             userDepartment === 'إدارة الأرشيف العام' ||
                             userDepartment === 'أرشيف' ||
                             userDepartment === 'الأرشيف' ||
                             isArchiveOfficer ||
-                            isSystemAdmin ||
-                            userRole === 'admin' ||
-                            user.email?.includes('admin');
+                            isSystemAdmin;
             
             if (!hasAccess) {
                 const awaitingProfile = !window.db || !userDepartment || userDepartment === 'عام';
@@ -439,10 +443,11 @@
                         try {
                             clearTimeout(fallbackTimer);
                             // إعادة التحقق بعد تحديث الملف الشخصي
-                            const refreshedDept = authSystem.userProfile?.department || authSystem.userProfile?.departmentId;
-                            const refreshedRole = authSystem.userProfile?.role;
-                            const refreshedIsAdmin = refreshedRole === 'system_admin' || refreshedRole === 'admin' || refreshedRole === 'super_admin';
-                            const refreshedIsArchiveOfficer = refreshedRole === 'archive-officer' || refreshedRole === 'archive_officer';
+                            const refreshedRawDept = authSystem.userProfile?.departmentId || authSystem.userProfile?.department;
+                            const refreshedDept = normalizeDepartment(refreshedRawDept);
+                            const refreshedRole = normalizeRole(authSystem.userProfile?.role);
+                            const refreshedIsAdmin = refreshedRole === 'super_admin' || refreshedRole === 'admin';
+                            const refreshedIsArchiveOfficer = refreshedRole === 'archive_officer';
                             // احتساب عبر الراوتر أولاً
                             let routerAffirms = false;
                             try {
@@ -454,14 +459,8 @@
 
                             const refreshedHasAccess = routerAffirms ||
                                                       refreshedDept === 'archive' ||
-                                                      refreshedDept === 'إدارة الأرشيف' ||
-                                                      refreshedDept === 'إدارة الأرشيف العام' ||
-                                                      refreshedDept === 'أرشيف' ||
-                                                      refreshedDept === 'الأرشيف' ||
                                                       refreshedIsArchiveOfficer ||
-                                                      refreshedIsAdmin ||
-                                                      refreshedRole === 'admin' ||
-                                                      user.email?.includes('admin');
+                                                      refreshedIsAdmin;
 
                             if (!refreshedHasAccess) {
                                 console.log('❌ بعد التحديث: ما زال المستخدم بلا صلاحية وصول، التوجيه للوحة العامة');
@@ -544,12 +543,8 @@
                 <span class="badge ${badgeClass} ms-2">${badgeText}</span>
             `;
             
-            // Update sidebar
-            if (window.sidebarManager) {
-                const unifiedUI = window.unifiedUITemplate;
-            if (unifiedUI) {
-                unifiedUI.updateSidebar();
-            };
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                window.unifiedUI.updateSidebar();
             }
 
             // Update permission-based UI

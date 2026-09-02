@@ -10,9 +10,12 @@ class RoleBasedRouter {
             'archive': {
                 defaultDashboard: 'archive-dashboard.html',
                 roles: {
+                    'super_admin': 'archive-dashboard.html',
                     'admin': 'archive-dashboard.html',
-                    'archive-officer': 'archive-dashboard.html',
-                    'department-admin': 'archive-dashboard.html',
+                    'archive_officer': 'archive-dashboard.html',
+                    'department_admin': 'archive-dashboard.html',
+                    'supervisor': 'archive-dashboard.html',
+                    'employee': 'archive-dashboard.html',
                     'viewer': 'archive-dashboard.html'
                 }
             },
@@ -21,9 +24,11 @@ class RoleBasedRouter {
             'legal': {
                 defaultDashboard: 'legal-dashboard.html',
                 roles: {
+                    'super_admin': 'legal-dashboard.html',
                     'admin': 'legal-dashboard.html',
-                    'archive-officer': 'legal-dashboard.html',
-                    'department-admin': 'legal-dashboard.html',
+                    'department_admin': 'legal-dashboard.html',
+                    'supervisor': 'legal-dashboard.html',
+                    'employee': 'legal-dashboard.html',
                     'viewer': 'legal-dashboard.html'
                 }
             },
@@ -32,9 +37,12 @@ class RoleBasedRouter {
             'file-management': {
                 defaultDashboard: 'file-management-dashboard.html',
                 roles: {
+                    'super_admin': 'file-management-dashboard.html',
                     'admin': 'file-management-dashboard.html',
-                    'archive-officer': 'file-management-dashboard.html',
-                    'department-admin': 'file-management-dashboard.html',
+                    'archive_officer': 'file-management-dashboard.html',
+                    'department_admin': 'file-management-dashboard.html',
+                    'supervisor': 'file-management-dashboard.html',
+                    'employee': 'file-management-dashboard.html',
                     'viewer': 'file-management-dashboard.html'
                 }
             },
@@ -43,9 +51,11 @@ class RoleBasedRouter {
             'collection': {
                 defaultDashboard: 'collection-dashboard.html',
                 roles: {
+                    'super_admin': 'collection-dashboard.html',
                     'admin': 'collection-dashboard.html',
-                    'archive-officer': 'collection-dashboard.html',
-                    'department-admin': 'collection-dashboard.html',
+                    'department_admin': 'collection-dashboard.html',
+                    'supervisor': 'collection-dashboard.html',
+                    'employee': 'collection-dashboard.html',
                     'viewer': 'collection-dashboard.html'
                 }
             },
@@ -54,9 +64,11 @@ class RoleBasedRouter {
             'it': {
                 defaultDashboard: 'it-dashboard.html', // لوحة تقنية المعلومات الخاصة
                 roles: {
+                    'super_admin': 'it-dashboard.html',
                     'admin': 'it-dashboard.html',
-                    'archive-officer': 'it-dashboard.html',
-                    'department-admin': 'it-dashboard.html',
+                    'department_admin': 'it-dashboard.html',
+                    'supervisor': 'it-dashboard.html',
+                    'employee': 'it-dashboard.html',
                     'viewer': 'it-dashboard.html'
                 }
             },
@@ -65,9 +77,11 @@ class RoleBasedRouter {
             'governance': {
                 defaultDashboard: 'governance-dashboard.html',
                 roles: {
+                    'super_admin': 'governance-dashboard.html',
                     'admin': 'governance-dashboard.html',
-                    'archive-officer': 'governance-dashboard.html',
-                    'department-admin': 'governance-dashboard.html',
+                    'department_admin': 'governance-dashboard.html',
+                    'supervisor': 'governance-dashboard.html',
+                    'employee': 'governance-dashboard.html',
                     'viewer': 'governance-dashboard.html'
                 }
             },
@@ -76,9 +90,11 @@ class RoleBasedRouter {
             'securitization': {
                 defaultDashboard: 'securitization-dashboard.html',
                 roles: {
+                    'super_admin': 'securitization-dashboard.html',
                     'admin': 'securitization-dashboard.html',
-                    'archive-officer': 'securitization-dashboard.html',
-                    'department-admin': 'securitization-dashboard.html',
+                    'department_admin': 'securitization-dashboard.html',
+                    'supervisor': 'securitization-dashboard.html',
+                    'employee': 'securitization-dashboard.html',
                     'viewer': 'securitization-dashboard.html'
                 }
             }
@@ -86,17 +102,12 @@ class RoleBasedRouter {
 
         // الداشبوردات الافتراضية حسب الدور العام
         this.defaultRoutes = {
-            'admin': 'user-management.html', // المسؤول العام → إدارة المستخدمين
-            'system_admin': 'user-management.html', // مسؤول النظام → إدارة المستخدمين
-            'archive-officer': 'archive-dashboard.html', // موظف الأرشيف → داشبورد الأرشيف
+            'super_admin': 'user-management.html',
+            'admin': 'dashboard.html',
             'archive_officer': 'archive-dashboard.html', // موظف الأرشيف → داشبورد الأرشيف (بديل)
-            'legal-officer': 'legal-dashboard.html', // موظف الشؤون القانونية → داشبورد القانونية
-            'legal_officer': 'legal-dashboard.html', // موظف الشؤون القانونية → داشبورد القانونية (بديل)
-            'collection-officer': 'collection-dashboard.html', // موظف التحصيل → داشبورد التحصيل
-            'collection_officer': 'collection-dashboard.html', // موظف التحصيل → داشبورد التحصيل (بديل)
-            'file-manager': 'file-management-dashboard.html', // مدير الملفات → داشبورد إدارة الملفات
-            'file_manager': 'file-management-dashboard.html', // مدير الملفات → داشبورد إدارة الملفات (بديل)
-            'department-admin': 'dashboard.html', // مدير الإدارة → الداشبورد الرئيسي
+            'department_admin': 'dashboard.html', // مدير الإدارة → الداشبورد الرئيسي
+            'supervisor': 'dashboard.html',
+            'employee': 'dashboard.html',
             'viewer': 'dashboard.html' // المشاهد → الداشبورد الرئيسي
         };
     }
@@ -117,9 +128,9 @@ class RoleBasedRouter {
             
             console.log('🔄 تحديد مسار التوجيه:', { role, department, departmentId });
 
-            // إذا كان المستخدم مسؤول نظام عام، يذهب لإدارة المستخدمين
-            if (role === 'admin') {
-                console.log('✅ مسؤول نظام → إدارة المستخدمين');
+            // فقط مدير النظام الأعلى يذهب لإدارة المستخدمين الحساسة.
+            if (role === 'super_admin') {
+                console.log('✅ مدير نظام أعلى → إدارة المستخدمين');
                 return 'user-management.html';
             }
 
@@ -240,25 +251,32 @@ class RoleBasedRouter {
     }
 
     normalizeRole(roleName) {
+        if (window.AuthConstants) {
+            return window.AuthConstants.normalizeRole(roleName);
+        }
+
         if (!roleName) return 'viewer';
 
         const role = String(roleName).toLowerCase().trim().replace(/\s+/g, '_');
         const mappings = {
             admin: 'admin',
-            system_admin: 'admin',
-            super_admin: 'admin',
-            department_admin: 'department-admin',
-            'department-admin': 'department-admin',
-            manager: 'department-admin',
-            supervisor: 'viewer',
-            employee: 'archive-officer',
+            system_admin: 'super_admin',
+            super_admin: 'super_admin',
+            dept_admin: 'department_admin',
+            department_admin: 'department_admin',
+            'department-admin': 'department_admin',
+            manager: 'department_admin',
+            supervisor: 'supervisor',
+            employee: 'employee',
             user: 'viewer',
             viewer: 'viewer',
-            archive_officer: 'archive-officer',
-            'archive-officer': 'archive-officer',
-            legal_officer: 'archive-officer',
-            collection_officer: 'archive-officer',
-            file_manager: 'archive-officer'
+            archive_officer: 'archive_officer',
+            'archive-officer': 'archive_officer',
+            legal_officer: 'employee',
+            'legal-officer': 'employee',
+            collection_officer: 'employee',
+            'collection-officer': 'employee',
+            file_manager: 'employee'
         };
 
         return mappings[role] || role;

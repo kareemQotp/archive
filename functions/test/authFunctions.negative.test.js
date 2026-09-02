@@ -23,10 +23,15 @@ jest.mock('firebase-admin', () => {
     };
   }
   function makeCollection(coll){
+    const query = {
+      where: () => query,
+      limit: () => query,
+      get: async () => ({ empty: true, docs: [] })
+    };
     return {
       doc: (id) => makeDoc(coll, id),
       add: async (data) => { const id = `auto_${Object.keys(mockStore[coll]||{}).length+1}`; mockStore[coll][id] = data; return { id }; },
-      where: () => ({ where: () => ({ limit: () => ({ get: async () => ({ empty: true, docs: [] }) }) }) })
+      where: () => query
     };
   }
   const firestoreFn = () => ({
@@ -52,7 +57,7 @@ const authModule = require('../src/auth');
 describe('Auth callable functions (negative paths)', () => {
   beforeEach(() => {
     const store = global.__negAuthStore;
-    store.users['admin_1'] = { role: 'admin', isActive: true };
+    store.users['admin_1'] = { role: 'super_admin', isActive: true };
     store.users['viewer_1'] = { role: 'viewer', isActive: true };
   });
 
@@ -63,14 +68,20 @@ describe('Auth callable functions (negative paths)', () => {
   });
 
   test('deleteUserAccount not-found user', async () => {
-    const req = { auth: { uid: 'admin_1' }, data: { userId: 'ghost_user' } };
+    const req = {
+      auth: { uid: 'admin_1' },
+      data: { userId: 'ghost_user', reason: 'authorized deletion test' }
+    };
     await expect(authModule.deleteUserAccount(req)).rejects.toHaveProperty('code', 'not-found');
   });
 
   test('deleteUserAccount self-deletion blocked', async () => {
     // Ensure admin exists
-    const req = { auth: { uid: 'admin_1' }, data: { userId: 'admin_1' } };
-    await expect(authModule.deleteUserAccount(req)).rejects.toHaveProperty('code', 'invalid-argument');
+    const req = {
+      auth: { uid: 'admin_1' },
+      data: { userId: 'admin_1', reason: 'authorized self deletion test' }
+    };
+    await expect(authModule.deleteUserAccount(req)).rejects.toHaveProperty('code', 'permission-denied');
   });
 
   test('validateInvitation missing code invalid-argument', async () => {

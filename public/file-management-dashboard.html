@@ -221,6 +221,7 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
@@ -240,32 +241,7 @@
                 <span class="navbar-text me-3" id="topUserInfo"></span>
             </div>
         </div>
-    </nav>
-    <!-- Sidebar -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <aside class="sidebar" id="sidebar" aria-hidden="true">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-archive"></i>
-                <span>نظام الأرشيف</span>
-            </div>
-            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="user-info" id="userInfo">
-            <!-- سيتم ملؤها بـ JavaScript -->
-        </div>
-        
-        <nav class="sidebar-nav" id="sidebarNav">
-            <!-- سيتم ملؤها بـ JavaScript -->
-        </nav>
-    </aside>
-
-    <!-- Legacy overlay kept for backward compatibility with any existing JS -->
-    <div class="overlay" id="overlay"></div>
-
+    </nav><!-- Legacy overlay kept for backward compatibility with any existing JS -->
     <main class="main-content" id="mainContent" role="main" tabindex="-1">
         <div class="container py-3">
         <!-- Page Header -->
@@ -457,6 +433,7 @@
     
     <!-- Unified Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
 
     <!-- Role-Based Routing System -->

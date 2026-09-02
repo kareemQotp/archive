@@ -8,24 +8,29 @@ class PageAccessControl {
         this.isAuthenticated = false;
         this.permissionsLoaded = false;
         this.roleAliases = {
-            admin: 'super_admin',
+            admin: 'admin',
             system_admin: 'super_admin',
             super_admin: 'super_admin',
+            dept_admin: 'department_admin',
             manager: 'department_admin',
             'department-admin': 'department_admin',
             department_admin: 'department_admin',
             department_head: 'supervisor',
             supervisor: 'supervisor',
             employee: 'employee',
-            user: 'employee',
-            archive_officer: 'employee',
-            'archive-officer': 'employee',
+            user: 'viewer',
+            archive_officer: 'archive_officer',
+            'archive-officer': 'archive_officer',
             viewer: 'viewer'
         };
         this.init();
     }
 
     normalizeRole(role) {
+        if (window.AuthConstants) {
+            return window.AuthConstants.normalizeRole(role);
+        }
+        // Fallback in case auth-constants.js is not loaded yet
         if (!role) return 'viewer';
         const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
         return this.roleAliases[normalized] || normalized;
@@ -67,19 +72,7 @@ class PageAccessControl {
                 if (user) {
                     this.loadUserRole(user.uid);
                 } else {
-                    // إعطاء وقت إضافي قبل معالجة عدم المصادقة
-                    console.log('⏳ لا يوجد مستخدم - انتظار 8 ثوان للتحقق مرة أخرى');
-                    setTimeout(() => {
-                        const currentUser = this.getCurrentAuthUser();
-                        if (!currentUser) {
-                            console.log('❌ لا يوجد مستخدم مصادق عليه بعد 8 ثوان');
-                            this.handleUnauthenticatedUser();
-                        } else {
-                            console.log('✅ تم العثور على مستخدم بعد التأخير:', currentUser.email);
-                            this.isAuthenticated = true;
-                            this.loadUserRole(currentUser.uid);
-                        }
-                    }, 8000); // انتظار 8 ثوان
+                    this.handleUnauthenticatedUser();
                 }
             });
         } else {
@@ -96,10 +89,7 @@ class PageAccessControl {
                     this.handleUnauthenticatedUser();
                 }
             } else {
-                // إعطاء وقت إضافي قبل إعادة التوجيه
-                setTimeout(() => {
-                    this.handleUnauthenticatedUser();
-                }, 8000);
+                this.handleUnauthenticatedUser();
             }
         }
     }
@@ -129,17 +119,10 @@ class PageAccessControl {
                 }
             }
             
-            // في حالة عدم وجود قاعدة البيانات أو عدم وجود المستخدم
-            // التحقق من كونه مدير بناءً على الإيميل
+            // في حالة عدم وجود قاعدة البيانات أو عدم وجود المستخدم، ابدأ بأقل صلاحية.
             const currentUser = this.getCurrentAuthUser();
             if (currentUser) {
-                const isAdminEmail = currentUser.email && (
-                    currentUser.email.includes('admin') || 
-                    currentUser.email === 'admin123@aman.eg' ||
-                    currentUser.email === 'admin@aman.eg'
-                );
-                
-                this.userRole = isAdminEmail ? 'admin' : 'viewer';
+                this.userRole = 'viewer';
                 this.userRole = this.normalizeRole(this.userRole);
                 localStorage.setItem('userRole', this.userRole);
                 
@@ -215,22 +198,22 @@ class PageAccessControl {
             'page-permissions': ['super_admin'],
             'create-admin': ['super_admin'],
             'role-manager': ['super_admin'],
-            'system-analytics': ['super_admin', 'department_admin'],
+            'system-analytics': ['super_admin', 'admin', 'department_admin'],
 
-            'movement-reports': ['super_admin', 'department_admin', 'supervisor'],
+            'movement-reports': ['super_admin', 'admin', 'department_admin', 'supervisor'],
             'system-integration-test': ['super_admin', 'department_admin'],
 
-            'upload': ['super_admin', 'department_admin', 'supervisor', 'employee'],
-            'file-management': ['super_admin', 'department_admin', 'supervisor', 'employee'],
-            'file-management-dashboard': ['super_admin', 'department_admin', 'supervisor', 'employee'],
-            'file-tracking': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
-            'qr-generator': ['super_admin', 'department_admin', 'supervisor', 'employee'],
+            'upload': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee'],
+            'file-management': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee'],
+            'file-management-dashboard': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee'],
+            'file-tracking': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee', 'viewer'],
+            'qr-generator': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee'],
 
-            'dashboard': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
-            'search': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
-            'scanner': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
-            'profile': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'],
-            'activity-logs': ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer']
+            'dashboard': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee', 'viewer'],
+            'search': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee', 'viewer'],
+            'scanner': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee'],
+            'profile': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee', 'viewer'],
+            'activity-logs': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee', 'viewer']
         };
 
         const allowedRoles = defaultPermissions[this.currentPage];
@@ -283,8 +266,10 @@ class PageAccessControl {
         // تحديد الصفحة المناسبة للإعادة التوجيه حسب الدور
         const rolePages = {
             super_admin: 'dashboard.html',
+            admin: 'dashboard.html',
             department_admin: 'dashboard.html',
             supervisor: 'dashboard.html',
+            archive_officer: 'archive-dashboard.html',
             employee: 'dashboard.html',
             viewer: 'search.html'
         };
@@ -363,12 +348,12 @@ class PageAccessControl {
     hasActionPermission(action) {
         // تحديد الصلاحيات للإجراءات المختلفة
         const actionPermissions = {
-            'create': ['super_admin', 'department_admin', 'supervisor', 'employee'],
-            'edit': ['super_admin', 'department_admin', 'supervisor', 'employee'],
-            'delete': ['super_admin', 'department_admin'],
+            'create': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee'],
+            'edit': ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee'],
+            'delete': ['super_admin', 'admin', 'department_admin'],
             'manage_users': ['super_admin'],
-            'view_reports': ['super_admin', 'department_admin', 'supervisor'],
-            'export_data': ['super_admin', 'department_admin']
+            'view_reports': ['super_admin', 'admin', 'department_admin', 'supervisor'],
+            'export_data': ['super_admin', 'admin', 'department_admin']
         };
 
         const allowedRoles = actionPermissions[action];
@@ -389,8 +374,10 @@ class PageAccessControl {
     getRoleDisplayName() {
         const roleNames = {
             super_admin: 'مدير النظام',
+            admin: 'مدير تشغيل',
             department_admin: 'مدير إدارة',
             supervisor: 'مشرف',
+            archive_officer: 'موظف أرشيف',
             employee: 'موظف',
             viewer: 'مستعرض'
         };

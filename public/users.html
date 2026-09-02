@@ -235,24 +235,11 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
-    
-    <!-- Include Sidebar -->
-    <div id="sidebar" class="sidebar">
-        <!-- Sidebar content will be loaded here -->
-    </div>
-
-    <!-- زر تبديل القائمة الجانبية -->
-    <button id="sidebarToggle" class="sidebar-toggle" aria-label="تبديل القائمة الجانبية">
-        <i class="fas fa-bars"></i>
-    </button>
-
-    <div id="sidebarOverlay" class="sidebar-overlay"></div>
-
-    <!-- Main Content with Sidebar Layout -->
-    <div class="main-content">
+    <div class="main-content" id="mainContent" role="main" tabindex="-1">
         <!-- Page Header -->
         <div class="page-header">
             <div class="d-flex justify-content-between align-items-center">
@@ -460,8 +447,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Unified UI Template System -->
     <script src="assets/js/unified-ui-template.js"></script>
-    <script src="assets/js/sidebar-enhancements.js"></script>
-    <script src="assets/js/users-sidebar-enhanced.js"></script>
     
     <!-- Firebase v10.7.1 - الإصدار الموحد -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -474,6 +459,7 @@
     <script src="assets/js/firebase-init.js"></script>
     
     <!-- Unified Authentication System -->
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
 
     <script>
@@ -595,52 +581,12 @@
         });
 
         // Initialize sidebar
-        async function initializeSidebar() {
-            if (window.SidebarManager) {
-                try {
-                    window.sidebarManager = new window.SidebarManager();
-                    await window.sidebarManager.init();
-                    
-                    // تحديث القائمة الجانبية مع معلومات المستخدم
-                    const userRole = unifiedAuth?.getCurrentUserRole?.() || 'admin';
-                    const isAuthenticated = unifiedAuth?.isAuthenticated || unifiedAuth?.currentUser || localStorage.getItem('demo_mode') === 'true';
-                    
-                    if (isAuthenticated) {
-                        const unifiedUI = window.unifiedUITemplate;
-            if (unifiedUI) {
-                unifiedUI.updateSidebar();
-            };
-                    }
-                    
-                    console.log('✅ تم تهيئة القائمة الجانبية بنجاح');
-                } catch (error) {
-                    console.error('❌ خطأ في تهيئة القائمة الجانبية:', error);
-                }
-            } else {
-                // انتظار تحميل SidebarManager
-                setTimeout(async () => {
-                    if (window.SidebarManager) {
-                        try {
-                            window.sidebarManager = new window.SidebarManager();
-                            await window.sidebarManager.init();
-                            
-                            const userRole = unifiedAuth?.getCurrentUserRole?.() || 'admin';
-                            const isAuthenticated = unifiedAuth?.isAuthenticated || unifiedAuth?.currentUser || localStorage.getItem('demo_mode') === 'true';
-                            
-                            if (isAuthenticated) {
-                                const unifiedUI = window.unifiedUITemplate;
-            if (unifiedUI) {
-                unifiedUI.updateSidebar();
-            };
-                            }
-                            
-                            console.log('✅ تم تهيئة القائمة الجانبية بنجاح (متأخر)');
-                        } catch (error) {
-                            console.error('❌ خطأ في تهيئة القائمة الجانبية (متأخر):', error);
-                        }
-                    }
-                }, 1000);
+        async async function initializeSidebar() {
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                await window.unifiedUI.updateSidebar();
+                return true;
             }
+            return false;
         }
 
         // Main load users function for this page
@@ -2058,7 +2004,6 @@
     </script>
 
     <!-- Enhanced Sidebar System for Users Page -->
-    <script src="assets/js/users-sidebar-complete.js"></script>
     
     <!-- Original Scripts -->
     <script src="assets/js/firebase-init.js"></script>

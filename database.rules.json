@@ -14,7 +14,7 @@
     "locks": {
       "$docId": {
         ".read": "auth != null",
-        ".write": "auth != null && (auth.token.role == 'system_admin' || auth.token.role == 'admin')",
+        ".write": "auth != null && (auth.token.role == 'super_admin' || auth.token.role == 'system_admin' || auth.token.role == 'admin')",
         "owner": { ".validate": "newData.isString()" },
         "expiresAt": { ".validate": "newData.isNumber() && newData.val() > now" }
       }

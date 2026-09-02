@@ -25,7 +25,7 @@ const departments = [
             requireInvite: false,
             autoApprove: false,
             maxUsers: 50,
-            allowedRoles: ['archive-officer', 'archive-specialist', 'document-manager']
+            allowedRoles: ['department_admin', 'supervisor', 'archive_officer', 'employee', 'viewer']
         },
         stats: {
             totalUsers: 0,
@@ -44,7 +44,7 @@ const departments = [
             requireInvite: false,
             autoApprove: false,
             maxUsers: 30,
-            allowedRoles: ['legal-officer', 'legal-specialist', 'contract-manager']
+            allowedRoles: ['department_admin', 'supervisor', 'employee', 'viewer']
         },
         stats: {
             totalUsers: 0,
@@ -63,7 +63,7 @@ const departments = [
             requireInvite: false,
             autoApprove: false,
             maxUsers: 25,
-            allowedRoles: ['compliance-officer', 'governance-specialist', 'risk-manager']
+            allowedRoles: ['department_admin', 'supervisor', 'employee', 'viewer']
         },
         stats: {
             totalUsers: 0,
@@ -82,7 +82,7 @@ const departments = [
             requireInvite: false,
             autoApprove: false,
             maxUsers: 40,
-            allowedRoles: ['collection-officer', 'collection-specialist', 'recovery-manager']
+            allowedRoles: ['department_admin', 'supervisor', 'employee', 'viewer']
         },
         stats: {
             totalUsers: 0,
@@ -101,7 +101,7 @@ const departments = [
             requireInvite: false,
             autoApprove: false,
             maxUsers: 20,
-            allowedRoles: ['securitization-officer', 'asset-manager', 'financial-analyst']
+            allowedRoles: ['department_admin', 'supervisor', 'employee', 'viewer']
         },
         stats: {
             totalUsers: 0,
@@ -120,7 +120,7 @@ const departments = [
             requireInvite: false,
             autoApprove: false,
             maxUsers: 15,
-            allowedRoles: ['hr-officer', 'hr-specialist', 'recruitment-manager']
+            allowedRoles: ['department_admin', 'supervisor', 'employee', 'viewer']
         },
         stats: {
             totalUsers: 0,
@@ -139,7 +139,7 @@ const departments = [
             requireInvite: false,
             autoApprove: false,
             maxUsers: 25,
-            allowedRoles: ['it-officer', 'system-admin', 'developer']
+            allowedRoles: ['department_admin', 'supervisor', 'employee', 'viewer']
         },
         stats: {
             totalUsers: 0,
@@ -150,96 +150,37 @@ const departments = [
     }
 ];
 
-// إعداد أدوار الإدارات
+// قوالب الأدوار العامة. role يحدد مستوى الصلاحية فقط، و departmentId يحدد النطاق.
 const departmentRoles = {
-    // أدوار الأرشيف
-    'archive-admin': {
-        name: 'مدير إدارة الأرشيف',
-        nameEn: 'Archive Department Manager',
-        department: 'archive',
-        level: 'admin',
-        permissions: ['manage_department_users', 'approve_users', 'assign_roles', 'view_department_reports']
+    department_admin: {
+        name: 'مدير إدارة',
+        nameEn: 'Department Admin',
+        level: 'department_admin',
+        permissions: ['manage_department_users', 'approve_users', 'view_department_reports']
     },
-    'archive-officer': {
+    supervisor: {
+        name: 'مشرف',
+        nameEn: 'Supervisor',
+        level: 'supervisor',
+        permissions: ['view_department_documents', 'review_department_activity']
+    },
+    archive_officer: {
         name: 'موظف أرشيف',
         nameEn: 'Archive Officer',
-        department: 'archive',
-        level: 'officer',
-        permissions: ['upload_documents', 'edit_documents', 'view_documents', 'search_archive']
+        level: 'archive_officer',
+        permissions: ['upload_documents', 'edit_documents', 'view_documents', 'search_archive', 'transfer_files']
     },
-    'archive-specialist': {
-        name: 'أخصائي أرشيف',
-        nameEn: 'Archive Specialist',
-        department: 'archive',
-        level: 'specialist',
-        permissions: ['upload_documents', 'edit_documents', 'view_documents', 'search_archive', 'classify_documents']
+    employee: {
+        name: 'موظف',
+        nameEn: 'Employee',
+        level: 'employee',
+        permissions: ['view_department_documents', 'upload_department_documents']
     },
-    'document-manager': {
-        name: 'مدير الوثائق',
-        nameEn: 'Document Manager',
-        department: 'archive',
-        level: 'manager',
-        permissions: ['upload_documents', 'edit_documents', 'view_documents', 'search_archive', 'classify_documents', 'approve_documents']
-    },
-
-    // أدوار قانونية
-    'legal-admin': {
-        name: 'مدير الشؤون القانونية',
-        nameEn: 'Legal Affairs Manager',
-        department: 'legal',
-        level: 'admin',
-        permissions: ['manage_department_users', 'approve_users', 'assign_roles', 'view_department_reports']
-    },
-    'legal-officer': {
-        name: 'موظف قانوني',
-        nameEn: 'Legal Officer',
-        department: 'legal',
-        level: 'officer',
-        permissions: ['view_legal_documents', 'create_contracts', 'review_cases']
-    },
-    'legal-specialist': {
-        name: 'أخصائي قانوني',
-        nameEn: 'Legal Specialist',
-        department: 'legal',
-        level: 'specialist',
-        permissions: ['view_legal_documents', 'create_contracts', 'review_cases', 'legal_consultation']
-    },
-    'contract-manager': {
-        name: 'مدير العقود',
-        nameEn: 'Contract Manager',
-        department: 'legal',
-        level: 'manager',
-        permissions: ['view_legal_documents', 'create_contracts', 'review_cases', 'legal_consultation', 'approve_contracts']
-    },
-
-    // أدوار الحوكمة
-    'governance-admin': {
-        name: 'مدير الحوكمة والامتثال',
-        nameEn: 'Governance & Compliance Manager',
-        department: 'governance',
-        level: 'admin',
-        permissions: ['manage_department_users', 'approve_users', 'assign_roles', 'view_department_reports']
-    },
-    'compliance-officer': {
-        name: 'موظف امتثال',
-        nameEn: 'Compliance Officer',
-        department: 'governance',
-        level: 'officer',
-        permissions: ['monitor_compliance', 'create_reports', 'audit_processes']
-    },
-    'governance-specialist': {
-        name: 'أخصائي حوكمة',
-        nameEn: 'Governance Specialist',
-        department: 'governance',
-        level: 'specialist',
-        permissions: ['monitor_compliance', 'create_reports', 'audit_processes', 'policy_review']
-    },
-    'risk-manager': {
-        name: 'مدير المخاطر',
-        nameEn: 'Risk Manager',
-        department: 'governance',
-        level: 'manager',
-        permissions: ['monitor_compliance', 'create_reports', 'audit_processes', 'policy_review', 'risk_assessment']
+    viewer: {
+        name: 'مستعرض',
+        nameEn: 'Viewer',
+        level: 'viewer',
+        permissions: ['view_department_documents']
     }
 };
 

@@ -32,7 +32,7 @@ const existingUsers = [
     {
         email: 'khaled.mokhtar@aman.eg',
         displayName: 'Khaled Mokhtar',
-        role: 'archive-officer',
+        role: 'archive_officer',
         department: 'archive',
         arabicName: 'خالد مختار',
         phone: '+966500000001',
@@ -41,7 +41,7 @@ const existingUsers = [
     {
         email: 'kareem.kotb@aman.eg',
         displayName: 'kareem kotb',
-        role: 'legal-officer',
+        role: 'employee',
         department: 'legal',
         arabicName: 'كريم قطب',
         phone: '+966500000002',
@@ -50,7 +50,7 @@ const existingUsers = [
     {
         email: 'mahmoud.eltawil@aman.eg',
         displayName: 'Mahmoud Ashour',
-        role: 'collection-officer',
+        role: 'employee',
         department: 'collection',
         arabicName: 'محمود عاشور',
         phone: '+966500000003',
@@ -60,7 +60,7 @@ const existingUsers = [
         email: 'user@archive-tech.com',
         displayName: 'مستخدم عادي',
         role: 'viewer',
-        department: 'عام',
+        department: 'admin',
         arabicName: 'مستخدم عادي',
         phone: '+966500000004',
         isActive: true
@@ -68,7 +68,7 @@ const existingUsers = [
     {
         email: 'officer@archive-tech.com',
         displayName: 'موظف أرشيف',
-        role: 'archive-officer',
+        role: 'archive_officer',
         department: 'archive',
         arabicName: 'موظف أرشيف',
         phone: '+966500000005',
@@ -143,6 +143,7 @@ async function addUsersToDatabase() {
             // تعيين Custom Claims
             const customClaims = {
                 role: userData.role,
+                departmentId: userData.department,
                 department: userData.department
             };
             await admin.auth().setCustomUserClaims(authUser.uid, customClaims);

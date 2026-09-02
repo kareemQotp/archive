@@ -6,6 +6,9 @@
  * - شريط علوي موحد يتفاعل مع حالة المصادقة
  */
 (function () {
+    window.__UNIFIED_SIDEBAR_ACTIVE__ = true;
+    window.__LEGACY_SIDEBAR_DISABLED__ = true;
+
     class UnifiedUITemplate {
         constructor() {
             this.currentPage = this.getCurrentPageName();
@@ -24,6 +27,7 @@
                 this.renderNavbar();
                 this.renderSidebar();
                 this.enforcePageAccessGuard();
+                this.installSidebarCompatibilityAdapter();
                 this.setupEventListeners();
                 this.bindAuthEvents();
                 this.applyConsistentStyling();
@@ -155,6 +159,15 @@
                         el.parentNode && el.parentNode.removeChild(el);
                     }
                 });
+                const legacyNavbarFragments = document.querySelectorAll('body > .container, body > .container-fluid');
+                legacyNavbarFragments.forEach(el => {
+                    const isLegacyNavbar =
+                        el.querySelector('#topUserInfo') ||
+                        (el.querySelector('#menuToggle') && el.querySelector('.navbar-brand'));
+                    if (isLegacyNavbar) {
+                        el.parentNode && el.parentNode.removeChild(el);
+                    }
+                });
             } catch (_) { /* ignore */ }
 
             let nav = document.getElementById('unified-navbar');
@@ -165,6 +178,7 @@
                 document.body.insertBefore(nav, document.body.firstChild);
             }
             const showMenuToggle = !(window.__HIDE_SIDEBAR__ || window.__LANDING_PAGE__);
+            const pageTitle = this.getPageTitle();
             const brandHTML = `
                 <a href="index.html" class="navbar-brand">
                     <i class="fas fa-archive me-2"></i> نظام الأرشيف
@@ -172,7 +186,10 @@
             const rightControls = this.userInfo ? `
                 <div class="d-flex align-items-center gap-2">
                     <span class="navbar-text me-3" id="userInfo">${this.getUserDisplayText()}</span>
-                    <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                    <a class="btn btn-outline-primary btn-sm" href="profile.html" title="الملف الشخصي" aria-label="الملف الشخصي">
+                        <i class="fas fa-user-circle"></i>
+                    </a>
+                    <button class="btn btn-outline-danger btn-sm" onclick="logout()" title="تسجيل الخروج" aria-label="تسجيل الخروج">
                         <i class="fas fa-sign-out-alt me-1"></i> خروج
                     </button>
                 </div>
@@ -189,8 +206,9 @@
             nav.innerHTML = `
                 <div class="container">
                     <div class="d-flex align-items-center">
-                        ${showMenuToggle ? '<button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة"><i class="fas fa-bars"></i></button>' : ''}
+                        ${showMenuToggle ? '<button class="menu-toggle me-3" id="menuToggle" title="فتح القائمة" aria-label="فتح القائمة" aria-controls="sidebar" aria-expanded="false"><i class="fas fa-bars"></i></button>' : ''}
                         ${brandHTML}
+                        ${showMenuToggle ? `<span class="navbar-page-title d-none d-md-inline-flex">${pageTitle}</span>` : ''}
                     </div>
                     <div class="navbar-nav ms-auto">
                         ${rightControls}
@@ -269,8 +287,7 @@
                 { icon: 'fas fa-envelope-open-text', title: 'الدعوات', href: 'invitations.html', page: 'invitations' },
                 { icon: 'fas fa-bell', title: 'إعدادات الإشعارات', href: 'notification-settings.html', page: 'notification-settings' },
                 { icon: 'fas fa-cog', title: 'إدارة النظام', href: 'admin-management.html', page: 'admin-management', requiresAdmin: true },
-                { icon: 'fas fa-chart-bar', title: 'إحصائيات النظام', href: 'system-analytics.html', page: 'system-analytics', requiresAdmin: true },
-                { icon: 'fas fa-vial', title: 'Smoke Matrix', href: 'admin-access-smoke.html', page: 'admin-access-smoke', requiresSuperAdmin: true }
+                { icon: 'fas fa-chart-bar', title: 'إحصائيات النظام', href: 'system-analytics.html', page: 'system-analytics', requiresAdmin: true }
             ];
         }
 
@@ -282,7 +299,7 @@
 
         isAdminRole(role) {
             const normalizedRole = this.normalizeRole(role);
-            return normalizedRole === 'admin';
+            return normalizedRole === 'admin' || normalizedRole === 'super_admin';
         }
 
         filterSidebarItems(items) {
@@ -564,20 +581,24 @@
         }
 
         normalizeRole(role) {
+            if (window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function') {
+                return window.AuthConstants.normalizeRole(role);
+            }
             if (!role) return 'viewer';
             const cleaned = String(role).trim().toLowerCase().replace(/\s+/g, '_');
             const map = {
                 admin: 'admin',
-                system_admin: 'admin',
-                super_admin: 'admin',
+                system_admin: 'super_admin',
+                super_admin: 'super_admin',
+                dept_admin: 'department_admin',
                 department_admin: 'department_admin',
                 'department-admin': 'department_admin',
                 manager: 'department_admin',
                 supervisor: 'supervisor',
-                user: 'employee',
+                user: 'viewer',
                 employee: 'employee',
-                archive_officer: 'employee',
-                'archive-officer': 'employee',
+                archive_officer: 'archive_officer',
+                'archive-officer': 'archive_officer',
                 viewer: 'viewer'
             };
             return map[cleaned] || cleaned;
@@ -598,6 +619,40 @@
         getUserDisplayText() {
             if (!this.userInfo) return '';
             return `<i class="fas fa-user me-1"></i>${this.userInfo.displayName || this.userInfo.email || 'مستخدم'}`;
+        }
+
+        getPageTitle() {
+            const titles = {
+                index: 'الصفحة الرئيسية',
+                dashboard: 'لوحة التحكم',
+                'archive-dashboard': 'إدارة الأرشيف',
+                'collection-dashboard': 'إدارة التحصيل',
+                'legal-dashboard': 'الشؤون القانونية',
+                'governance-dashboard': 'الحوكمة والامتثال',
+                'securitization-dashboard': 'التوريق',
+                'it-dashboard': 'تقنية المعلومات',
+                'file-management-dashboard': 'إدارة الملفات',
+                'client-files': 'ملفات العملاء',
+                upload: 'رفع الملفات',
+                search: 'البحث',
+                scanner: 'ماسح الباركود',
+                'file-tracking': 'تتبع الملفات',
+                'movement-reports': 'تقارير الحركة',
+                'activity-logs': 'سجل العمليات',
+                users: 'المستخدمون',
+                'user-management': 'إدارة المستخدمين',
+                invitations: 'الدعوات',
+                'page-permissions': 'صلاحيات الصفحات',
+                'notification-settings': 'الإشعارات',
+                'system-analytics': 'إحصائيات النظام',
+                profile: 'الملف الشخصي',
+                'qr-generator': 'رموز QR',
+                'archive-reports': 'تقارير الأرشيف',
+                classification: 'التصنيف',
+                'storage-management': 'إدارة التخزين',
+                'admin-management': 'إدارة النظام'
+            };
+            return titles[this.currentPage] || document.title.replace(/\s*-\s*نظام الأرشيف\s*/g, '').trim() || 'نظام الأرشيف';
         }
 
         getUserInfoSection() {
@@ -633,8 +688,10 @@
             const normalizedRole = this.normalizeRole(role);
             const roleTexts = {
                 admin: 'مدير النظام',
+                super_admin: 'مدير عام للنظام',
                 department_admin: 'مدير إدارة',
                 supervisor: 'مشرف',
+                archive_officer: 'موظف أرشيف',
                 employee: 'موظف',
                 viewer: 'مشاهد'
             };
@@ -675,8 +732,25 @@
                 sidebar.classList.toggle('active');
                 overlay.classList.toggle('active');
                 document.body.classList.toggle('sidebar-open');
+                this.setSidebarToggleExpanded(willOpen);
                 try { sidebar.setAttribute('aria-hidden', willOpen ? 'false' : 'true'); } catch (_) {}
             }
+        }
+
+        openSidebar() {
+            const sidebar = document.querySelector('#sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            const isMobile = window.matchMedia('(max-width: 991.98px)').matches;
+            if (!sidebar) return;
+            if (!isMobile) {
+                this.setupFixedSidebarMode();
+                return;
+            }
+            sidebar.classList.add('active');
+            if (overlay) overlay.classList.add('active');
+            document.body.classList.add('sidebar-open');
+            this.setSidebarToggleExpanded(true);
+            try { sidebar.setAttribute('aria-hidden', 'false'); } catch (_) {}
         }
 
         closeSidebar() {
@@ -686,8 +760,66 @@
                 sidebar.classList.remove('active');
                 overlay.classList.remove('active');
                 document.body.classList.remove('sidebar-open');
+                this.setSidebarToggleExpanded(false);
                 try { sidebar.setAttribute('aria-hidden', 'true'); } catch (_) {}
             }
+        }
+
+        filterSidebarNavigation(searchTerm = '') {
+            const query = String(searchTerm || '').trim().toLowerCase();
+            document.querySelectorAll('#sidebar .sidebar-item').forEach(item => {
+                const text = (item.textContent || '').trim().toLowerCase();
+                item.hidden = !!query && !text.includes(query);
+            });
+            document.querySelectorAll('#sidebar .sidebar-separator').forEach(separator => {
+                const nextItems = [];
+                let node = separator.nextElementSibling;
+                while (node && !node.classList.contains('sidebar-separator')) {
+                    if (node.classList.contains('sidebar-item')) nextItems.push(node);
+                    node = node.nextElementSibling;
+                }
+                separator.hidden = nextItems.length > 0 && nextItems.every(item => item.hidden);
+            });
+        }
+
+        installSidebarCompatibilityAdapter() {
+            const template = this;
+            const adapter = {
+                init: async () => {
+                    await template.updateSidebar();
+                    return true;
+                },
+                toggleSidebar: () => template.toggleSidebar(),
+                showSidebar: () => template.openSidebar(),
+                hideSidebar: () => template.closeSidebar(),
+                closeSidebar: () => template.closeSidebar(),
+                handleResize: () => template.setupFixedSidebarMode(),
+                filterNavigation: (searchTerm) => template.filterSidebarNavigation(searchTerm),
+                updateSidebarNav: async () => {
+                    await template.loadUserInfo(true);
+                    template.renderSidebar();
+                    template.setupFixedSidebarMode();
+                    return true;
+                },
+                updateUserInfo: async () => {
+                    await template.loadUserInfo(true);
+                    template.renderNavbar();
+                    template.renderSidebar();
+                    template.setupFixedSidebarMode();
+                    return true;
+                }
+            };
+            window.sidebarManager = adapter;
+            window.SidebarManager = function UnifiedSidebarManagerAdapter() {
+                return adapter;
+            };
+        }
+
+        setSidebarToggleExpanded(isExpanded) {
+            document.querySelectorAll('#menuToggle, #sidebarToggle, .sidebar-toggle').forEach(toggle => {
+                toggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+                toggle.setAttribute('aria-controls', 'sidebar');
+            });
         }
 
         setupFixedSidebarMode() {
@@ -700,47 +832,64 @@
             }
             if (isDesktop) {
                 document.body.classList.add('with-fixed-sidebar');
-                if (sidebar) { try { sidebar.setAttribute('aria-hidden', 'false'); } catch (_) {} }
+                document.body.classList.remove('sidebar-open');
+                const overlay = document.querySelector('.sidebar-overlay');
+                if (overlay) overlay.classList.remove('active');
+                this.setSidebarToggleExpanded(false);
+                if (sidebar) {
+                    sidebar.classList.remove('active');
+                    try { sidebar.setAttribute('aria-hidden', 'false'); } catch (_) {}
+                }
             } else {
                 document.body.classList.remove('with-fixed-sidebar');
                 if (sidebar) { const visible = sidebar.classList.contains('active'); try { sidebar.setAttribute('aria-hidden', visible ? 'false' : 'true'); } catch (_) {} }
             }
         }
 
-        applyConsistentStyling() { if (!document.querySelector('#unified-ui-styles')) this.injectUnifiedStyles(); }
+        applyConsistentStyling() {
+            this.ensureDesignSystemStylesheet();
+            if (!document.querySelector('#unified-ui-styles')) this.injectUnifiedStyles();
+        }
+
+        ensureDesignSystemStylesheet() {
+            try {
+                if (document.querySelector('link[href*="archive-design-system.css"]')) return;
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'assets/css/archive-design-system.css';
+                link.setAttribute('data-unified-ui', 'design-system');
+                document.head.appendChild(link);
+            } catch (_) {}
+        }
 
         injectUnifiedStyles() {
             const styles = document.createElement('style');
             styles.id = 'unified-ui-styles';
             styles.textContent = `
-                .navbar { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1100; min-height: 56px; }
-                .navbar-brand { font-weight: 700; font-size: 1.3rem; color: var(--primary, #007bff); text-decoration: none; }
-                .navbar > .container { max-width: 1260px; margin: 0 auto; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-                .navbar .navbar-nav { display:flex; align-items:center; gap:12px; }
-                .navbar .navbar-text { color: var(--text-primary, #003566); font-weight:600; }
-                .menu-toggle { background: none; border: none; font-size: 1.2rem; color: var(--primary, #007bff); cursor: pointer; padding: .5rem; border-radius: 8px; transition: all .3s ease; }
-                .menu-toggle:hover { background: rgba(0,123,255,.1); transform: scale(1.05); }
-                .sidebar { position: fixed; right: 0; top: 0; width: 280px; height: 100vh; background: #fff; box-shadow: -2px 0 10px rgba(0,0,0,0.1); z-index: 1050; overflow-y: auto; }
-                .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1040; opacity: 0; visibility: hidden; transition: all .3s ease; }
-                .sidebar-overlay.active { opacity: 1; visibility: visible; }
-                .sidebar-header { padding: 1.5rem; border-bottom: 1px solid #e9ecef; background: linear-gradient(135deg, var(--primary, #007bff) 0%, var(--secondary, #6f42c1) 100%); color: #fff; display: flex; justify-content: space-between; align-items: center; }
-                .sidebar-header .logo { width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-                .sidebar-close { background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; padding: .5rem; border-radius: 4px; transition: background .3s ease; }
-                .sidebar-close:hover { background: rgba(255,255,255,0.1); }
-                .user-info { padding: 1rem 1.5rem; border-bottom: 1px solid #e9ecef; background: #f8f9fa; }
-                .user-avatar { width: 40px; height: 40px; background: var(--primary, #007bff); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; }
-                .user-name { font-weight: 600; font-size: .9rem; color: #333; }
-                .user-role { font-size: .8rem; color: #666; }
-                .sidebar-nav { padding: 1rem 0; }
-                .sidebar-item { display: flex; align-items: center; padding: .8rem 1.5rem; color: #333; text-decoration: none; transition: all .3s ease; border-right: 3px solid transparent; }
-                .sidebar-item:hover { background: #f8f9fa; color: var(--primary, #007bff); text-decoration: none; }
-                .sidebar-item.active { background: rgba(0,123,255,.1); color: var(--primary, #007bff); border-right-color: var(--primary, #007bff); font-weight: 600; }
-                .sidebar-item i { width: 20px; margin-left: .8rem; text-align: center; }
-                .sidebar-separator { padding: 1rem 1.5rem .5rem; font-size: .8rem; font-weight: 600; color: #666; text-transform: uppercase; border-bottom: 1px solid #e9ecef; margin-bottom: .5rem; }
-                .sidebar-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 1rem; border-top: 1px solid #e9ecef; background: #f8f9fa; }
-                body.with-fixed-sidebar { padding-right: 280px; }
-                @media (max-width: 991.98px) { body.with-fixed-sidebar { padding-right: 0; } .sidebar { right: -250px; width: 250px; transition: right .3s ease; } .sidebar.active { right: 0; } .navbar-brand { font-size: 1.1rem; } .menu-toggle { font-size: 1.1rem; } }
                 body.sidebar-open { overflow: hidden; }
+                body.with-fixed-sidebar { padding-right: var(--sidebar-width, 288px); }
+                body.with-fixed-sidebar .main-content,
+                body.with-fixed-sidebar .main-container,
+                body.with-fixed-sidebar .container-main,
+                body.with-fixed-sidebar .content,
+                body.with-fixed-sidebar #mainContent,
+                body.with-fixed-sidebar #main-content {
+                    margin-inline-start: auto !important;
+                    margin-inline-end: auto !important;
+                }
+                .sidebar[aria-hidden="true"] { visibility: hidden; }
+                .sidebar[aria-hidden="false"] { visibility: visible; }
+                @media (min-width: 992px) {
+                    body.with-fixed-sidebar .sidebar { right: 0; }
+                    body.with-fixed-sidebar .sidebar[aria-hidden="true"] { visibility: visible; }
+                    body.with-fixed-sidebar .sidebar-close,
+                    body.with-fixed-sidebar .sidebar-overlay { display: none !important; }
+                }
+                @media (max-width: 991.98px) {
+                    body.with-fixed-sidebar { padding-right: 0; }
+                    .sidebar { right: calc(-1 * var(--sidebar-width, 288px)); transition: right .24s ease; }
+                    .sidebar.active { right: 0; }
+                }
             `;
             document.head.appendChild(styles);
         }

@@ -715,40 +715,15 @@
 
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar" aria-label="القائمة الجانبية">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-archive"></i>
-                <span>نظام الأرشيف</span>
-            </div>
-            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="user-info" id="userInfo">
-            <!-- سيتم ملؤها بـ JavaScript -->
-        </div>
-        
-        <nav class="sidebar-nav" id="sidebarNav">
-            <!-- سيتم ملؤها بـ JavaScript -->
-        </nav>
-    </aside>
-
-    <div class="overlay" id="overlay" tabindex="-1" aria-hidden="true"></div>
-
     <main class="main-content">
         <div class="notification-settings-container" id="mainContent" role="main" tabindex="-1">
         <!-- رأس الصفحة مع عناصر تحكم سريعة -->
         <div class="settings-header">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <button class="btn btn-light btn-sm d-md-none" id="sidebarToggle" title="القائمة">
-                    <i class="fas fa-bars"></i>
-                </button>
                 <nav aria-label="breadcrumb" class="ms-auto">
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item"><a class="text-white-50" href="index.html">الرئيسية</a></li>
@@ -1265,6 +1240,7 @@
     
     <script src="assets/js/activity-logger.js"></script>
     <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     <script src="assets/js/sensitive-action-guard.js"></script>
     <script src="assets/js/notifications.js"></script>
@@ -1356,20 +1332,10 @@
                     permissionController = new UIPermissionController();
                 }
 
-                // Initialize sidebar manager
-                if (window.SidebarManager) {
-                    sidebarManager = new SidebarManager();
+                sidebarManager = window.sidebarManager || null;
+                if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                    await window.unifiedUI.updateSidebar();
                 }
-
-                // Hook up sidebar toggle for mobile
-                try {
-                    const toggleBtn = document.getElementById('sidebarToggle');
-                    if (toggleBtn && window.sidebarManager && typeof window.sidebarManager.toggleSidebar === 'function') {
-                        toggleBtn.addEventListener('click', () => window.sidebarManager.toggleSidebar());
-                    } else if (toggleBtn) {
-                        toggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
-                    }
-                } catch (_) {}
 
                 // Set up authentication state listener
                 unifiedAuth.onAuthStateChanged(handleAuthStateChange);
@@ -1410,7 +1376,7 @@
                             timestamp: new Date().toISOString()
                         });
                     }
-                    window.location.href = 'login.html?redirect=notification-settings.html&message=session-expired';
+                    window.location.href = 'login.html?redirect=notification-settings.html&message=unauthorized';
                     return;
                 }
 

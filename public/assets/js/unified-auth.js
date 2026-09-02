@@ -24,18 +24,28 @@ class UnifiedAuth {
         this.isInitialized = false;
 
         this.roleAliases = {
-            admin: 'super_admin',
+            admin: 'admin',
             system_admin: 'super_admin',
             super_admin: 'super_admin',
             'department-admin': 'department_admin',
             department_admin: 'department_admin',
-            manager: 'supervisor',
+            dept_admin: 'department_admin',
+            manager: 'department_admin',
             department_head: 'supervisor',
             supervisor: 'supervisor',
-            user: 'employee',
+            user: 'viewer',
             employee: 'employee',
-            archive_officer: 'employee',
-            'archive-officer': 'employee',
+            archive_officer: 'archive_officer',
+            'archive-officer': 'archive_officer',
+            legal: 'employee',
+            legal_officer: 'employee',
+            collection: 'employee',
+            collection_officer: 'employee',
+            governance: 'employee',
+            securitization: 'employee',
+            securitization_user: 'employee',
+            bank: 'employee',
+            bank_user: 'employee',
             viewer: 'viewer'
         };
 
@@ -50,7 +60,12 @@ class UnifiedAuth {
             'قانونية': 'legal',
             'الشؤون القانونية': 'legal',
             collection: 'collection',
-            'التحصيل': 'collection'
+            'التحصيل': 'collection',
+            governance: 'governance',
+            'الحوكمة': 'governance',
+            securitization: 'securitization',
+            'التوريق': 'securitization',
+            bank: 'bank'
         };
         
         // Event listeners for auth state changes
@@ -233,20 +248,14 @@ class UnifiedAuth {
 
     async loadUserProfile(uid) {
         try {
-            // Check if this is an admin email first
-            const isAdminEmail = this.currentUser.email && (
-                this.currentUser.email.includes('admin') || 
-                this.currentUser.email === 'admin123@aman.eg' ||
-                this.currentUser.email === 'admin@aman.eg'
-            );
-            
             if (!window.db) {
                 console.log('Firestore not available, using basic profile');
                 this.userProfile = {
                     uid: uid,
                     email: this.currentUser.email,
-                    role: isAdminEmail ? 'admin' : 'viewer',
-                    department: 'عام',
+                    role: 'viewer',
+                    department: '',
+                    departmentId: '',
                     createdAt: new Date(),
                     isActive: true
                 };
@@ -282,13 +291,9 @@ class UnifiedAuth {
 
                 this.userProfile.department = this.normalizeDepartment(this.userProfile.department || this.userProfile.departmentId || '');
                 
-                // Force admin role for admin emails even if stored differently
-                if (isAdminEmail && this.userProfile.role !== 'admin') {
-                    this.userProfile.role = 'admin';
-                    // Update in database
-                    await window.db.collection('users').doc(uid).update({ role: 'admin' });
-                    console.log('🔧 Updated role to admin for:', this.currentUser.email);
-                }
+                this.userProfile.role = this.normalizeRole(this.userProfile.role || 'viewer');
+                this.userProfile.departmentId = this.normalizeDepartment(this.userProfile.departmentId || this.userProfile.department || '');
+                this.userProfile.department = this.userProfile.departmentId;
                 
                 console.log('✅ Profile loaded:', this.userProfile.role, 'for', this.currentUser.email);
             } else {
@@ -296,8 +301,9 @@ class UnifiedAuth {
                 this.userProfile = {
                     uid: uid,
                     email: this.currentUser.email,
-                    role: isAdminEmail ? 'admin' : 'viewer',
-                    department: 'عام',
+                    role: 'viewer',
+                    department: '',
+                    departmentId: '',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     isActive: true
                 };
@@ -308,17 +314,12 @@ class UnifiedAuth {
         } catch (error) {
             console.error('فشل في تحميل ملف المستخدم:', error);
             // Fallback profile
-            const isAdminEmail = this.currentUser.email && (
-                this.currentUser.email.includes('admin') || 
-                this.currentUser.email === 'admin123@aman.eg' ||
-                this.currentUser.email === 'admin@aman.eg'
-            );
-            
             this.userProfile = {
                 uid: uid,
                 email: this.currentUser.email,
-                role: isAdminEmail ? 'admin' : 'viewer',
-                department: 'عام'
+                role: 'viewer',
+                department: '',
+                departmentId: ''
             };
             console.log('🔧 Fallback profile:', this.userProfile.role, 'for', this.currentUser.email);
         }
@@ -338,16 +339,10 @@ class UnifiedAuth {
                     'invitations.manage', 'roles.manage', 'scanner.access'
                 ],
                 'admin': [
-                    'users.view', 'users.create', 'users.edit', 'users.delete',
+                    'users.view', 'users.create', 'users.edit',
                     'files.view', 'files.create', 'files.edit', 'files.delete',
-                    'departments.manage', 'system.admin', 'reports.view',
-                    'invitations.manage', 'roles.manage', 'scanner.access'
-                ],
-                'system_admin': [
-                    'users.view', 'users.create', 'users.edit', 'users.delete',
-                    'files.view', 'files.create', 'files.edit', 'files.delete',
-                    'departments.manage', 'system.admin', 'reports.view',
-                    'invitations.manage', 'roles.manage', 'scanner.access'
+                    'departments.manage', 'reports.view',
+                    'invitations.manage', 'scanner.access'
                 ],
                 'department_admin': [
                     'users.view', 'users.create', 'users.edit',
@@ -368,8 +363,13 @@ class UnifiedAuth {
                     'files.view', 'files.create', 'files.edit',
                     'scanner.access'
                 ],
+                'archive_officer': [
+                    'files.view', 'files.create', 'files.edit',
+                    'transfer_files', 'receive_files', 'track_file_movements',
+                    'reports.view', 'scanner.access'
+                ],
                 'viewer': [
-                    'files.view', 'files.create', 'scanner.access'
+                    'files.view'
                 ]
             };
 
@@ -829,6 +829,9 @@ class UnifiedAuth {
     }
 
     normalizeRole(role) {
+        if (window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function') {
+            return window.AuthConstants.normalizeRole(role);
+        }
         if (!role) return 'viewer';
         const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
         return this.roleAliases[normalized] || normalized;
@@ -900,28 +903,28 @@ class UnifiedAuth {
         const currentPage = window.location.href;
         const loginUrl = new URL(redirectTo, window.location.origin);
         
-        // Add session expired message and redirect parameter
-        loginUrl.searchParams.set('message', 'session-expired');
+        // Add authentication-required message and redirect parameter
+        loginUrl.searchParams.set('message', 'unauthorized');
         loginUrl.searchParams.set('redirect', encodeURIComponent(currentPage));
         
         // Clear any existing authentication data
         localStorage.removeItem('demo_mode');
         sessionStorage.removeItem('userSession');
         
-        console.log('🔄 جلسة منتهية الصلاحية، توجيه إلى:', loginUrl.href);
+        console.log('🔄 مطلوب تسجيل الدخول، توجيه إلى:', loginUrl.href);
         window.location.href = loginUrl.href;
     }
 
     handleSessionExpiration() {
         if (window.__ALLOW_GUEST_ACCESS__) {
-            console.log('⚠️ Session expiration ignored in local smoke mode');
+            console.log('⚠️ Auth redirect ignored in local smoke mode');
             return;
         }
         console.log('⚠️ انتهت صلاحية الجلسة');
         
         // Show immediate notification if possible
         if (typeof window.showAlert === 'function') {
-            window.showAlert('انتهت صلاحية جلسة العمل. سيتم إعادة توجيهك لتسجيل الدخول.', 'warning');
+            window.showAlert('يرجى تسجيل الدخول مرة أخرى للمتابعة.', 'warning');
         }
         
         // Use timeout to allow user to see the message
@@ -1121,25 +1124,11 @@ class UnifiedAuth {
 
             // إنشاء بيانات افتراضية كحل احتياطي
             console.log('🔄 إنشاء بيانات افتراضية للمستخدم');
-            const isAdminEmail = this.currentUser.email && (
-                this.currentUser.email.includes('admin') || 
-                this.currentUser.email === 'admin123@aman.eg' ||
-                this.currentUser.email === 'admin@aman.eg'
-            );
-
             // إنشاء بيانات افتراضية بسيطة (فقط للحسابات التي لا توجد في قاعدة البيانات)
-            let department = 'عام';
+            let department = '';
             let role = 'viewer';
-            
-            // فقط للمديرين المعروفين
-            if (isAdminEmail) {
-                role = 'admin';
-                department = 'admin';
-                console.log('👑 تم تحديد: مدير النظام');
-            } else {
-                console.log('👤 تم تحديد: مستخدم عام - يجب تحديد الإدارة في قاعدة البيانات');
-                console.warn('⚠️ لم يتم العثور على بيانات المستخدم في قاعدة البيانات. يُنصح بإضافة المستخدم إلى قاعدة البيانات مع تحديد الدور والإدارة.');
-            }
+            console.log('👤 تم تحديد: مستخدم عام - يجب تحديد الإدارة في قاعدة البيانات');
+            console.warn('⚠️ لم يتم العثور على بيانات المستخدم في قاعدة البيانات. يُنصح بإضافة المستخدم إلى قاعدة البيانات مع تحديد الدور والإدارة.');
 
             this.userProfile = {
                 uid: this.currentUser.uid,

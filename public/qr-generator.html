@@ -154,6 +154,7 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
@@ -1088,7 +1089,8 @@ FILE008|خطة الطوارئ والأزمات|archive`;
                             }
                         }
                     </style>
-                </head>
+                    <link rel="stylesheet" href="assets/css/archive-design-system.css">
+</head>
                 <body>
                     <h1>نظام الأرشيف - رموز QR</h1>
                     <div class="qr-grid">
@@ -1227,7 +1229,8 @@ FILE008|خطة الطوارئ والأزمات|archive`;
                         h2 { margin-bottom: 10px; }
                         p { margin: 5px 0; }
                     </style>
-                </head>
+                    <link rel="stylesheet" href="assets/css/archive-design-system.css">
+</head>
                 <body>
                     ${content}
                 </body>
@@ -1262,6 +1265,7 @@ FILE008|خطة الطوارئ والأزمات|archive`;
     <script src="assets/js/firebase-init.js"></script>
     
     <!-- Unified Authentication System -->
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <!-- Core Systems -->
@@ -1446,10 +1450,11 @@ FILE008|خطة الطوارئ والأزمات|archive`;
                     userInfoElement.innerHTML = `<i class="fas fa-user me-1"></i> ${user.displayName || (user.email ? user.email.split('@')[0] : 'مستخدم')}`;
                 }
 
-                // تهيئة مدير الشريط الجانبي
-                if (window.SidebarManager) {
-                    sidebarManager = new SidebarManager();
-                    console.log('✅ تم تهيئة مدير الشريط الجانبي');
+                sidebarManager = window.sidebarManager || null;
+                if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                    await window.unifiedUI.updateSidebar();
+                    sidebarManager = window.sidebarManager || sidebarManager;
+                    console.log('✅ تم تحديث الشريط الجانبي الموحد');
                 }
 
                 logActivity('qr_generator_access', {
@@ -1505,10 +1510,8 @@ FILE008|خطة الطوارئ والأزمات|archive`;
                 userInfoElement.innerHTML = `<i class="fas fa-user me-1"></i> مستخدم تجريبي`;
             }
             
-            // Continue with normal initialization
-            if (window.SidebarManager) {
-                sidebarManager = new SidebarManager();
-                console.log('✅ تم تهيئة مدير الشريط الجانبي');
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                window.unifiedUI.updateSidebar();
             }
         }
         

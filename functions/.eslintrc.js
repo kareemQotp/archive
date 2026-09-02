@@ -4,6 +4,10 @@ module.exports = {
     es6: true,
     node: true,
   },
+  parserOptions: {
+    ecmaVersion: 2022,
+    sourceType: "script"
+  },
   extends: [
     "eslint:recommended",
     "google",
@@ -15,17 +19,31 @@ module.exports = {
   rules: {
     "no-restricted-globals": ["error", "name", "length"],
     "prefer-arrow-callback": "error",
+    "linebreak-style": "off",
     "quotes": ["error", "double", {"allowTemplateLiterals": true}],
-    "max-len": ["error", {"code": 120}],
+    "max-len": "off",
     "object-curly-spacing": ["error", "never"],
     "comma-dangle": ["error", "never"],
-    "no-unused-vars": ["error", {"argsIgnorePattern": "^_"}],
+    "no-unused-vars": ["error", {"argsIgnorePattern": "^_", "varsIgnorePattern": "^_"}],
+    "no-empty": ["error", {"allowEmptyCatch": true}],
     "require-jsdoc": "off",
     "valid-jsdoc": "off",
     // Enforce using constants & serverTS helper
     "local-firestore/no-raw-firestore": "error"
   },
   overrides: [
+    {
+      files: ["**/*.ts"],
+      parser: "@typescript-eslint/parser",
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: "module"
+      },
+      plugins: [
+        "@typescript-eslint",
+        "local-firestore"
+      ]
+    },
     {
       files: ["**/*.spec.*"],
       env: {

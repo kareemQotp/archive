@@ -3,24 +3,21 @@
  * نظام الأرشيف - وظائف السحابة
  */
 
-const {onCall, onRequest, HttpsError} = require('firebase-functions/v2/https');
-const {onDocumentCreated, onDocumentUpdated, onDocumentDeleted} = require('firebase-functions/v2/firestore');
-// NOTE: Reverting to legacy v1 auth user triggers because current firebase-functions version (^5.0.0) does not expose v2 auth trigger helpers (onUserCreated/onUserDeleted) in this build.
-const functions = require('firebase-functions');
+const {onDocumentCreated, onDocumentUpdated, onDocumentDeleted} = require("firebase-functions/v2/firestore");
+// Current firebase-functions v5 build does not expose v2 auth trigger helpers, so auth triggers use v1.
+const functions = require("firebase-functions");
 const {logger} = functions;
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 
 // Initialize Firebase Admin
 admin.initializeApp();
-const db = admin.firestore();
-const auth = admin.auth();
 
 // Import function modules
-const authFunctions = require('./auth');
-const firestoreFunctions = require('./firestore');
-const storageFunctions = require('./storage');
-const utilsFunctions = require('./utils');
-const adminPortalFunctions = require('./admin');
+const authFunctions = require("./auth");
+const firestoreFunctions = require("./firestore");
+const storageFunctions = require("./storage");
+const utilsFunctions = require("./utils");
+const adminPortalFunctions = require("./admin");
 
 // Authentication Functions
 exports.createUserWithRole = authFunctions.createUserWithRole;
@@ -32,11 +29,11 @@ exports.listAuthUsersSummary = authFunctions.listAuthUsersSummary;
 
 // User lifecycle triggers (legacy v1 style)
 exports.onUserCreate = functions.auth.user().onCreate((user) => {
-    return authFunctions.onUserCreate({ data: user });
+  return authFunctions.onUserCreate({data: user});
 });
 
 exports.onUserDelete = functions.auth.user().onDelete((user) => {
-    return authFunctions.onUserDelete({ data: user });
+  return authFunctions.onUserDelete({data: user});
 });
 
 // Document Management Functions
@@ -45,22 +42,22 @@ exports.generateFileNumber = firestoreFunctions.generateFileNumber;
 exports.createFileMovement = firestoreFunctions.createFileMovement;
 
 // Document triggers
-exports.onDocumentCreate = onDocumentCreated('documents/{documentId}', (event) => {
-    return firestoreFunctions.onDocumentCreate(event);
+exports.onDocumentCreate = onDocumentCreated("documents/{documentId}", (event) => {
+  return firestoreFunctions.onDocumentCreate(event);
 });
 
-exports.onDocumentUpdate = onDocumentUpdated('documents/{documentId}', (event) => {
-    return firestoreFunctions.onDocumentUpdate(event);
+exports.onDocumentUpdate = onDocumentUpdated("documents/{documentId}", (event) => {
+  return firestoreFunctions.onDocumentUpdate(event);
 });
 
-exports.onDocumentDelete = onDocumentDeleted('documents/{documentId}', (event) => {
-    return firestoreFunctions.onDocumentDelete(event);
+exports.onDocumentDelete = onDocumentDeleted("documents/{documentId}", (event) => {
+  return firestoreFunctions.onDocumentDelete(event);
 });
 
 // File movement triggers
 // File movement triggers (renamed to onFileMovementCreate for consistency)
-exports.onFileMovementCreate = onDocumentCreated('file_movements/{movementId}', (event) => {
-    return firestoreFunctions.onFileMovementCreate(event);
+exports.onFileMovementCreate = onDocumentCreated("file_movements/{movementId}", (event) => {
+  return firestoreFunctions.onFileMovementCreate(event);
 });
 
 // Storage Functions
@@ -96,11 +93,11 @@ exports.cleanupOldData = utilsFunctions.cleanupOldData;
 exports.generateDailyStats = utilsFunctions.generateDailyStats;
 
 // Error handler
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
-process.on('uncaughtException', (error) => {
-    logger.error('Uncaught Exception:', error);
-    process.exit(1);
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught Exception:", error);
+  process.exit(1);
 });

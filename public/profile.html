@@ -317,6 +317,7 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
@@ -423,6 +424,7 @@
     <script src="assets/js/firebase-init.js"></script>
     
     <!-- Unified Authentication System -->
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <!-- Core Systems -->
@@ -524,10 +526,11 @@
                 await waitForFirebaseAndAuth();
                 console.log('✅ Firebase ونظام المصادقة جاهزان');
 
-                // تهيئة مدير الشريط الجانبي
-                if (window.SidebarManager) {
-                    sidebarManager = new SidebarManager();
-                    console.log('✅ تم تهيئة مدير الشريط الجانبي');
+                sidebarManager = window.sidebarManager || null;
+                if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                    await window.unifiedUI.updateSidebar();
+                    sidebarManager = window.sidebarManager || sidebarManager;
+                    console.log('✅ تم تحديث الشريط الجانبي الموحد');
                 }
 
                 // التحقق من المصادقة مع انتظار أطول
@@ -709,64 +712,10 @@
 
         // ضمان وجود الشريط الجانبي وإنشائه عند الحاجة
         function ensureSidebar() {
-            try {
-                // إذا كان نظام الواجهة الموحد موجودًا فسيقوم بإنشائه، لكن نضيف حارسًا إضافيًا
-                let sidebar = document.getElementById('sidebar');
-                if (!sidebar) {
-                    sidebar = document.createElement('aside');
-                    sidebar.id = 'sidebar';
-                    sidebar.className = 'sidebar';
-                    try { sidebar.setAttribute('aria-hidden', 'true'); } catch(_) {}
-                    document.body.appendChild(sidebar);
-                }
-                // إذا تم إنشاء العنصر لكن بدون محتوى، اطلب من النظام الموحد إعادة الرسم
-                if (window.unifiedUI && typeof window.unifiedUI.renderSidebar === 'function' && (!sidebar.innerHTML || sidebar.innerHTML.trim() === '')) {
-                    try { window.unifiedUI.renderSidebar(); } catch(_) {}
-                }
-                if (!document.querySelector('.sidebar-overlay')) {
-                    const overlay = document.createElement('div');
-                    overlay.className = 'sidebar-overlay';
-                    overlay.id = 'sidebarOverlay';
-                    document.body.appendChild(overlay);
-                }
-                // تأكد من وجود زر الفتح ويعمل
-                const menuBtn = document.getElementById('menuToggle');
-                if (menuBtn && !menuBtn.dataset.bound) {
-                    menuBtn.dataset.bound = '1';
-                    menuBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        if (window.unifiedUI && typeof window.unifiedUI.toggleSidebar === 'function') {
-                            window.unifiedUI.toggleSidebar();
-                        } else {
-                            // Fallback: قم بالتبديل وتحديث aria-hidden لضمان الظهور
-                            const wasOpen = sidebar.classList.contains('active');
-                            sidebar.classList.toggle('active');
-                            const overlayEl = document.querySelector('.sidebar-overlay');
-                            if (overlayEl) overlayEl.classList.toggle('active');
-                            document.body.classList.toggle('sidebar-open');
-                            try { sidebar.setAttribute('aria-hidden', wasOpen ? 'true' : 'false'); } catch(_) {}
-                        }
-                    });
-                }
-
-                // معالج بديل لإغلاق القائمة عند الضغط على الخلفية في حال غياب النظام الموحد
-                const overlayEl = document.querySelector('.sidebar-overlay');
-                if (overlayEl && !overlayEl.dataset.bound) {
-                    overlayEl.dataset.bound = '1';
-                    overlayEl.addEventListener('click', () => {
-                        if (window.unifiedUI && typeof window.unifiedUI.closeSidebar === 'function') {
-                            window.unifiedUI.closeSidebar();
-                        } else if (sidebar) {
-                            sidebar.classList.remove('active');
-                            try { sidebar.setAttribute('aria-hidden', 'true'); } catch(_) {}
-                            overlayEl.classList.remove('active');
-                            document.body.classList.remove('sidebar-open');
-                        }
-                    });
-                }
-            } catch (e) {
-                console.warn('ensureSidebar() failed:', e);
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                return window.unifiedUI.updateSidebar();
             }
+            return Promise.resolve(false);
         }
 
         // Fallback binding: some async navbar re-renders can replace #menuToggle element.
@@ -979,9 +928,8 @@
                     console.warn('⚠️ تعذر مزامنة آخر تسجيل الدخول مع Firestore:', syncErr?.message || syncErr);
                 }
                 
-                // تحديث الشريط الجانبي
-                if (sidebarManager) {
-                    sidebarManager.updateSidebarNav(true, userData.role || 'viewer');
+                if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                    await window.unifiedUI.updateSidebar();
                 }
                 
                 // تحميل الإحصائيات

@@ -4,33 +4,38 @@
  */
 
 export const COLLECTIONS = {
-  USERS: 'users',
-  DOCUMENTS: 'documents',
-  FILE_MOVEMENTS: 'file_movements',
-  NOTIFICATIONS: 'notifications',
-  ACTIVITY_LOGS: 'activity_logs',
-  REPORTS: 'reports',
-  SYSTEM_BACKUPS: 'system_backups',
-  DAILY_STATS: 'daily_statistics',
-  SYSTEM_SETTINGS: 'system_settings',
-  NOTIFICATION_SETTINGS: 'notification_settings',
-  RATE_LIMITS: 'rate_limits',
-  INVITATIONS: 'invitations',
-  COUNTERS: 'counters'
+  USERS: "users",
+  DOCUMENTS: "documents",
+  FILE_MOVEMENTS: "file_movements",
+  NOTIFICATIONS: "notifications",
+  ACTIVITY_LOGS: "activity_logs",
+  REPORTS: "reports",
+  SYSTEM_BACKUPS: "system_backups",
+  DAILY_STATS: "daily_statistics",
+  SYSTEM_SETTINGS: "system_settings",
+  NOTIFICATION_SETTINGS: "notification_settings",
+  RATE_LIMITS: "rate_limits",
+  INVITATIONS: "invitations",
+  COUNTERS: "counters"
 } as const;
 
 export const ACTIVITY = {
   CATEGORY: {
-    SYSTEM: 'system',
-    SECURITY: 'security',
-    NOTIFICATIONS: 'notifications',
-    FILES: 'files'
+    SYSTEM: "system",
+    SECURITY: "security",
+    NOTIFICATIONS: "notifications",
+    FILES: "files"
   }
 } as const;
 
 export const ROLES = {
-  ADMIN: 'admin',
-  ARCHIVE_OFFICER: 'archive_officer'
+  SUPER_ADMIN: "super_admin",
+  ADMIN: "admin",
+  DEPARTMENT_ADMIN: "department_admin",
+  SUPERVISOR: "supervisor",
+  ARCHIVE_OFFICER: "archive_officer",
+  EMPLOYEE: "employee",
+  VIEWER: "viewer"
 } as const;
 
 // Default rate limits per callable (per minute)

@@ -7,7 +7,7 @@ class PagePermissionsManager {
         this.userRole = null;
         this.isLoaded = false;
         this.roleAliases = {
-            admin: 'super_admin',
+            admin: 'admin',
             system_admin: 'super_admin',
             super_admin: 'super_admin',
             manager: 'department_admin',
@@ -16,21 +16,30 @@ class PagePermissionsManager {
             department_head: 'supervisor',
             supervisor: 'supervisor',
             employee: 'employee',
-            user: 'employee',
-            archive_officer: 'employee',
-            'archive-officer': 'employee',
+            user: 'viewer',
+            archive_officer: 'archive_officer',
+            'archive-officer': 'archive_officer',
             viewer: 'viewer'
         };
-        this.canonicalRoles = ['super_admin', 'department_admin', 'supervisor', 'employee', 'viewer'];
+        this.canonicalRoles = (typeof window !== 'undefined' && window.AuthConstants && Array.isArray(window.AuthConstants.CANONICAL_ROLES))
+            ? window.AuthConstants.CANONICAL_ROLES
+            : ['super_admin', 'admin', 'department_admin', 'supervisor', 'archive_officer', 'employee', 'viewer'];
     }
 
     normalizeRole(role) {
+        if (typeof window !== 'undefined' && window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function') {
+            return window.AuthConstants.normalizeRole(role);
+        }
         if (!role) return 'viewer';
         const normalized = String(role).trim().toLowerCase().replace(/\s+/g, '_');
         return this.roleAliases[normalized] || normalized;
     }
 
     getRolePermissionKeys(role) {
+        if (typeof window !== 'undefined' && window.AuthConstants && typeof window.AuthConstants.getRolePermissionKeys === 'function') {
+            return window.AuthConstants.getRolePermissionKeys(role);
+        }
+
         const normalizedRole = this.normalizeRole(role);
         const keys = new Set([normalizedRole]);
 
@@ -45,8 +54,11 @@ class PagePermissionsManager {
         if (normalizedRole === 'employee') {
             keys.add('employee');
             keys.add('user');
-            keys.add('archive_officer');
+        }
+        if (normalizedRole === 'archive_officer') {
             keys.add('archive-officer');
+            keys.add('employee');
+            keys.add('user');
         }
 
         return Array.from(keys);
@@ -57,13 +69,10 @@ class PagePermissionsManager {
 
         Object.entries(pages || {}).forEach(([pageId, pageDef]) => {
             const sourcePermissions = (pageDef && pageDef.permissions) ? pageDef.permissions : {};
-            const canonicalPermissions = {
-                super_admin: false,
-                department_admin: false,
-                supervisor: false,
-                employee: false,
-                viewer: false
-            };
+            const canonicalPermissions = {};
+            this.canonicalRoles.forEach((role) => {
+                canonicalPermissions[role] = false;
+            });
 
             Object.entries(sourcePermissions).forEach(([roleKey, allowed]) => {
                 const normalizedRole = this.normalizeRole(roleKey);
@@ -222,7 +231,8 @@ class PagePermissionsManager {
                 description: 'إدارة حسابات المستخدمين',
                 category: 'admin',
                 permissions: {
-                    admin: true,
+                    super_admin: true,
+                    admin: false,
                     manager: false,
                     employee: false,
                     viewer: false
@@ -235,7 +245,8 @@ class PagePermissionsManager {
                 description: 'إدارة حسابات المدراء',
                 category: 'admin',
                 permissions: {
-                    admin: true,
+                    super_admin: true,
+                    admin: false,
                     manager: false,
                     employee: false,
                     viewer: false
@@ -248,7 +259,8 @@ class PagePermissionsManager {
                 description: 'إدارة أدوار وصلاحيات المستخدمين',
                 category: 'admin',
                 permissions: {
-                    admin: true,
+                    super_admin: true,
+                    admin: false,
                     manager: false,
                     employee: false,
                     viewer: false
@@ -261,7 +273,22 @@ class PagePermissionsManager {
                 description: 'إدارة صلاحيات الوصول للصفحات',
                 category: 'admin',
                 permissions: {
-                    admin: true,
+                    super_admin: true,
+                    admin: false,
+                    manager: false,
+                    employee: false,
+                    viewer: false
+                }
+            },
+            'create-admin': {
+                name: 'إنشاء مدير',
+                path: 'create-admin.html',
+                icon: 'fas fa-user-plus',
+                description: 'إنشاء حسابات إدارية جديدة',
+                category: 'admin',
+                permissions: {
+                    super_admin: true,
+                    admin: false,
                     manager: false,
                     employee: false,
                     viewer: false
@@ -502,29 +529,37 @@ class PagePermissionsManager {
 }
 
 // إنشاء مثيل عام
-const pagePermissionsManager = new PagePermissionsManager();
+const pagePermissionsManager = (typeof window !== 'undefined') ? new PagePermissionsManager() : null;
 
 // تصدير للاستخدام العام
-window.PagePermissionsManager = PagePermissionsManager;
-window.pagePermissionsManager = pagePermissionsManager;
+if (typeof window !== 'undefined') {
+    window.PagePermissionsManager = PagePermissionsManager;
+    window.pagePermissionsManager = pagePermissionsManager;
+}
 
 // دوال مساعدة للاستخدام السريع
-window.hasPageAccess = function(pageId, userRole = null) {
-    return pagePermissionsManager.hasPageAccess(pageId, userRole);
-};
+if (typeof window !== 'undefined') {
+    window.hasPageAccess = function(pageId, userRole = null) {
+        return pagePermissionsManager.hasPageAccess(pageId, userRole);
+    };
 
-window.getAvailablePages = function(userRole = null) {
-    return pagePermissionsManager.getAvailablePages(userRole);
-};
+    window.getAvailablePages = function(userRole = null) {
+        return pagePermissionsManager.getAvailablePages(userRole);
+    };
 
-window.checkPageAccess = function() {
-    return pagePermissionsManager.checkCurrentPageAccess();
-};
+    window.checkPageAccess = function() {
+        return pagePermissionsManager.checkCurrentPageAccess();
+    };
 
-// تحميل الصلاحيات عند تحميل الصفحة
-document.addEventListener('DOMContentLoaded', function() {
-    pagePermissionsManager.loadPermissions();
-});
+    // تحميل الصلاحيات عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        pagePermissionsManager.loadPermissions();
+    });
 
-// تصدير الفئة للاستخدام العام
-window.PagePermissionsManager = PagePermissionsManager;
+    // تصدير الفئة للاستخدام العام
+    window.PagePermissionsManager = PagePermissionsManager;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PagePermissionsManager;
+}

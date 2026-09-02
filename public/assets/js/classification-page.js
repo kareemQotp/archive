@@ -17,13 +17,16 @@
   const els = {};
 
   function normalizeRole(role){
+    if (window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function') {
+        return window.AuthConstants.normalizeRole(role);
+    }
     if(!role) return 'viewer';
     const normalized = String(role).trim().toLowerCase().replace(/\s+/g,'_');
     const aliases = {
-      admin:'super_admin', system_admin:'super_admin', super_admin:'super_admin',
+      admin:'admin', system_admin:'super_admin', super_admin:'super_admin',
       manager:'department_admin', 'department-admin':'department_admin', department_admin:'department_admin',
       supervisor:'supervisor', department_head:'supervisor',
-      employee:'employee', user:'employee', archive_officer:'employee', 'archive-officer':'employee',
+      employee:'employee', user:'viewer', archive_officer:'archive_officer', 'archive-officer':'archive_officer',
       viewer:'viewer'
     };
     return aliases[normalized] || normalized;

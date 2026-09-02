@@ -233,6 +233,10 @@ class UIPermissionController {
     }
 
     getRoleDisplayName(role) {
+        if (window.AuthConstants && typeof window.AuthConstants.getRoleDisplayName === 'function') {
+            return window.AuthConstants.getRoleDisplayName(role);
+        }
+
         const roleNames = {
             'admin': 'مدير النظام',
             'manager': 'مدير',

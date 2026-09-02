@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
+const AuthConstants = require('../public/assets/js/auth-constants');
 
 function parseArgs(argv) {
   const out = {};
@@ -24,24 +25,23 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv);
   const email = String(args.email || '').trim().toLowerCase();
-  const role = String(args.role || '').trim().toLowerCase();
-  const department = String(args.department || '').trim();
+  const rawRole = String(args.role || '').trim();
+  const role = AuthConstants.normalizeRole(args.role || '');
+  const department = AuthConstants.normalizeDepartment(args.department || '');
 
-  if (!email || !role) {
+  if (!email || !rawRole) {
     console.error('Missing required args: --email and --role');
     process.exit(2);
   }
 
   const allowedRoles = new Set([
     'admin',
-    'system_admin',
     'super_admin',
     'archive_officer',
     'department_admin',
-    'manager',
+    'supervisor',
     'employee',
-    'viewer',
-    'user'
+    'viewer'
   ]);
 
   if (!allowedRoles.has(role)) {
@@ -76,7 +76,10 @@ async function main() {
     role
   };
 
-  if (department) claims.department = department;
+  if (department) {
+    claims.department = department;
+    claims.departmentId = department;
+  }
 
   await auth.setCustomUserClaims(user.uid, claims);
 
@@ -87,6 +90,7 @@ async function main() {
       displayName: user.displayName || '',
       role,
       department: department || '',
+      departmentId: department || '',
       isActive: true,
       updatedAt: now,
       roleAssignedAt: now,
@@ -102,6 +106,7 @@ async function main() {
   console.log(`uid=${user.uid}`);
   console.log(`email=${user.email}`);
   console.log(`role=${role}`);
+  console.log(`departmentId=${department || ''}`);
   console.log(`projectId=${projectId}`);
 }
 

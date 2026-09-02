@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="assets/css/global-search.css">
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
@@ -188,6 +189,7 @@
 
     <!-- Unified Auth/Permissions (for consistent access control) -->
     <!-- ui-permission-controller is auto-loaded via module-manifest; avoid duplicate inclusion -->
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
         <!-- Early guard tuning: increase wait time before any redirect & mark page to defer access guard -->
         <script>
@@ -198,7 +200,7 @@
                     window.__ALLOW_GUEST_ACCESS__ = true;
                 }
             } catch (_) {}
-            // Increase guard delay (ms) to prevent premature session-expired redirect on slower connections
+            // Increase guard delay (ms) to prevent premature auth redirect on slower connections
             window.__ACCESS_GUARD_DELAY_MS__ = 6000;
             // Flag to let unified UI know to hold off enforcing guard immediately (optional future use)
             window.__DELAY_PAGE_GUARD__ = true;

@@ -266,15 +266,11 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
-    <!-- Skip Link for Accessibility -->
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
-    
-    <!-- Sidebar will be injected by unified UI template -->
-    <aside id="sidebar" class="sidebar"></aside>
-
-    <!-- Main Content -->
+    <!-- Unified navbar/sidebar are injected by unified-ui-template.js --><!-- Main Content -->
     <main id="mainContent" class="main-container" tabindex="-1" role="main">
         <!-- Alert Container -->
         <div id="alertContainer" class="mb-3"></div>
@@ -533,9 +529,9 @@
     <script src="assets/js/firebase-init.js"></script>
     
     <!-- Core Systems -->
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
-    
-    <script src="assets/js/users-sidebar-complete.js"></script>
+    <script src="assets/js/unified-ui-template.js"></script>
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/activity-logger.js"></script>
     
@@ -1227,6 +1223,5 @@
             }, 500);
         }
     </script>
-    <script src="assets/js/unified-ui-template.js"></script>
 </body>
 </html>

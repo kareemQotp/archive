@@ -44,7 +44,7 @@ setupTokenMonitoring()
 redirectToLoginWithSessionExpired()
 ```
 - **الغرض:** إعادة التوجيه مع معاملات خاصة لانتهاء الجلسة
-- **المعاملات:** `message=session-expired` و `redirect=current_page`
+- **المعاملات:** `message=unauthorized` و `redirect=current_page`
 - **التنظيف:** يزيل بيانات المصادقة المحلية
 
 ```javascript
@@ -62,8 +62,8 @@ handleSessionExpiration()
 ```javascript
 function handleUrlMessages()
 ```
-- **معالجة جديدة:** `message=session-expired`
-- **الرسالة:** "انتهت صلاحية جلسة العمل. يرجى تسجيل الدخول مرة أخرى للمتابعة."
+- **معالجة جديدة:** `message=unauthorized`
+- **الرسالة:** "يجب تسجيل الدخول للوصول إلى هذه الصفحة."
 - **السلوك:** تنظيف بيانات المصادقة وتركيز حقل البريد الإلكتروني
 - **معالجة إضافية:** `unauthorized`, `account-disabled`
 
@@ -164,8 +164,8 @@ async function handleFirebaseOperation() {
 ### السيناريو 3: الدخول المباشر مع انتهاء الجلسة
 ```
 https://archive-system.com/upload.html
-↓ (جلسة منتهية)
-https://archive-system.com/login.html?message=session-expired&redirect=upload.html
+↓ (مطلوب تسجيل الدخول)
+https://archive-system.com/login.html?message=unauthorized&redirect=upload.html
 ↓ (بعد تسجيل الدخول)
 https://archive-system.com/upload.html
 ```
@@ -208,7 +208,7 @@ window.unifiedAuth.redirectToLoginWithSessionExpired();
 ⚠️ Token validation failed: [error details]
 🔄 Handling token expiration...
 ⚠️ انتهت صلاحية الجلسة
-🔄 جلسة منتهية الصلاحية، توجيه إلى: [login URL]
+🔄 مطلوب تسجيل الدخول، توجيه إلى: [login URL]
 ```
 
 ### التتبع في الأنشطة (Activity Logging)
@@ -252,7 +252,7 @@ const checkInterval = 15 * 60 * 1000; // 15 دقيقة بدلاً من 30
 
 ```javascript
 // في handleUrlMessages() في login.html
-if (message === 'session-expired') {
+if (message === 'unauthorized') {
     showAlert('رسالة مخصصة لانتهاء الجلسة', 'warning');
 }
 ```

@@ -481,6 +481,7 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body class="auth-page">
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
@@ -576,6 +577,7 @@
     <!-- Firebase Configuration -->
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-init.js"></script>
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <!-- Role-Based Routing System -->
@@ -794,22 +796,7 @@
                 console.log('تم حفظ رابط التوجيه:', decodeURIComponent(redirect));
             }
             
-            if (message === 'session-expired') {
-                showAlert('انتهت صلاحية جلسة العمل. يرجى تسجيل الدخول مرة أخرى للمتابعة.', 'warning');
-                // Clear any existing authentication data
-                localStorage.removeItem('demo_mode');
-                sessionStorage.removeItem('userSession');
-                // Clear URL parameters
-                window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // Focus on email field for quick re-login
-                setTimeout(() => {
-                    const emailField = document.getElementById('email');
-                    if (emailField) {
-                        emailField.focus();
-                    }
-                }, 500);
-            } else if (message === 'password-reset-success') {
+            if (message === 'password-reset-success') {
                 showAlert('تم تغيير كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة', 'success');
                 window.history.replaceState({}, document.title, window.location.pathname);
             } else if (message === 'registration-pending') {

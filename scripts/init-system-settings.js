@@ -51,8 +51,67 @@ async function main() {
 
   await db.collection('system_settings').doc('admin_portal_config').set(adminPortalConfig, { merge: true });
 
+  const allOperational = {
+    super_admin: true,
+    admin: true,
+    department_admin: true,
+    supervisor: true,
+    archive_officer: true,
+    employee: true,
+    viewer: false
+  };
+  const readOnly = {
+    super_admin: true,
+    admin: true,
+    department_admin: true,
+    supervisor: true,
+    archive_officer: true,
+    employee: true,
+    viewer: true
+  };
+  const superAdminOnly = {
+    super_admin: true,
+    admin: false,
+    department_admin: false,
+    supervisor: false,
+    archive_officer: false,
+    employee: false,
+    viewer: false
+  };
+
   const pagePermissions = {
-    pages: {},
+    pages: {
+      dashboard: { path: 'dashboard.html', permissions: readOnly },
+      search: { path: 'search.html', permissions: readOnly },
+      profile: { path: 'profile.html', permissions: readOnly },
+      'file-tracking': { path: 'file-tracking.html', permissions: readOnly },
+      upload: { path: 'upload.html', permissions: allOperational },
+      scanner: { path: 'scanner.html', permissions: allOperational },
+      'file-management': { path: 'file-management-dashboard.html', permissions: allOperational },
+      'file-management-dashboard': { path: 'file-management-dashboard.html', permissions: allOperational },
+      'qr-generator': { path: 'qr-generator.html', permissions: allOperational },
+      'movement-reports': {
+        path: 'movement-reports.html',
+        permissions: { ...allOperational, archive_officer: false, employee: false, viewer: false }
+      },
+      'system-analytics': {
+        path: 'system-analytics.html',
+        permissions: { ...allOperational, supervisor: false, archive_officer: false, employee: false, viewer: false }
+      },
+      invitations: {
+        path: 'invitations.html',
+        permissions: { ...allOperational, supervisor: false, archive_officer: false, employee: false, viewer: false }
+      },
+      'department-management': {
+        path: 'department-management.html',
+        permissions: { ...superAdminOnly, admin: true }
+      },
+      'user-management': { path: 'user-management.html', permissions: superAdminOnly },
+      'admin-management': { path: 'admin-management.html', permissions: superAdminOnly },
+      'page-permissions': { path: 'page-permissions.html', permissions: superAdminOnly },
+      'role-manager': { path: 'role-manager.html', permissions: superAdminOnly },
+      'create-admin': { path: 'create-admin.html', permissions: superAdminOnly }
+    },
     departments: {},
     updatedAt: now,
     updatedBy: 'script:init-system-settings'

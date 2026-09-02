@@ -153,6 +153,7 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
@@ -327,6 +328,7 @@
     <script src="assets/js/firebase-init.js"></script>
     
     <!-- Enhanced System Components -->
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     <script src="assets/js/activity-logger.js"></script>
     <script src="assets/js/ui-permission-controller.js"></script>
@@ -441,10 +443,16 @@
                 }
 
                 currentUser = userData;
-                const userDepartment = currentUser.department || currentUser.departmentId;
-                const userRole = currentUser.role;
-                const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin';
-                const isLegalOfficer = userRole === 'legal-officer' || userRole === 'legal_officer';
+                const normalizeRole = window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function'
+                    ? window.AuthConstants.normalizeRole.bind(window.AuthConstants)
+                    : role => (role || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
+                const normalizeDepartment = window.AuthConstants && typeof window.AuthConstants.normalizeDepartment === 'function'
+                    ? window.AuthConstants.normalizeDepartment.bind(window.AuthConstants)
+                    : dept => (dept || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
+                const userDepartment = normalizeDepartment(currentUser.departmentId || currentUser.department);
+                const userRole = normalizeRole(currentUser.role);
+                const isSystemAdmin = userRole === 'super_admin' || userRole === 'admin';
+                const isLegalOfficer = userRole === 'employee' && userDepartment === 'legal';
 
                 console.log('� فحص صلاحيات الوصول للشؤون القانونية:', {
                     userDepartment,
@@ -456,14 +464,10 @@
                 });
 
                 // فحص الصلاحية للوصول لإدارة الشؤون القانونية
-                const allowedDepartments = ['legal', 'الشؤون القانونية', 'إدارة الشؤون القانونية', 'القانونية', 'قانونية'];
-                const isLegalUser = allowedDepartments.includes(userDepartment) || 
+                const allowedDepartments = ['legal'];
+                const isLegalUser = allowedDepartments.includes(userDepartment) ||
                                    isLegalOfficer ||
-                                   isSystemAdmin ||
-                                   userRole === 'admin' || 
-                                   currentUser.email === 'admin123@example.com' ||
-                                   currentUser.email === 'admin123@aman.eg' ||
-                                   currentUser.email?.includes('admin');
+                                   isSystemAdmin;
 
                 if (!isLegalUser) {
                     console.log('❌ المستخدم لا يملك صلاحية الوصول للشؤون القانونية، التوجيه للوحة العامة');
@@ -533,12 +537,8 @@
                     `;
                 }
 
-                // تحديث الشريط الجانبي
-                if (window.sidebarManager) {
-                    const unifiedUI = window.unifiedUITemplate;
-            if (unifiedUI) {
-                unifiedUI.updateSidebar();
-            };
+                if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                    window.unifiedUI.updateSidebar();
                 }
 
                 // تحديث واجهة المستخدم حسب الصلاحيات

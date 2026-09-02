@@ -4,6 +4,10 @@
 (function() {
     'use strict';
 
+    if (window.__UNIFIED_SIDEBAR_ACTIVE__) {
+        return;
+    }
+
     // انتظار تحميل DOM
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🔧 بدء إصلاح القائمة الجانبية لصفحة المستخدمين...');

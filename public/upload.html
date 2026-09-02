@@ -72,47 +72,10 @@
             .drop-zone-icon { font-size: 3rem; }
         }
     </style>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
-    <!-- Skip Link for Accessibility -->
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
-    
-    <!-- Sidebar -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <div class="sidebar" id="sidebar" aria-hidden="true">
-        <div class="sidebar-header">
-            <div class="d-flex align-items-center">
-                <div class="logo">
-                    <i class="fas fa-upload"></i>
-                </div>
-                <div>
-                    <h5 class="mb-0">نظام الأرشيف</h5>
-                    <small>رفع الملفات</small>
-                </div>
-            </div>
-            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة" aria-label="إغلاق القائمة">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="user-info">
-            <div class="d-flex align-items-center">
-                <div class="user-avatar" id="userAvatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div>
-                    <div class="user-name" id="userName">مستخدم</div>
-                    <div class="user-role" id="userRole">عام</div>
-                </div>
-            </div>
-        </div>
-        <nav class="sidebar-nav" id="sidebarNav" role="navigation" aria-label="القائمة الرئيسية">
-            <!-- Will be populated by UnifiedUITemplate -->
-        </nav>
-        <div class="sidebar-footer">
-            <small>نظام الأرشيف الإلكتروني v2.1</small>
-        </div>
-    </div>
-    
     <!-- Unified navbar is injected by unified-ui-template.js -->
 
     <!-- Main Content -->
@@ -437,10 +400,10 @@
     <script src="assets/js/firebase-init.js"></script>
     
     <!-- Core Systems -->
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     <!-- Unified UI Template System -->
     <script src="assets/js/unified-ui-template.js"></script>
-    <script src="assets/js/users-sidebar-complete.js"></script>
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/activity-logger.js"></script>
     <!-- Cloud Services (defines CloudFunctionService, DocumentUploadService, etc.) -->

@@ -184,6 +184,7 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
@@ -391,6 +392,7 @@
     <script src="assets/js/ui-permission-controller.js"></script>
     <script src="assets/js/session-constants.js"></script>
     <script src="assets/js/auth-guard.js"></script>
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <!-- Role-Based Routing System -->
@@ -433,7 +435,7 @@
 
             if (window.authGuard && typeof window.authGuard.requireAuth === 'function') {
                 const gate = await window.authGuard.requireAuth({
-                    redirectTo: 'login.html?message=session-expired',
+                    redirectTo: 'login.html?message=unauthorized',
                     redirectDelayMs: window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500
                 });
                 if (!gate.ok) {
@@ -461,17 +463,23 @@
                 setTimeout(() => {
                     if (!authSystem.currentUser && !window.auth?.currentUser) {
                         console.log('❌ لا يوجد مستخدم، التوجيه لتسجيل الدخول');
-                        window.location.href = 'login.html?message=session-expired';
+                        window.location.href = 'login.html?message=unauthorized';
                     }
                 }, window.sessionConstants ? window.sessionConstants.REDIRECT_DELAY_MS : 500);
                 return;
             }
 
             // Check if user belongs to Collection department or has admin privileges
-            const userDepartment = authSystem.userProfile?.department || authSystem.userProfile?.departmentId;
-            const userRole = authSystem.userProfile?.role;
-            const isSystemAdmin = userRole === 'system_admin' || userRole === 'admin' || userRole === 'super_admin';
-            const isCollectionOfficer = userRole === 'collection-officer' || userRole === 'collection_officer';
+            const normalizeRole = window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function'
+                ? window.AuthConstants.normalizeRole.bind(window.AuthConstants)
+                : role => (role || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
+            const normalizeDepartment = window.AuthConstants && typeof window.AuthConstants.normalizeDepartment === 'function'
+                ? window.AuthConstants.normalizeDepartment.bind(window.AuthConstants)
+                : dept => (dept || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
+            const userDepartment = normalizeDepartment(authSystem.userProfile?.departmentId || authSystem.userProfile?.department);
+            const userRole = normalizeRole(authSystem.userProfile?.role);
+            const isSystemAdmin = userRole === 'super_admin' || userRole === 'admin';
+            const isCollectionOfficer = userRole === 'employee' && userDepartment === 'collection';
             
             console.log('🔍 فحص صلاحيات الوصول للتحصيل:', {
                 userDepartment,
@@ -486,16 +494,10 @@
             // 1. Collection department users (by department name or ID)
             // 2. Collection officers (by role)
             // 3. System admins
-            // 4. Users with admin role
-            // 5. Admin emails
-            const hasAccess = userDepartment === 'collection' || 
-                            userDepartment === 'إدارة التحصيل' ||
-                            userDepartment === 'التحصيل' ||
-                            userDepartment === 'تحصيل' ||
+            // 4. System operators
+            const hasAccess = userDepartment === 'collection' ||
                             isCollectionOfficer ||
-                            isSystemAdmin ||
-                            userRole === 'admin' ||
-                            user.email?.includes('admin');
+                            isSystemAdmin;
             
             if (!hasAccess) {
                 console.log('❌ المستخدم لا يملك صلاحية الوصول لإدارة التحصيل، التوجيه للوحة العامة');
@@ -539,12 +541,8 @@
                 <span class="badge ${badgeClass} ms-2">${badgeText}</span>
             `;
             
-            // Update sidebar
-            if (window.sidebarManager) {
-                const unifiedUI = window.unifiedUITemplate;
-            if (unifiedUI) {
-                unifiedUI.updateSidebar();
-            };
+            if (window.unifiedUI && typeof window.unifiedUI.updateSidebar === 'function') {
+                window.unifiedUI.updateSidebar();
             }
 
             // Update permission-based UI

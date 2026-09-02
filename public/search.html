@@ -123,47 +123,11 @@
     </style>
     <script defer src="assets/js/format-utils.js"></script>
     <script defer src="assets/js/ux-core.js"></script>
+    <link rel="stylesheet" href="assets/css/archive-design-system.css">
 </head>
 <body>
     <a href="#mainContent" class="skip-link visually-hidden-focusable">تخطي إلى المحتوى الرئيسي</a>
     <!-- Unified navbar is injected by unified-ui-template.js -->
-    
-    <!-- Sidebar -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <div class="sidebar" id="sidebar" aria-hidden="true">
-        <div class="sidebar-header">
-            <div class="d-flex align-items-center">
-                <div class="logo">
-                    <i class="fas fa-search"></i>
-                </div>
-                <div>
-                    <h5 class="mb-0">نظام الأرشيف</h5>
-                    <small>البحث في الوثائق</small>
-                </div>
-            </div>
-            <button class="sidebar-close" id="sidebarClose" title="إغلاق القائمة" aria-label="إغلاق القائمة">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="user-info">
-            <div class="d-flex align-items-center">
-                <div class="user-avatar" id="userAvatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div>
-                    <div class="user-name" id="userName">مستخدم</div>
-                    <div class="user-role" id="userRole">عام</div>
-                </div>
-            </div>
-        </div>
-        <nav class="sidebar-nav" id="sidebarNav" role="navigation" aria-label="القائمة الرئيسية">
-            <!-- Will be populated by UnifiedUITemplate -->
-        </nav>
-        <div class="sidebar-footer">
-            <small>نظام الأرشيف الإلكتروني v2.1</small>
-        </div>
-    </div>
-    
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-10">
@@ -205,7 +169,7 @@
                                         <select class="form-select" id="roleFilter">
                                             <option value="">جميع الأدوار</option>
                                             <option value="legal">قانوني</option>
-                                            <option value="archive-officer">موظف أرشيف</option>
+                                            <option value="archive_officer">موظف أرشيف</option>
                                             <option value="governance">حوكمة</option>
                                             <option value="collection">تحصيل</option>
                                             <option value="admin">مدير النظام</option>
@@ -267,6 +231,7 @@
     
     <!-- Unified Authentication System -->
     <script src="assets/js/ui-permission-controller.js"></script>
+    <script src="assets/js/auth-constants.js"></script>
     <script src="assets/js/unified-auth.js"></script>
     
     <!-- Notification System -->
@@ -332,7 +297,7 @@
                 // Only redirect if not in demo mode and Firebase is properly loaded
                 const timeoutId = setTimeout(() => {
                     if (!window.firebase?.auth()?.currentUser) {
-                        window.location.href = 'login.html?message=session-expired';
+                        window.location.href = 'login.html?message=unauthorized';
                     }
                 }, 1500);
                 
@@ -457,6 +422,24 @@
             return map[d] || d;
         }
 
+        function normalizeRoleName(role) {
+            if (window.AuthConstants && typeof window.AuthConstants.normalizeRole === 'function') {
+                return window.AuthConstants.normalizeRole(role);
+            }
+            const r = (role || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
+            const map = {
+                'system_admin': 'super_admin',
+                'system-admin': 'super_admin',
+                'super-admin': 'super_admin',
+                'archive-officer': 'archive_officer',
+                'department-admin': 'department_admin',
+                'dept_admin': 'department_admin',
+                'manager': 'department_admin',
+                'user': 'viewer'
+            };
+            return map[r] || r;
+        }
+
         // دالة البحث الرئيسية
         async function performSearch(useAdvancedFilters = false) {
             const searchInput = document.getElementById('searchInput');
@@ -487,8 +470,8 @@
 
                 // Determine user department and role
                 const profile = await (typeof unifiedAuth.getCurrentUserData === 'function' ? unifiedAuth.getCurrentUserData() : unifiedAuth.userProfile);
-                const role = (typeof unifiedAuth.getCurrentUserRole === 'function' ? unifiedAuth.getCurrentUserRole() : (profile?.role || 'viewer'));
-                const isPrivileged = ['admin','system_admin','system-admin','archive_officer','archive-officer'].includes((role || '').toString());
+                const role = normalizeRoleName(typeof unifiedAuth.getCurrentUserRole === 'function' ? unifiedAuth.getCurrentUserRole() : (profile?.role || 'viewer'));
+                const isPrivileged = ['super_admin', 'admin', 'archive_officer'].includes(role);
                 const userDeptRaw = profile?.departmentId || profile?.department || '';
                 const userDept = normalizeDepartmentName(userDeptRaw);
                 if (!isPrivileged && !userDept) {

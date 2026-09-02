@@ -33,7 +33,7 @@
    - `file-tracking` فتح بواجهة كاملة بعد الدخول.
    - عند الانتقال إلى `client-files` و`movement-reports` ظهرت مؤشرات عدم ثبات الجلسة:
      - ظهور روابط `تسجيل الدخول/إنشاء حساب` في بعض الحالات.
-     - إعادة توجيه `session-expired` إلى صفحة login في `movement-reports`.
+     - إعادة توجيه إلى صفحة login في `movement-reports`.
    - رصد أخطاء متكررة من Firestore في المتصفح (`ERR_ABORTED`, `Could not reach Cloud Firestore backend`, `Missing or insufficient permissions`).
 
 ## نتيجة التنفيذ

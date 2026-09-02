@@ -20,7 +20,7 @@
         // Do not redirect; page will handle demo/guest state
         return;
       }
-      location.href='login.html?message=session-expired';
+      location.href='login.html?message=unauthorized';
       return;
     }
     const displayName = user.displayName || (user.email? user.email.split('@')[0] : 'مستخدم');

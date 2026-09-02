@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-08-30T20:33:01.934Z",
+  "totalCollections": 11,
+  "collections": [
+    {
+      "collection": "activity_logs",
+      "documentCount": 104
+    },
+    {
+      "collection": "auth_logs",
+      "documentCount": 14
+    },
+    {
+      "collection": "client_files",
+      "documentCount": 1
+    },
+    {
+      "collection": "clients",
+      "documentCount": 1
+    },
+    {
+      "collection": "daily_statistics",
+      "documentCount": 90
+    },
+    {
+      "collection": "departments",
+      "documentCount": 7
+    },
+    {
+      "collection": "documents",
+      "documentCount": 1
+    },
+    {
+      "collection": "rate_limits",
+      "documentCount": 32
+    },
+    {
+      "collection": "system",
+      "documentCount": 1
+    },
+    {
+      "collection": "system_settings",
+      "documentCount": 2
+    },
+    {
+      "collection": "users",
+      "documentCount": 8
+    }
+  ]
+}

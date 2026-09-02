@@ -26,7 +26,7 @@ async function main() {
   const email = String(getArg('--email', '')).trim().toLowerCase();
   let password = String(getArg('--password', '')).trim();
   const displayName = String(getArg('--displayName', 'System Admin')).trim();
-  const department = String(getArg('--department', 'archive')).trim();
+  const department = String(getArg('--department', 'admin')).trim();
 
   if (!serviceAccountPath || !email) {
     console.error('Missing required args: --serviceAccount, --email');
@@ -76,7 +76,8 @@ async function main() {
 
   const claims = {
     role: 'super_admin',
-    department
+    department,
+    departmentId: department
   };
   await auth.setCustomUserClaims(userRecord.uid, claims);
 
@@ -87,6 +88,7 @@ async function main() {
     displayName,
     role: 'super_admin',
     department,
+    departmentId: department,
     isActive: true,
     createdAt: now,
     updatedAt: now,

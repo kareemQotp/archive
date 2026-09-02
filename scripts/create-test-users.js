@@ -26,6 +26,7 @@ const testUsers = [
     password: 'AdminTest123!',
     displayName: 'مدير النظام',
     role: 'admin',
+    departmentId: 'it',
     department: 'تقنية المعلومات',
     phone: '+966501234567'
   },
@@ -34,6 +35,7 @@ const testUsers = [
     password: 'OfficerTest123!',
     displayName: 'موظف الأرشيف',
     role: 'archive_officer',
+    departmentId: 'archive',
     department: 'الأرشيف',
     phone: '+966501234568'
   },
@@ -41,7 +43,8 @@ const testUsers = [
     email: 'user@archive-tech.com',
     password: 'UserTest123!',
     displayName: 'مستخدم عادي',
-    role: 'user',
+    role: 'viewer',
+    departmentId: 'legal',
     department: 'الشؤون القانونية',
     phone: '+966501234569'
   }
@@ -84,6 +87,7 @@ async function createTestUsers() {
         email: userData.email,
         displayName: userData.displayName,
         role: userData.role,
+        departmentId: userData.departmentId,
         department: userData.department,
         phone: userData.phone,
         emailVerified: true,
@@ -105,6 +109,7 @@ async function createTestUsers() {
       // 3. تعيين Custom Claims للأدوار
       const customClaims = {
         role: userData.role,
+        departmentId: userData.departmentId,
         department: userData.department
       };
       await auth.setCustomUserClaims(authUser.uid, customClaims);
